@@ -1,0 +1,155 @@
+name: conexao-solidaria
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
+  rabbitmq:
+    image: rabbitmq:4-management
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  identity-api:
+    build:
+      context: .
+      dockerfile: src/ConexaoSolidaria.Identity.Api/Dockerfile
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__IdentityDb: Host=postgres;Port=5432;Database=identitydb;Username=postgres;Password=postgres
+      Jwt__Issuer: ConexaoSolidaria
+      Jwt__Audience: ConexaoSolidaria
+      Jwt__Secret: conexao-solidaria-local-dev-secret-with-64-characters
+      Jwt__ExpiresMinutes: "120"
+    ports:
+      - "5001:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  campaigns-api:
+    build:
+      context: .
+      dockerfile: src/ConexaoSolidaria.Campaigns.Api/Dockerfile
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__CampaignsDb: Host=postgres;Port=5432;Database=campaignsdb;Username=postgres;Password=postgres
+      Jwt__Issuer: ConexaoSolidaria
+      Jwt__Audience: ConexaoSolidaria
+      Jwt__Secret: conexao-solidaria-local-dev-secret-with-64-characters
+      RabbitMq__HostName: rabbitmq
+      RabbitMq__Port: "5672"
+      RabbitMq__UserName: guest
+      RabbitMq__Password: guest
+      RabbitMq__ExchangeName: conexao-solidaria
+      RabbitMq__QueueName: doacoes-recebidas
+      RabbitMq__RoutingKey: doacao.recebida
+    ports:
+      - "5002:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  donations-worker:
+    build:
+      context: .
+      dockerfile: src/ConexaoSolidaria.Donations.Worker/Dockerfile
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__CampaignsDb: Host=postgres;Port=5432;Database=campaignsdb;Username=postgres;Password=postgres
+      RabbitMq__HostName: rabbitmq
+      RabbitMq__Port: "5672"
+      RabbitMq__UserName: guest
+      RabbitMq__Password: guest
+      RabbitMq__ExchangeName: conexao-solidaria
+      RabbitMq__QueueName: doacoes-recebidas
+      RabbitMq__RoutingKey: doacao.recebida
+    ports:
+      - "5003:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    depends_on:
+      - identity-api
+      - campaigns-api
+      - donations-worker
+
+  grafana:
+    image: grafana/grafana:11.4.0
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infra/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+
+  zabbix-server:
+    image: zabbix/zabbix-server-pgsql:alpine-latest
+    environment:
+      DB_SERVER_HOST: postgres
+      POSTGRES_DB: zabbixdb
+      POSTGRES_USER: zabbix
+      POSTGRES_PASSWORD: zabbix
+    ports:
+      - "10051:10051"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  zabbix-web:
+    image: zabbix/zabbix-web-nginx-pgsql:alpine-latest
+    environment:
+      ZBX_SERVER_HOST: zabbix-server
+      DB_SERVER_HOST: postgres
+      POSTGRES_DB: zabbixdb
+      POSTGRES_USER: zabbix
+      POSTGRES_PASSWORD: zabbix
+      PHP_TZ: America/Sao_Paulo
+    ports:
+      - "8085:8080"
+    depends_on:
+      - zabbix-server
+
+volumes:
+  postgres-data:
+  grafana-data:

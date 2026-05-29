@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ConexaoSolidaria.Campaigns.Api/ConexaoSolidaria.Campaigns.Api.csproj" />
+    <Project Path="src/ConexaoSolidaria.Donations.Worker/ConexaoSolidaria.Donations.Worker.csproj" />
+    <Project Path="src/ConexaoSolidaria.Identity.Api/ConexaoSolidaria.Identity.Api.csproj" />
+    <Project Path="src/ConexaoSolidaria.Shared/ConexaoSolidaria.Shared.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ConexaoSolidaria.Tests/ConexaoSolidaria.Tests.csproj" />
+  </Folder>
+</Solution>

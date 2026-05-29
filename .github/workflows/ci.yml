@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+
+jobs:
+  build-test-and-images:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore
+        run: dotnet restore ConexaoSolidaria.slnx
+
+      - name: Build
+        run: dotnet build ConexaoSolidaria.slnx --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test ConexaoSolidaria.slnx --configuration Release --no-build --logger trx
+
+      - name: Docker build Identity API
+        run: docker build -f src/ConexaoSolidaria.Identity.Api/Dockerfile -t conexao-solidaria/identity-api:${{ github.sha }} .
+
+      - name: Docker build Campaigns API
+        run: docker build -f src/ConexaoSolidaria.Campaigns.Api/Dockerfile -t conexao-solidaria/campaigns-api:${{ github.sha }} .
+
+      - name: Docker build Donations Worker
+        run: docker build -f src/ConexaoSolidaria.Donations.Worker/Dockerfile -t conexao-solidaria/donations-worker:${{ github.sha }} .

@@ -1,0 +1,49 @@
+@identityUrl = http://localhost:5001
+@campaignsUrl = http://localhost:5002
+
+### Login gestor
+POST {{identityUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "gestor@conexaosolidaria.local",
+  "senha": "Gestor@123456"
+}
+
+### Criar doador
+POST {{identityUrl}}/api/auth/cadastro-doador
+Content-Type: application/json
+
+{
+  "nomeCompleto": "Maria Doadora",
+  "email": "maria.doadora@example.com",
+  "cpf": "390.533.447-05",
+  "senha": "Doador@123"
+}
+
+### Criar campanha
+POST {{campaignsUrl}}/api/campanhas
+Content-Type: application/json
+Authorization: Bearer {{gestorToken}}
+
+{
+  "titulo": "Natal Solidario",
+  "descricao": "Campanha para arrecadacao de brinquedos e alimentos.",
+  "dataInicio": "2026-05-24T00:00:00Z",
+  "dataFim": "2026-12-31T23:59:59Z",
+  "metaFinanceira": 10000,
+  "status": "Ativa"
+}
+
+### Enviar doacao
+POST {{campaignsUrl}}/api/doacoes
+Content-Type: application/json
+Authorization: Bearer {{doadorToken}}
+
+{
+  "idCampanha": "{{campanhaId}}",
+  "valorDoacao": 150
+}
+
+### Painel publico de transparencia
+GET {{campaignsUrl}}/api/campanhas/transparencia

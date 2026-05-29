@@ -1,0 +1,639 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: conexao-solidaria
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: conexao-solidaria-secret
+  namespace: conexao-solidaria
+type: Opaque
+stringData:
+  postgres-password: postgres
+  jwt-secret: conexao-solidaria-local-dev-secret-with-64-characters
+  rabbitmq-user: guest
+  rabbitmq-password: guest
+  zabbix-user: zabbix
+  zabbix-password: zabbix
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init
+  namespace: conexao-solidaria
+data:
+  01-create-databases.sql: |
+    CREATE DATABASE identitydb;
+    CREATE DATABASE campaignsdb;
+    CREATE DATABASE zabbixdb;
+    CREATE USER zabbix WITH PASSWORD 'zabbix';
+    GRANT ALL PRIVILEGES ON DATABASE zabbixdb TO zabbix;
+    \connect zabbixdb;
+    GRANT ALL ON SCHEMA public TO zabbix;
+    ALTER SCHEMA public OWNER TO zabbix;
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: conexao-solidaria
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_USER
+              value: postgres
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: conexao-solidaria-secret
+                  key: postgres-password
+            - name: POSTGRES_DB
+              value: postgres
+          volumeMounts:
+            - name: postgres-init
+              mountPath: /docker-entrypoint-initdb.d
+              readOnly: true
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "postgres"]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+      volumes:
+        - name: postgres-init
+          configMap:
+            name: postgres-init
+        - name: postgres-data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: conexao-solidaria
+spec:
+  selector:
+    app: postgres
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rabbitmq
+  namespace: conexao-solidaria
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rabbitmq
+  template:
+    metadata:
+      labels:
+        app: rabbitmq
+    spec:
+      containers:
+        - name: rabbitmq
+          image: rabbitmq:4-management
+          ports:
+            - containerPort: 5672
+            - containerPort: 15672
+          env:
+            - name: RABBITMQ_DEFAULT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: conexao-solidaria-secret
+                  key: rabbitmq-user
+            - name: RABBITMQ_DEFAULT_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: conexao-solidaria-secret
+                  key: rabbitmq-password
+          readinessProbe:
+            exec:
+              command: ["rabbitmq-diagnostics", "ping"]
+            initialDelaySeconds: 10
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq
+  namespace: conexao-solidaria
+spec:
+  type: NodePort
+  selector:
+    app: rabbitmq
+  ports:
+    - name: amqp
+      port: 5672
+      targetPort: 5672
+    - name: management
+      port: 15672
+      targetPort: 15672
+      nodePort: 31672
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: identity-api
+  namespace: conexao-solidaria
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: identity-api
+  template:
+    metadata:
+      labels:
+        app: identity-api
+    spec:
+      containers:
+        - name: identity-api
+          image: conexao-solidaria/identity-api:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - name: ASPNETCORE_URLS
+              value: http://+:8080
+            - name: ConnectionStrings__IdentityDb
+              value: Host=postgres;Port=5432;Database=identitydb;Username=postgres;Password=postgres
+            - name: Jwt__Issuer
+              value: ConexaoSolidaria
+            - name: Jwt__Audience
+              value: ConexaoSolidaria
+            - name: Jwt__Secret
+              valueFrom:
+                secretKeyRef:
+                  name: conexao-solidaria-secret
+                  key: jwt-secret
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: identity-api
+  namespace: conexao-solidaria
+spec:
+  type: NodePort
+  selector:
+    app: identity-api
+  ports:
+    - port: 8080
+      targetPort: 8080
+      nodePort: 30081
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: campaigns-api
+  namespace: conexao-solidaria
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: campaigns-api
+  template:
+    metadata:
+      labels:
+        app: campaigns-api
+    spec:
+      containers:
+        - name: campaigns-api
+          image: conexao-solidaria/campaigns-api:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - name: ASPNETCORE_URLS
+              value: http://+:8080
+            - name: ConnectionStrings__CampaignsDb
+              value: Host=postgres;Port=5432;Database=campaignsdb;Username=postgres;Password=postgres
+            - name: Jwt__Issuer
+              value: ConexaoSolidaria
+            - name: Jwt__Audience
+              value: ConexaoSolidaria
+            - name: Jwt__Secret
+              valueFrom:
+                secretKeyRef:
+                  name: conexao-solidaria-secret
+                  key: jwt-secret
+            - name: RabbitMq__HostName
+              value: rabbitmq
+            - name: RabbitMq__Port
+              value: "5672"
+            - name: RabbitMq__UserName
+              valueFrom:
+                secretKeyRef:
+                  name: conexao-solidaria-secret
+                  key: rabbitmq-user
+            - name: RabbitMq__Password
+              valueFrom:
+                secretKeyRef:
+                  name: conexao-solidaria-secret
+                  key: rabbitmq-password
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: campaigns-api
+  namespace: conexao-solidaria
+spec:
+  type: NodePort
+  selector:
+    app: campaigns-api
+  ports:
+    - port: 8080
+      targetPort: 8080
+      nodePort: 30082
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: donations-worker
+  namespace: conexao-solidaria
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: donations-worker
+  template:
+    metadata:
+      labels:
+        app: donations-worker
+    spec:
+      containers:
+        - name: donations-worker
+          image: conexao-solidaria/donations-worker:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - name: ASPNETCORE_URLS
+              value: http://+:8080
+            - name: ConnectionStrings__CampaignsDb
+              value: Host=postgres;Port=5432;Database=campaignsdb;Username=postgres;Password=postgres
+            - name: RabbitMq__HostName
+              value: rabbitmq
+            - name: RabbitMq__Port
+              value: "5672"
+            - name: RabbitMq__UserName
+              valueFrom:
+                secretKeyRef:
+                  name: conexao-solidaria-secret
+                  key: rabbitmq-user
+            - name: RabbitMq__Password
+              valueFrom:
+                secretKeyRef:
+                  name: conexao-solidaria-secret
+                  key: rabbitmq-password
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: donations-worker
+  namespace: conexao-solidaria
+spec:
+  type: NodePort
+  selector:
+    app: donations-worker
+  ports:
+    - port: 8080
+      targetPort: 8080
+      nodePort: 30083
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: conexao-solidaria
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 5s
+    scrape_configs:
+      - job_name: identity-api
+        metrics_path: /metrics
+        static_configs:
+          - targets: ["identity-api:8080"]
+      - job_name: campaigns-api
+        metrics_path: /metrics
+        static_configs:
+          - targets: ["campaigns-api:8080"]
+      - job_name: donations-worker
+        metrics_path: /metrics
+        static_configs:
+          - targets: ["donations-worker:8080"]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+  namespace: conexao-solidaria
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus
+  template:
+    metadata:
+      labels:
+        app: prometheus
+    spec:
+      containers:
+        - name: prometheus
+          image: prom/prometheus:v2.55.1
+          args:
+            - --config.file=/etc/prometheus/prometheus.yml
+          ports:
+            - containerPort: 9090
+          volumeMounts:
+            - name: prometheus-config
+              mountPath: /etc/prometheus/prometheus.yml
+              subPath: prometheus.yml
+      volumes:
+        - name: prometheus-config
+          configMap:
+            name: prometheus-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  namespace: conexao-solidaria
+spec:
+  type: NodePort
+  selector:
+    app: prometheus
+  ports:
+    - port: 9090
+      targetPort: 9090
+      nodePort: 30090
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-provisioning
+  namespace: conexao-solidaria
+data:
+  datasource.yml: |
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        uid: Prometheus
+        type: prometheus
+        access: proxy
+        url: http://prometheus:9090
+        isDefault: true
+        editable: true
+  dashboards.yml: |
+    apiVersion: 1
+    providers:
+      - name: Conexao Solidaria
+        orgId: 1
+        folder: Conexao Solidaria
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards
+  dashboard.json: |
+    {
+      "uid": "conexao-solidaria-k8s",
+      "title": "Conexao Solidaria - Kubernetes",
+      "schemaVersion": 39,
+      "refresh": "5s",
+      "time": { "from": "now-15m", "to": "now" },
+      "panels": [
+        {
+          "id": 1,
+          "type": "timeseries",
+          "title": "Requisicoes HTTP por segundo",
+          "gridPos": { "h": 8, "w": 16, "x": 0, "y": 0 },
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "sum(rate(http_requests_received_total[1m])) by (job)",
+              "legendFormat": "{{job}}"
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "type": "stat",
+          "title": "Doacoes processadas",
+          "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "conexao_donations_processed_total"
+            }
+          ]
+        }
+      ]
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: conexao-solidaria
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      containers:
+        - name: grafana
+          image: grafana/grafana:11.4.0
+          ports:
+            - containerPort: 3000
+          env:
+            - name: GF_SECURITY_ADMIN_USER
+              value: admin
+            - name: GF_SECURITY_ADMIN_PASSWORD
+              value: admin
+          volumeMounts:
+            - name: grafana-provisioning
+              mountPath: /etc/grafana/provisioning/datasources/datasource.yml
+              subPath: datasource.yml
+            - name: grafana-provisioning
+              mountPath: /etc/grafana/provisioning/dashboards/dashboards.yml
+              subPath: dashboards.yml
+            - name: grafana-provisioning
+              mountPath: /var/lib/grafana/dashboards/dashboard.json
+              subPath: dashboard.json
+      volumes:
+        - name: grafana-provisioning
+          configMap:
+            name: grafana-provisioning
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: conexao-solidaria
+spec:
+  type: NodePort
+  selector:
+    app: grafana
+  ports:
+    - port: 3000
+      targetPort: 3000
+      nodePort: 30300
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zabbix-server
+  namespace: conexao-solidaria
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: zabbix-server
+  template:
+    metadata:
+      labels:
+        app: zabbix-server
+    spec:
+      containers:
+        - name: zabbix-server
+          image: zabbix/zabbix-server-pgsql:alpine-latest
+          ports:
+            - containerPort: 10051
+          env:
+            - name: DB_SERVER_HOST
+              value: postgres
+            - name: POSTGRES_DB
+              value: zabbixdb
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: conexao-solidaria-secret
+                  key: zabbix-user
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: conexao-solidaria-secret
+                  key: zabbix-password
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zabbix-server
+  namespace: conexao-solidaria
+spec:
+  selector:
+    app: zabbix-server
+  ports:
+    - port: 10051
+      targetPort: 10051
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zabbix-web
+  namespace: conexao-solidaria
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: zabbix-web
+  template:
+    metadata:
+      labels:
+        app: zabbix-web
+    spec:
+      containers:
+        - name: zabbix-web
+          image: zabbix/zabbix-web-nginx-pgsql:alpine-latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: ZBX_SERVER_HOST
+              value: zabbix-server
+            - name: DB_SERVER_HOST
+              value: postgres
+            - name: POSTGRES_DB
+              value: zabbixdb
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: conexao-solidaria-secret
+                  key: zabbix-user
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: conexao-solidaria-secret
+                  key: zabbix-password
+            - name: PHP_TZ
+              value: America/Sao_Paulo
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zabbix-web
+  namespace: conexao-solidaria
+spec:
+  type: NodePort
+  selector:
+    app: zabbix-web
+  ports:
+    - port: 8080
+      targetPort: 8080
+      nodePort: 30085
