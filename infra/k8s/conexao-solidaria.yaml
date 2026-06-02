@@ -470,12 +470,25 @@ data:
           "id": 2,
           "type": "stat",
           "title": "Doacoes processadas",
-          "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
+          "gridPos": { "h": 8, "w": 4, "x": 16, "y": 0 },
           "datasource": { "type": "prometheus", "uid": "Prometheus" },
           "targets": [
             {
               "refId": "A",
-              "expr": "conexao_donations_processed_total"
+              "expr": "sum(conexao_donations_processed_total)"
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "type": "stat",
+          "title": "Rejeitadas por campanha",
+          "gridPos": { "h": 8, "w": 4, "x": 20, "y": 0 },
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "sum(conexao_donations_rejected_total)"
             }
           ]
         }

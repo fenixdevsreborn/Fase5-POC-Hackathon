@@ -147,7 +147,7 @@
             "uid": "Prometheus"
           },
           "editorMode": "code",
-          "expr": "conexao_donations_processed_total",
+          "expr": "sum(conexao_donations_processed_total)",
           "legendFormat": "processadas",
           "range": true,
           "refId": "A"
@@ -207,13 +207,13 @@
             "uid": "Prometheus"
           },
           "editorMode": "code",
-          "expr": "conexao_donations_rejected_total",
+          "expr": "sum(conexao_donations_rejected_total)",
           "legendFormat": "rejeitadas",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Doacoes rejeitadas",
+      "title": "Rejeitadas por campanha",
       "type": "stat"
     }
   ],

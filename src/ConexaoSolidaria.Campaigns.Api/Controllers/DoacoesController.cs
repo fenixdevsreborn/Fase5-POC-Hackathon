@@ -9,6 +9,7 @@ using ConexaoSolidaria.Shared.Events;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Prometheus;
 
 namespace ConexaoSolidaria.Campaigns.Api.Controllers;
 
@@ -16,6 +17,10 @@ namespace ConexaoSolidaria.Campaigns.Api.Controllers;
 [Route("api/doacoes")]
 public sealed class DoacoesController(CampaignsDbContext db, IDonationEventPublisher publisher) : ControllerBase
 {
+    private static readonly Counter RejectedDonations = Metrics.CreateCounter(
+        "conexao_donations_rejected_total",
+        "Quantidade de tentativas de doacao rejeitadas por campanha encerrada ou cancelada.");
+
     [HttpPost]
     [Authorize(Roles = ApplicationRoles.Doador)]
     [ProducesResponseType<DoacaoAceitaResponse>(StatusCodes.Status202Accepted)]
@@ -47,6 +52,7 @@ public sealed class DoacoesController(CampaignsDbContext db, IDonationEventPubli
 
         if (!campaign.CanReceiveDonation(DateTimeOffset.UtcNow))
         {
+            RejectedDonations.Inc();
             return BadRequest(new { mensagem = "Doacao nao permitida para campanhas encerradas ou canceladas." });
         }
 

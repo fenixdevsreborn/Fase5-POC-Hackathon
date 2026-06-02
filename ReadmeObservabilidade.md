@@ -157,13 +157,13 @@ sum(http_requests_received_total) by (job)
 Doacoes processadas pelo worker:
 
 ```promql
-conexao_donations_processed_total
+sum(conexao_donations_processed_total)
 ```
 
-Doacoes rejeitadas pelo worker:
+Tentativas de doacao rejeitadas porque a campanha esta encerrada ou cancelada:
 
 ```promql
-conexao_donations_rejected_total
+sum(conexao_donations_rejected_total)
 ```
 
 ### Alterando a configuracao
@@ -231,7 +231,7 @@ O dashboard provisionado mostra:
 
 - Requisicoes HTTP por segundo por servico.
 - Total de doacoes processadas pelo worker.
-- Total de doacoes rejeitadas pelo worker.
+- Total de tentativas de doacao rejeitadas porque a campanha esta encerrada ou cancelada.
 
 Para gerar dados no dashboard, use as APIs via Swagger:
 
@@ -262,7 +262,13 @@ sum(rate(http_requests_received_total[1m])) by (job)
 Exemplo para doacoes processadas:
 
 ```promql
-conexao_donations_processed_total
+sum(conexao_donations_processed_total)
+```
+
+Exemplo para tentativas rejeitadas por campanha encerrada ou cancelada:
+
+```promql
+sum(conexao_donations_rejected_total)
 ```
 
 ### Persistencia

@@ -22,7 +22,7 @@ public sealed class DonationConsumerWorker(
 
     private static readonly Counter RejectedDonations = Metrics.CreateCounter(
         "conexao_donations_rejected_total",
-        "Quantidade de doacoes rejeitadas pelo worker.");
+        "Quantidade de tentativas de doacao rejeitadas por campanha encerrada ou cancelada.");
 
     private readonly RabbitMqOptions _options = options.Value;
 
@@ -149,7 +149,15 @@ public sealed class DonationConsumerWorker(
             item => item.Id == donationEvent.CampanhaId,
             cancellationToken);
 
-        if (campaign is null || !campaign.CanReceiveDonation(now))
+        if (campaign is null)
+        {
+            donation.MarkAsRejected(now);
+            await db.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            return;
+        }
+
+        if (!campaign.CanReceiveDonation(now))
         {
             donation.MarkAsRejected(now);
             RejectedDonations.Inc();
