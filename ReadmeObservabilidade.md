@@ -489,6 +489,46 @@ kubectl delete -f infra/k8s/conexao-solidaria.yaml
    - Grafana para ver o dashboard.
    - Zabbix para ver disponibilidade dos endpoints.
 
+## Acompanhando logs do Donations Worker
+
+O `donations-worker` escreve logs detalhados no console para facilitar o acompanhamento pelo Docker Desktop.
+
+No Docker Desktop:
+
+1. Abra `Containers`.
+2. Selecione a stack `conexao-solidaria`.
+3. Clique no container `donations-worker`.
+4. Abra a aba `Logs`.
+5. Use a busca do viewer para filtrar por `DoacaoId`, `EventoId`, `CampanhaId` ou pelas mensagens abaixo.
+
+Mensagens uteis para acompanhar o fluxo:
+
+```text
+Mensagem recebida do RabbitMQ
+Evento de doacao desserializado
+Iniciando processamento da doacao
+Doacao localizada
+Campanha localizada
+Doacao aplicada em memoria
+Alteracoes salvas no banco
+Doacao processada com sucesso
+Mensagem processada e confirmada no RabbitMQ
+```
+
+Para rejeicoes de negocio, procure por:
+
+```text
+Campanha nao pode receber doacao
+Metrica incrementada. Metric=conexao_donations_rejected_total
+Doacao rejeitada e persistida
+```
+
+Pelo terminal, o equivalente e:
+
+```powershell
+docker compose logs -f donations-worker
+```
+
 ## Troubleshooting
 
 ### Prometheus target DOWN
