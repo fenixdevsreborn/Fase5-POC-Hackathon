@@ -1,13 +1,14 @@
 # Conexao Solidaria
 
-MVP para o desafio do hackathon da ONG Esperanca Solidaria. A solucao usa .NET 10, Swagger, JWT/RBAC, PostgreSQL, RabbitMQ, Docker Desktop, Kubernetes, Grafana, Prometheus e Zabbix.
+MVP para o desafio do hackathon da ONG Esperanca Solidaria. A solucao usa .NET 10, Swagger, JWT/RBAC, PostgreSQL, Elasticsearch, RabbitMQ, Docker Desktop, Kubernetes, Grafana, Prometheus e Zabbix.
 
 ## Arquitetura
 
 - `Identity.Api`: cadastro de doadores, login e emissao de JWT.
-- `Campaigns.Api`: gestao de campanhas, painel publico de transparencia e criacao de intencao de doacao.
+- `Campaigns.Api`: gestao de campanhas, painel publico de transparencia, busca fuzzy por titulo via Elasticsearch e criacao de intencao de doacao.
 - `Donations.Worker`: consumidor RabbitMQ que processa doacoes e atualiza o valor arrecadado.
 - `PostgreSQL`: `identitydb`, `campaignsdb` e `zabbixdb`.
+- `Elasticsearch`: indice `conexao-solidaria-campanhas` para busca tolerante a erros de digitacao no titulo das campanhas.
 - `RabbitMQ`: fila `doacoes-recebidas` com exchange `conexao-solidaria`.
 - `Grafana/Prometheus`: metricas HTTP e contadores de doacoes.
 - `Zabbix`: stack pronta para monitoramento complementar.
@@ -29,6 +30,7 @@ Servicos:
 - Identity Swagger: http://localhost:5001/swagger
 - Campaigns Swagger: http://localhost:5002/swagger
 - Worker health: http://localhost:5003/health
+- Elasticsearch: http://localhost:9200
 - RabbitMQ: http://localhost:15672 (`guest` / `guest`)
 - Prometheus: http://localhost:9090
 - Grafana: http://localhost:3000 (`admin` / `admin`)
@@ -49,7 +51,8 @@ Usuario gestor criado no seed:
 5. Criar doador em `POST /api/auth/cadastro-doador`.
 6. Usar o token do doador para chamar `POST /api/doacoes`.
 7. Abrir RabbitMQ e observar a fila `doacoes-recebidas`.
-8. Consultar `GET /api/campanhas/transparencia?page=1&pageSize=10&titulo=Natal` e confirmar o valor arrecadado.
+8. Consultar `GET /api/campanhas/transparencia?page=1&pageSize=10&titulo=Natal` para validar filtros e paginação.
+9. Consultar `GET /api/campanhas/transparencia-search?page=1&pageSize=10&titulo=Ntal` e confirmar que a busca fuzzy encontra `Natal Solidario`.
 9. Abrir o dashboard do Grafana e verificar requisicoes HTTP/doacoes processadas.
 
 ## Executar testes
@@ -79,6 +82,7 @@ URLs no Kubernetes local:
 - Identity Swagger: http://localhost:30081/swagger
 - Campaigns Swagger: http://localhost:30082/swagger
 - RabbitMQ: http://localhost:31672
+- Elasticsearch: http://localhost:30200
 - Prometheus: http://localhost:30090
 - Grafana: http://localhost:30300
 - Zabbix: http://localhost:30085

@@ -153,6 +153,64 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  name: elasticsearch
+  namespace: conexao-solidaria
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: elasticsearch
+  template:
+    metadata:
+      labels:
+        app: elasticsearch
+    spec:
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: elasticsearch
+          image: docker.elastic.co/elasticsearch/elasticsearch:8.15.3
+          ports:
+            - containerPort: 9200
+          env:
+            - name: discovery.type
+              value: single-node
+            - name: xpack.security.enabled
+              value: "false"
+            - name: node.store.allow_mmap
+              value: "false"
+            - name: ES_JAVA_OPTS
+              value: -Xms512m -Xmx512m
+          volumeMounts:
+            - name: elasticsearch-data
+              mountPath: /usr/share/elasticsearch/data
+          readinessProbe:
+            httpGet:
+              path: /_cluster/health
+              port: 9200
+            initialDelaySeconds: 25
+            periodSeconds: 10
+      volumes:
+        - name: elasticsearch-data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch
+  namespace: conexao-solidaria
+spec:
+  type: NodePort
+  selector:
+    app: elasticsearch
+  ports:
+    - port: 9200
+      targetPort: 9200
+      nodePort: 30200
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
   name: identity-api
   namespace: conexao-solidaria
 spec:
@@ -261,6 +319,14 @@ spec:
                 secretKeyRef:
                   name: conexao-solidaria-secret
                   key: rabbitmq-password
+            - name: Elasticsearch__Enabled
+              value: "true"
+            - name: Elasticsearch__Url
+              value: http://elasticsearch:9200
+            - name: Elasticsearch__IndexName
+              value: conexao-solidaria-campanhas
+            - name: Elasticsearch__MaxSearchResults
+              value: "1000"
           readinessProbe:
             httpGet:
               path: /health

@@ -38,6 +38,7 @@ kubectl wait --for=condition=Ready pod --all -n conexao-solidaria --timeout=300s
    - Identity Swagger: http://localhost:30081/swagger
    - Campaigns Swagger: http://localhost:30082/swagger
    - RabbitMQ: http://localhost:31672
+   - Elasticsearch: http://localhost:30200
    - Grafana: http://localhost:30300
    - Prometheus: http://localhost:30090
    - Zabbix: http://localhost:30085
@@ -73,7 +74,7 @@ Fala sugerida:
 
 > Ola, somos o grupo [NOME_DO_GRUPO]. Neste video vamos demonstrar o MVP da plataforma Conexao Solidaria, criada para a ONG Esperanca Solidaria. O objetivo do projeto e substituir a gestao manual de doadores e campanhas por uma solucao digital escalavel, observavel e automatizada.
 
-> A solucao foi desenvolvida em .NET 10, com APIs REST documentadas via Swagger, autenticacao JWT com RBAC, PostgreSQL como banco principal, RabbitMQ para mensageria assincrona, Kubernetes no Docker Desktop, observabilidade com Prometheus, Grafana e Zabbix, alem de pipeline de CI no GitHub Actions.
+> A solucao foi desenvolvida em .NET 10, com APIs REST documentadas via Swagger, autenticacao JWT com RBAC, PostgreSQL como banco principal, Elasticsearch para busca fuzzy no painel de transparencia, RabbitMQ para mensageria assincrona, Kubernetes no Docker Desktop, observabilidade com Prometheus, Grafana e Zabbix, alem de pipeline de CI no GitHub Actions.
 
 Observacao:
 
@@ -88,7 +89,7 @@ Fala sugerida:
 
 > Aqui esta o desenho da arquitetura. A solucao foi separada em tres componentes principais. A Identity API cuida do cadastro de doadores, login e emissao de tokens JWT. A Campaigns API cuida da gestao das campanhas, do painel publico de transparencia e da criacao da intencao de doacao. O Donations Worker e o consumidor assincrono responsavel por processar as mensagens de doacao e atualizar o valor arrecadado.
 
-> Usamos PostgreSQL em dois contextos principais: `identitydb` para usuarios e autenticacao, e `campaignsdb` para campanhas e doacoes. O RabbitMQ fica entre a API de campanhas e o worker, garantindo que a API nao atualize diretamente o valor arrecadado quando uma doacao chega.
+> Usamos PostgreSQL em dois contextos principais: `identitydb` para usuarios e autenticacao, e `campaignsdb` para campanhas e doacoes. A Campaigns API tambem indexa os titulos das campanhas no Elasticsearch para permitir busca fuzzy, tolerante a erro de digitacao, em um endpoint separado de busca da transparencia. O RabbitMQ fica entre a API de campanhas e o worker, garantindo que a API nao atualize diretamente o valor arrecadado quando uma doacao chega.
 
 > A observabilidade e feita expondo `/health` e `/metrics` nas aplicacoes. O Prometheus coleta essas metricas, o Grafana exibe os dashboards e o Zabbix pode monitorar os endpoints de saude.
 
@@ -98,6 +99,7 @@ Apontar no diagrama:
 - `Campaigns.Api (.NET 10)`.
 - `Donations.Worker (.NET 10)`.
 - `RabbitMQ`.
+- `Elasticsearch`.
 - `PostgreSQL`.
 - `Prometheus`, `Grafana` e `Zabbix`.
 
@@ -154,7 +156,7 @@ Fala sugerida:
 
 > Agora vamos demonstrar a aplicacao rodando no Kubernetes local do Docker Desktop. O contexto atual e `docker-desktop`, e todos os recursos foram criados no namespace `conexao-solidaria`.
 
-> No comando `kubectl get pods`, vemos os pods da Identity API, Campaigns API, Donations Worker, PostgreSQL, RabbitMQ, Prometheus, Grafana e Zabbix. Isso comprova que a solucao esta orquestrada no Kubernetes.
+> No comando `kubectl get pods`, vemos os pods da Identity API, Campaigns API, Donations Worker, PostgreSQL, RabbitMQ, Elasticsearch, Prometheus, Grafana e Zabbix. Isso comprova que a solucao esta orquestrada no Kubernetes.
 
 > No comando `kubectl get svc`, vemos os services e os NodePorts usados para acesso local aos recursos.
 
@@ -163,6 +165,7 @@ URLs para mencionar:
 - Identity Swagger: http://localhost:30081/swagger
 - Campaigns Swagger: http://localhost:30082/swagger
 - RabbitMQ: http://localhost:31672
+- Elasticsearch: http://localhost:30200
 - Prometheus: http://localhost:30090
 - Grafana: http://localhost:30300
 - Zabbix: http://localhost:30085
@@ -471,12 +474,23 @@ Fala sugerida:
 
 > Por fim, consultamos o endpoint publico de transparencia com paginacao e filtros dinamicos. Ele retorna somente campanhas ativas e permite filtrar por titulo, faixa de meta financeira, faixa de valor arrecadado e periodo de data final. A resposta tambem traz os metadados de pagina, tamanho da pagina, total de itens e total de paginas. O valor atualizado confirma que o processamento foi feito pelo worker, apos o consumo da mensagem.
 
+Mostrar tambem a busca com erro de digitacao:
+
+```text
+GET /api/campanhas/transparencia-search?page=1&pageSize=10&titulo=Ntal
+```
+
+Fala sugerida:
+
+> Aqui demonstramos um requisito adicional de busca em um endpoint separado: mesmo digitando `Ntal`, sem a letra `a`, o endpoint encontra a campanha `Natal Solidario`. Isso acontece porque o campo titulo e consultado no Elasticsearch com fuzzy search; depois a API usa os IDs retornados para aplicar as regras finais no PostgreSQL. Esse endpoint tem paginacao, mas nao expõe os filtros dinamicos de meta, valor ou data.
+
 Requisitos comprovados:
 
 - Worker consumidor.
 - Atualizacao assincrona do valor arrecadado.
 - Painel publico de transparencia.
 - Listagem apenas de campanhas ativas.
+- Busca fuzzy por titulo com Elasticsearch.
 
 ## 7. Demonstrar regra de doacao rejeitada
 
@@ -599,7 +613,8 @@ Use este checklist antes de finalizar a gravacao:
 | Email unico | Fala no cadastro de doador |
 | CPF validado | Fala no cadastro de doador |
 | Senha com hash | Fala no cadastro de doador |
-| Painel publico de transparencia | `GET /api/campanhas/transparencia` |
+| Painel publico de transparencia | `GET /api/campanhas/transparencia?page=1&pageSize=10&titulo=Natal` |
+| Busca fuzzy por titulo | `GET /api/campanhas/transparencia-search?page=1&pageSize=10&titulo=Ntal` |
 | Doacao por doador logado | `POST /api/doacoes` com token de doador |
 | Bloqueio para campanha cancelada/encerrada | Tentar doar apos cancelar campanha |
 | Microsservicos | Diagrama e pods |

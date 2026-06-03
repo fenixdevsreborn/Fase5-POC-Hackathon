@@ -13,6 +13,7 @@ Ele cria:
 - Namespace `conexao-solidaria`.
 - PostgreSQL.
 - RabbitMQ com Management UI.
+- Elasticsearch para busca fuzzy por titulo de campanha.
 - Identity API.
 - Campaigns API.
 - Donations Worker.
@@ -146,6 +147,7 @@ No Docker Desktop, os services `NodePort` ficam acessiveis via `localhost`.
 | Campaigns Swagger | http://localhost:30082/swagger |
 | Donations Worker health | http://localhost:30083/health |
 | RabbitMQ Management | http://localhost:31672 |
+| Elasticsearch | http://localhost:30200 |
 | Prometheus | http://localhost:30090 |
 | Grafana | http://localhost:30300 |
 | Zabbix Web | http://localhost:30085 |
@@ -290,6 +292,14 @@ GET /api/campanhas/transparencia?page=1&pageSize=10&titulo=Natal
 
 O valor arrecadado deve ser atualizado pelo `Donations Worker`.
 
+Para testar a busca fuzzy por titulo, use o endpoint separado:
+
+```text
+GET /api/campanhas/transparencia-search?page=1&pageSize=10&titulo=Ntal
+```
+
+Mesmo com o erro de digitacao em `Ntal`, o endpoint deve encontrar `Natal Solidario` pela busca fuzzy do Elasticsearch.
+
 ## 9. Observabilidade no Kubernetes
 
 Prometheus:
@@ -366,6 +376,12 @@ RabbitMQ:
 
 ```powershell
 kubectl logs -f deployment/rabbitmq -n conexao-solidaria
+```
+
+Elasticsearch:
+
+```powershell
+kubectl logs -f deployment/elasticsearch -n conexao-solidaria
 ```
 
 PostgreSQL:
@@ -515,6 +531,28 @@ O worker consome rapidamente as mensagens. Para demonstrar o fluxo:
 3. Observe a fila `doacoes-recebidas`.
 4. Envie uma doacao pelo Swagger.
 5. A mensagem pode aparecer e sumir rapidamente porque o worker processa a fila.
+
+### Busca fuzzy por titulo nao retorna resultado
+
+1. Verifique se o Elasticsearch esta pronto:
+
+```powershell
+kubectl get pods -n conexao-solidaria -l app=elasticsearch
+curl http://localhost:30200/_cluster/health
+```
+
+2. Confira os logs da Campaigns API, que sincroniza o indice na inicializacao:
+
+```powershell
+kubectl logs deployment/campaigns-api -n conexao-solidaria
+```
+
+3. Crie ou atualize uma campanha para forcar a reindexacao.
+4. Teste novamente:
+
+```text
+GET /api/campanhas/transparencia-search?page=1&pageSize=10&titulo=Ntal
+```
 
 ## 14. Observacao sobre persistencia
 

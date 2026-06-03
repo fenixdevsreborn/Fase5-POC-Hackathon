@@ -2,6 +2,7 @@ using ConexaoSolidaria.Campaigns.Api.Data;
 using ConexaoSolidaria.Campaigns.Api.Domain;
 using ConexaoSolidaria.Campaigns.Api.Requests;
 using ConexaoSolidaria.Campaigns.Api.Responses;
+using ConexaoSolidaria.Campaigns.Api.Search;
 using ConexaoSolidaria.Shared.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -11,7 +12,7 @@ namespace ConexaoSolidaria.Campaigns.Api.Controllers;
 
 [ApiController]
 [Route("api/campanhas")]
-public sealed class CampanhasController(CampaignsDbContext db) : ControllerBase
+public sealed class CampanhasController(CampaignsDbContext db, ICampaignSearchService campaignSearchService) : ControllerBase
 {
     [HttpGet("{id:guid}")]
     [Authorize(Roles = ApplicationRoles.GestorOng)]
@@ -41,6 +42,7 @@ public sealed class CampanhasController(CampaignsDbContext db) : ControllerBase
 
             db.Campaigns.Add(campaign);
             await db.SaveChangesAsync(cancellationToken);
+            await campaignSearchService.IndexAsync(campaign, cancellationToken);
 
             return CreatedAtAction(nameof(ObterPorId), new { id = campaign.Id }, ToResponse(campaign));
         }
@@ -75,6 +77,7 @@ public sealed class CampanhasController(CampaignsDbContext db) : ControllerBase
                 DateTimeOffset.UtcNow);
 
             await db.SaveChangesAsync(cancellationToken);
+            await campaignSearchService.IndexAsync(campaign, cancellationToken);
             return Ok(ToResponse(campaign));
         }
         catch (DomainRuleException ex)
@@ -149,6 +152,76 @@ public sealed class CampanhasController(CampaignsDbContext db) : ControllerBase
                 campaign.MetaFinanceira,
                 campaign.ValorTotalArrecadado))
             .ToListAsync(cancellationToken);
+
+        return Ok(PaginatedResponse<TransparenciaCampanhaResponse>.Create(
+            campaigns,
+            request.Page,
+            request.PageSize,
+            totalItems));
+    }
+
+    [HttpGet("transparencia-search")]
+    [AllowAnonymous]
+    [ProducesResponseType<PaginatedResponse<TransparenciaCampanhaResponse>>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<PaginatedResponse<TransparenciaCampanhaResponse>>> TransparenciaSearch(
+        CancellationToken cancellationToken,
+        [FromQuery] TransparenciaCampanhasSearchQuery request)
+    {
+        var validationErrors = request.Validate();
+        if (validationErrors.Count > 0)
+        {
+            return BadRequest(new ValidationProblemDetails(validationErrors));
+        }
+
+        var matchingCampaignIds = await campaignSearchService.SearchIdsByTitleAsync(
+            request.Titulo!,
+            cancellationToken);
+
+        if (matchingCampaignIds is null)
+        {
+            return StatusCode(
+                StatusCodes.Status503ServiceUnavailable,
+                new { mensagem = "Elasticsearch indisponivel para busca fuzzy por titulo." });
+        }
+
+        if (matchingCampaignIds.Count == 0)
+        {
+            return Ok(PaginatedResponse<TransparenciaCampanhaResponse>.Create(
+                Array.Empty<TransparenciaCampanhaResponse>(),
+                request.Page,
+                request.PageSize,
+                0));
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        var ids = matchingCampaignIds.ToArray();
+        var orderBySearchResult = ids
+            .Select((id, index) => new { id, index })
+            .ToDictionary(item => item.id, item => item.index);
+
+        var matchingCampaigns = await db.Campaigns
+            .AsNoTracking()
+            .Where(campaign => campaign.Status == CampaignStatus.Ativa && campaign.DataFim >= now)
+            .Where(campaign => ids.Contains(campaign.Id))
+            .Select(campaign => new
+            {
+                campaign.Id,
+                campaign.Titulo,
+                campaign.MetaFinanceira,
+                campaign.ValorTotalArrecadado
+            })
+            .ToListAsync(cancellationToken);
+
+        var totalItems = matchingCampaigns.Count;
+        var campaigns = matchingCampaigns
+            .OrderBy(campaign => orderBySearchResult[campaign.Id])
+            .Skip((request.Page - 1) * request.PageSize)
+            .Take(request.PageSize)
+            .Select(campaign => new TransparenciaCampanhaResponse(
+                campaign.Titulo,
+                campaign.MetaFinanceira,
+                campaign.ValorTotalArrecadado))
+            .ToList();
 
         return Ok(PaginatedResponse<TransparenciaCampanhaResponse>.Create(
             campaigns,

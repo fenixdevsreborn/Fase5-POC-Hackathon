@@ -63,6 +63,7 @@ Volumes Docker criados com nomes explicitos:
 | --- | --- |
 | `conexao-solidaria-postgres-data` | Dados do PostgreSQL: `identitydb`, `campaignsdb` e `zabbixdb` |
 | `conexao-solidaria-grafana-data` | Dados persistentes do Grafana |
+| `conexao-solidaria-elasticsearch-data` | Indice de campanhas usado na busca fuzzy por titulo |
 
 Para listar:
 

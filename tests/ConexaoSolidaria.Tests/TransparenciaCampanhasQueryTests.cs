@@ -48,4 +48,34 @@ public sealed class TransparenciaCampanhasQueryTests
         Assert.Contains("ValorArrecadado", errors.Keys);
         Assert.Contains("DataFim", errors.Keys);
     }
+
+    [Fact]
+    public void SearchValidate_ShouldAcceptTitleAndDefaultPagination()
+    {
+        var query = new TransparenciaCampanhasSearchQuery
+        {
+            Titulo = "Natal"
+        };
+
+        var errors = query.Validate();
+
+        Assert.Empty(errors);
+    }
+
+    [Fact]
+    public void SearchValidate_ShouldRejectMissingTitleAndInvalidPagination()
+    {
+        var query = new TransparenciaCampanhasSearchQuery
+        {
+            Titulo = " ",
+            Page = 0,
+            PageSize = TransparenciaCampanhasSearchQuery.MaxPageSize + 1
+        };
+
+        var errors = query.Validate();
+
+        Assert.Contains(nameof(TransparenciaCampanhasSearchQuery.Titulo), errors.Keys);
+        Assert.Contains(nameof(TransparenciaCampanhasSearchQuery.Page), errors.Keys);
+        Assert.Contains(nameof(TransparenciaCampanhasSearchQuery.PageSize), errors.Keys);
+    }
 }
