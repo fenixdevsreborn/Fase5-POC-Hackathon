@@ -57,6 +57,19 @@ Para parar tudo:
 docker compose down
 ```
 
+Volumes Docker criados com nomes explicitos:
+
+| Volume | Uso |
+| --- | --- |
+| `conexao-solidaria-postgres-data` | Dados do PostgreSQL: `identitydb`, `campaignsdb` e `zabbixdb` |
+| `conexao-solidaria-grafana-data` | Dados persistentes do Grafana |
+
+Para listar:
+
+```powershell
+docker volume ls --filter label=com.conexaosolidaria.project=conexao-solidaria
+```
+
 Para limpar tambem os volumes locais, incluindo dados de Grafana, Zabbix e Postgres:
 
 ```powershell
@@ -273,10 +286,10 @@ sum(conexao_donations_rejected_total)
 
 ### Persistencia
 
-O Grafana usa o volume Docker:
+O Grafana usa um volume Docker nomeado explicitamente para facilitar identificacao:
 
 ```yaml
-grafana-data:
+conexao-solidaria-grafana-data
 ```
 
 Dashboards criados pela interface ficam salvos nesse volume. Dashboards versionados no repositorio devem ficar em:

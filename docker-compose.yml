@@ -152,4 +152,14 @@ services:
 
 volumes:
   postgres-data:
+    name: conexao-solidaria-postgres-data
+    labels:
+      com.conexaosolidaria.project: conexao-solidaria
+      com.conexaosolidaria.service: postgres
+      com.conexaosolidaria.description: Dados do PostgreSQL para identitydb, campaignsdb e zabbixdb
   grafana-data:
+    name: conexao-solidaria-grafana-data
+    labels:
+      com.conexaosolidaria.project: conexao-solidaria
+      com.conexaosolidaria.service: grafana
+      com.conexaosolidaria.description: Dados persistentes do Grafana
