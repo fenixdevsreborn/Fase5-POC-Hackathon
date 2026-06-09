@@ -1,14 +1,15 @@
 # Conexao Solidaria
 
-MVP para o desafio do hackathon da ONG Esperanca Solidaria. A solucao usa .NET 10, Swagger, JWT/RBAC, PostgreSQL, RabbitMQ, Docker Desktop, Kubernetes, Grafana, Prometheus e Zabbix.
+MVP para o desafio do hackathon da ONG Esperanca Solidaria. A solucao usa .NET 10, Swagger, JWT/RBAC, PostgreSQL, RabbitMQ, Elasticsearch, Docker Desktop, Kubernetes, Grafana, Prometheus e Zabbix.
 
 ## Arquitetura
 
 - `Identity.Api`: cadastro de doadores, login e emissao de JWT.
-- `Campaigns.Api`: gestao de campanhas, painel publico de transparencia e criacao de intencao de doacao.
+- `Campaigns.Api`: gestao de campanhas, busca fuzzy paginada, painel publico de transparencia e criacao de intencao de doacao.
 - `Donations.Worker`: consumidor RabbitMQ que processa doacoes e atualiza o valor arrecadado.
 - `PostgreSQL`: `identitydb`, `campaignsdb` e `zabbixdb`.
 - `RabbitMQ`: fila `doacoes-recebidas` com exchange `conexao-solidaria`.
+- `Elasticsearch`: indice `campanhas` para busca fuzzy por titulo e descricao.
 - `Grafana/Prometheus`: metricas HTTP e contadores de doacoes.
 - `Zabbix`: stack pronta para monitoramento complementar.
 
@@ -29,6 +30,7 @@ Servicos:
 - Identity Swagger: http://localhost:5001/swagger
 - Campaigns Swagger: http://localhost:5002/swagger
 - Worker health: http://localhost:5003/health
+- Elasticsearch: http://localhost:9200
 - RabbitMQ: http://localhost:15672 (`guest` / `guest`)
 - Prometheus: http://localhost:9090
 - Grafana: http://localhost:3000 (`admin` / `admin`)
@@ -46,11 +48,43 @@ Usuario gestor criado no seed:
 2. Copiar o `accessToken`.
 3. Abrir o Swagger da Campaigns API e clicar em `Authorize`.
 4. Criar campanha em `POST /api/campanhas`.
-5. Criar doador em `POST /api/auth/cadastro-doador`.
-6. Usar o token do doador para chamar `POST /api/doacoes`.
-7. Abrir RabbitMQ e observar a fila `doacoes-recebidas`.
-8. Consultar `GET /api/campanhas/transparencia` e confirmar o valor arrecadado.
-9. Abrir o dashboard do Grafana e verificar requisicoes HTTP/doacoes processadas.
+5. Buscar a campanha em `GET /api/campanhas/search?q=Natal&page=1&pageSize=10`.
+6. Criar doador em `POST /api/auth/cadastro-doador`.
+7. Usar o token do doador para chamar `POST /api/doacoes`.
+8. Abrir RabbitMQ e observar a fila `doacoes-recebidas`.
+9. Consultar `GET /api/campanhas/transparencia` e confirmar o valor arrecadado.
+10. Abrir o dashboard do Grafana e verificar requisicoes HTTP/doacoes processadas.
+
+## Busca de campanhas
+
+Campanhas criadas ou atualizadas pela `Campaigns.Api` sao indexadas no Elasticsearch.
+
+```http
+GET /api/campanhas/search?q=alimento&page=1&pageSize=10
+```
+
+A busca usa fuzzy matching nos campos `titulo` e `descricao`. `pageSize` aceita valores entre 1 e 100.
+
+Exemplo de resposta:
+
+```json
+{
+  "items": [],
+  "page": 1,
+  "pageSize": 10,
+  "total": 0,
+  "totalPages": 0
+}
+```
+
+Configuracao:
+
+```json
+"Elasticsearch": {
+  "Url": "http://localhost:9200",
+  "IndexName": "campanhas"
+}
+```
 
 ## Executar testes
 
@@ -78,6 +112,7 @@ URLs no Kubernetes local:
 
 - Identity Swagger: http://localhost:30081/swagger
 - Campaigns Swagger: http://localhost:30082/swagger
+- Elasticsearch: http://localhost:30920
 - RabbitMQ: http://localhost:31672
 - Prometheus: http://localhost:30090
 - Grafana: http://localhost:30300
@@ -88,6 +123,7 @@ URLs no Kubernetes local:
 - Diagrama: [docs/arquitetura.md](docs/arquitetura.md)
 - Justificativa dos bancos: [docs/justificativa-bancos.md](docs/justificativa-bancos.md)
 - Template do relatorio final: [docs/relatorio-entrega-template.md](docs/relatorio-entrega-template.md)
+- Guia Kubernetes: [ReadmeKubernetes.md](ReadmeKubernetes.md)
 
 ## CI/CD
 
