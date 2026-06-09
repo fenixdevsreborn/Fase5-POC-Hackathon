@@ -153,6 +153,77 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  name: elasticsearch
+  namespace: conexao-solidaria
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: elasticsearch
+  template:
+    metadata:
+      labels:
+        app: elasticsearch
+    spec:
+      containers:
+        - name: elasticsearch
+          image: docker.elastic.co/elasticsearch/elasticsearch:8.15.3
+          ports:
+            - containerPort: 9200
+          env:
+            - name: discovery.type
+              value: single-node
+            - name: xpack.security.enabled
+              value: "false"
+            - name: ES_JAVA_OPTS
+              value: -Xms512m -Xmx512m
+          resources:
+            requests:
+              memory: 768Mi
+              cpu: 250m
+            limits:
+              memory: 1Gi
+              cpu: "1"
+          volumeMounts:
+            - name: elasticsearch-data
+              mountPath: /usr/share/elasticsearch/data
+          readinessProbe:
+            httpGet:
+              path: /_cluster/health
+              port: 9200
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 12
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 9200
+            initialDelaySeconds: 60
+            periodSeconds: 20
+            timeoutSeconds: 5
+      volumes:
+        - name: elasticsearch-data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch
+  namespace: conexao-solidaria
+spec:
+  type: NodePort
+  selector:
+    app: elasticsearch
+  ports:
+    - name: http
+      port: 9200
+      targetPort: 9200
+      nodePort: 30920
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
   name: identity-api
   namespace: conexao-solidaria
 spec:
@@ -261,6 +332,10 @@ spec:
                 secretKeyRef:
                   name: conexao-solidaria-secret
                   key: rabbitmq-password
+            - name: Elasticsearch__Url
+              value: http://elasticsearch:9200
+            - name: Elasticsearch__IndexName
+              value: campanhas
           readinessProbe:
             httpGet:
               path: /health
