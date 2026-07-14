@@ -83,10 +83,8 @@ services:
       RabbitMq__ExchangeName: conexao-solidaria
       RabbitMq__QueueName: doacoes-recebidas
       RabbitMq__RoutingKey: doacao.recebida
-      Elasticsearch__Enabled: "true"
       Elasticsearch__Url: http://elasticsearch:9200
-      Elasticsearch__IndexName: conexao-solidaria-campanhas
-      Elasticsearch__MaxSearchResults: "1000"
+      Elasticsearch__IndexName: campanhas
     ports:
       - "5002:8080"
     depends_on:
@@ -118,6 +116,22 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.3
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: -Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
 
   prometheus:
     image: prom/prometheus:v2.55.1
@@ -191,4 +205,4 @@ volumes:
     labels:
       com.conexaosolidaria.project: conexao-solidaria
       com.conexaosolidaria.service: elasticsearch
-      com.conexaosolidaria.description: Dados persistentes do indice de campanhas para busca fuzzy
+      com.conexaosolidaria.description: Indice de busca das campanhas

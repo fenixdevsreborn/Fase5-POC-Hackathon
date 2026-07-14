@@ -13,7 +13,7 @@ Ele cria:
 - Namespace `conexao-solidaria`.
 - PostgreSQL.
 - RabbitMQ com Management UI.
-- Elasticsearch para busca fuzzy por titulo de campanha.
+- Elasticsearch para busca de campanhas.
 - Identity API.
 - Campaigns API.
 - Donations Worker.
@@ -146,6 +146,7 @@ No Docker Desktop, os services `NodePort` ficam acessiveis via `localhost`.
 | Identity Swagger | http://localhost:30081/swagger |
 | Campaigns Swagger | http://localhost:30082/swagger |
 | Donations Worker health | http://localhost:30083/health |
+| Elasticsearch | http://localhost:30920 |
 | RabbitMQ Management | http://localhost:31672 |
 | Elasticsearch | http://localhost:30200 |
 | Prometheus | http://localhost:30090 |
@@ -299,13 +300,22 @@ GET /api/campanhas/transparencia?page=1&pageSize=10&titulo=Natal
 
 O valor arrecadado deve ser atualizado pelo `Donations Worker`.
 
-Para testar a busca fuzzy por titulo, use o endpoint separado:
+### 8.5. Buscar campanhas no Elasticsearch
+
+Depois de criar uma campanha, consulte:
 
 ```text
-GET /api/campanhas/transparencia-search?page=1&pageSize=10&titulo=Ntal
+GET /api/campanhas/search?q=Natal&page=1&pageSize=10
 ```
 
-Mesmo com o erro de digitacao em `Ntal`, o endpoint deve encontrar `Natal Solidario` pela busca fuzzy do Elasticsearch.
+O endpoint faz busca fuzzy em `titulo` e `descricao` e retorna os metadados de paginacao.
+
+Para verificar o Elasticsearch diretamente:
+
+```powershell
+curl.exe http://localhost:30920/_cluster/health
+curl.exe http://localhost:30920/_cat/indices?v
+```
 
 ## 9. Observabilidade no Kubernetes
 
@@ -539,30 +549,28 @@ O worker consome rapidamente as mensagens. Para demonstrar o fluxo:
 4. Envie uma doacao pelo Swagger.
 5. A mensagem pode aparecer e sumir rapidamente porque o worker processa a fila.
 
-### Busca fuzzy por titulo nao retorna resultado
+### Elasticsearch nao inicia
 
-1. Verifique se o Elasticsearch esta pronto:
-
-```powershell
-kubectl get pods -n conexao-solidaria -l app=elasticsearch
-curl http://localhost:30200/_cluster/health
-```
-
-2. Confira os logs da Campaigns API, que sincroniza o indice na inicializacao:
+Confira o pod e os logs:
 
 ```powershell
-kubectl logs deployment/campaigns-api -n conexao-solidaria
+kubectl get pods -n conexao-solidaria
+kubectl describe deployment/elasticsearch -n conexao-solidaria
+kubectl logs deployment/elasticsearch -n conexao-solidaria
 ```
 
-3. Crie ou atualize uma campanha para forcar a reindexacao.
-4. Teste novamente:
+O Elasticsearch reserva ate `1Gi` de memoria no manifesto. Confirme que o Docker Desktop tem memoria suficiente disponivel para o Kubernetes.
+
+### Busca retorna lista vazia
+
+Somente campanhas criadas ou atualizadas depois da implantacao da integracao sao indexadas automaticamente. Crie uma nova campanha ou atualize uma existente e consulte novamente:
 
 ```text
-GET /api/campanhas/transparencia-search?page=1&pageSize=10&titulo=Ntal
+GET /api/campanhas/search?q=parte-do-titulo&page=1&pageSize=10
 ```
 
 ## 14. Observacao sobre persistencia
 
 Este manifesto e voltado para ambiente local de hackathon.
 
-O PostgreSQL usa `emptyDir`, portanto os dados podem ser perdidos quando o pod for recriado ou o manifesto removido. Para producao, troque por `PersistentVolumeClaim`, configure secrets reais e publique imagens em um registry.
+PostgreSQL e Elasticsearch usam `emptyDir`, portanto os dados podem ser perdidos quando os pods forem recriados ou o manifesto removido. Para producao, troque por `PersistentVolumeClaim`, configure secrets reais e publique imagens em um registry.

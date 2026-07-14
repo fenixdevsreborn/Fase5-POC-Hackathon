@@ -165,8 +165,6 @@ spec:
       labels:
         app: elasticsearch
     spec:
-      securityContext:
-        fsGroup: 1000
       containers:
         - name: elasticsearch
           image: docker.elastic.co/elasticsearch/elasticsearch:8.15.3
@@ -177,10 +175,15 @@ spec:
               value: single-node
             - name: xpack.security.enabled
               value: "false"
-            - name: node.store.allow_mmap
-              value: "false"
             - name: ES_JAVA_OPTS
               value: -Xms512m -Xmx512m
+          resources:
+            requests:
+              memory: 768Mi
+              cpu: 250m
+            limits:
+              memory: 1Gi
+              cpu: "1"
           volumeMounts:
             - name: elasticsearch-data
               mountPath: /usr/share/elasticsearch/data
@@ -188,8 +191,17 @@ spec:
             httpGet:
               path: /_cluster/health
               port: 9200
-            initialDelaySeconds: 25
+            initialDelaySeconds: 20
             periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 12
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 9200
+            initialDelaySeconds: 60
+            periodSeconds: 20
+            timeoutSeconds: 5
       volumes:
         - name: elasticsearch-data
           emptyDir: {}
@@ -204,9 +216,10 @@ spec:
   selector:
     app: elasticsearch
   ports:
-    - port: 9200
+    - name: http
+      port: 9200
       targetPort: 9200
-      nodePort: 30200
+      nodePort: 30920
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -319,14 +332,10 @@ spec:
                 secretKeyRef:
                   name: conexao-solidaria-secret
                   key: rabbitmq-password
-            - name: Elasticsearch__Enabled
-              value: "true"
             - name: Elasticsearch__Url
               value: http://elasticsearch:9200
             - name: Elasticsearch__IndexName
-              value: conexao-solidaria-campanhas
-            - name: Elasticsearch__MaxSearchResults
-              value: "1000"
+              value: campanhas
           readinessProbe:
             httpGet:
               path: /health

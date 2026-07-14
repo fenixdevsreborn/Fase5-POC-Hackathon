@@ -19,6 +19,7 @@ URLs NodePort no Docker Desktop:
 - Identity Swagger: http://localhost:30081/swagger
 - Campaigns Swagger: http://localhost:30082/swagger
 - Worker health: http://localhost:30083/health
+- Elasticsearch: http://localhost:30920
 - RabbitMQ: http://localhost:31672
 - Prometheus: http://localhost:30090
 - Grafana: http://localhost:30300

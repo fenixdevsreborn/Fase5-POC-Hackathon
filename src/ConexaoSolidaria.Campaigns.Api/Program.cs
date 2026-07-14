@@ -2,7 +2,8 @@ using System.Text;
 using System.Text.Json.Serialization;
 using ConexaoSolidaria.Campaigns.Api.Data;
 using ConexaoSolidaria.Campaigns.Api.Messaging;
-using ConexaoSolidaria.Campaigns.Api.Search;
+using ConexaoSolidaria.Campaigns.Api.Repositories;
+using ConexaoSolidaria.Campaigns.Api.Services;
 using ConexaoSolidaria.Shared.Auth;
 using ConexaoSolidaria.Shared.Messaging;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -22,12 +23,8 @@ builder.Services.AddDbContext<CampaignsDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("CampaignsDb")));
 
 builder.Services.AddScoped<IDonationEventPublisher, RabbitMqDonationEventPublisher>();
-builder.Services.AddHttpClient<ICampaignSearchService, ElasticsearchCampaignSearchService>((services, client) =>
-{
-    var elasticsearchOptions = services.GetRequiredService<IOptions<ElasticsearchOptions>>().Value;
-    client.BaseAddress = new Uri(elasticsearchOptions.Url.TrimEnd('/') + "/");
-    client.Timeout = TimeSpan.FromSeconds(5);
-});
+builder.Services.AddScoped<ICampaignService, CampaignService>();
+builder.Services.AddScoped<ICampaignSearchRepository, ElasticCampaignSearchRepository>();
 builder.Services
     .AddControllers()
     .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
