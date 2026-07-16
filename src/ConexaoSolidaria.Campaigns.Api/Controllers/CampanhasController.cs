@@ -68,6 +68,7 @@ public sealed class CampanhasController(CampaignsDbContext db, ICampaignService 
             request.DataFim,
             request.MetaFinanceira,
             request.Status,
+            request.Categoria,
             cancellationToken);
 
         return CreatedAtAction(nameof(ObterPorId), new { id = campaign.Id }, ToResponse(campaign));
@@ -90,6 +91,7 @@ public sealed class CampanhasController(CampaignsDbContext db, ICampaignService 
             request.DataFim,
             request.MetaFinanceira,
             request.Status,
+            request.Categoria,
             cancellationToken);
 
         return campaign is null
@@ -178,6 +180,8 @@ public sealed class CampanhasController(CampaignsDbContext db, ICampaignService 
             : Ok(ToResponse(campaign));
     }
 
+    // Resposta imediata de criar/atualizar: TotalDoadores = 0 aqui (o read model campaign_stats e
+    // eventualmente consistente, atualizado pelo Worker). A vitrine/listagem le o valor real via search.
     private static CampanhaResponse ToResponse(Campaign campaign)
     {
         return new CampanhaResponse(
@@ -188,7 +192,9 @@ public sealed class CampanhasController(CampaignsDbContext db, ICampaignService 
             campaign.DataFim,
             campaign.MetaFinanceira,
             campaign.ValorTotalArrecadado,
-            campaign.Status);
+            campaign.Status,
+            campaign.Categoria,
+            0);
     }
 
 }

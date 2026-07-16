@@ -22,6 +22,8 @@ public sealed class Campaign
 
     public CampaignStatus Status { get; private set; }
 
+    public CampaignCategory Categoria { get; private set; } = CampaignCategory.Outros;
+
     public DateTimeOffset CriadaEm { get; private set; } = DateTimeOffset.UtcNow;
 
     public DateTimeOffset? AtualizadaEm { get; private set; }
@@ -33,7 +35,8 @@ public sealed class Campaign
         DateTimeOffset dataFim,
         decimal metaFinanceira,
         CampaignStatus status,
-        DateTimeOffset now)
+        DateTimeOffset now,
+        CampaignCategory categoria = CampaignCategory.Outros)
     {
         Validate(titulo, descricao, dataInicio, dataFim, metaFinanceira, now);
 
@@ -44,7 +47,8 @@ public sealed class Campaign
             DataInicio = dataInicio.ToUniversalTime(),
             DataFim = dataFim.ToUniversalTime(),
             MetaFinanceira = metaFinanceira,
-            Status = status
+            Status = status,
+            Categoria = categoria
         };
     }
 
@@ -55,7 +59,8 @@ public sealed class Campaign
         DateTimeOffset dataFim,
         decimal metaFinanceira,
         CampaignStatus status,
-        DateTimeOffset now)
+        DateTimeOffset now,
+        CampaignCategory categoria = CampaignCategory.Outros)
     {
         Validate(titulo, descricao, dataInicio, dataFim, metaFinanceira, now);
 
@@ -70,6 +75,7 @@ public sealed class Campaign
         DataInicio = dataInicio.ToUniversalTime();
         DataFim = dataFim.ToUniversalTime();
         MetaFinanceira = metaFinanceira;
+        Categoria = categoria;
         AtualizadaEm = DateTimeOffset.UtcNow;
     }
 

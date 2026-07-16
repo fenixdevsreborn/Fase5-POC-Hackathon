@@ -1,40 +1,35 @@
-<MudNavMenu Rounded="true" Margin="Margin.Dense" Color="Color.Primary" Class="pa-2">
-    <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">
-        Inicio
-    </MudNavLink>
-    <MudNavLink Href="/campanhas" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Campaign">
-        Campanhas
-    </MudNavLink>
-    <MudNavLink Href="/transparencia" Icon="@Icons.Material.Filled.QueryStats">
-        Transparencia
-    </MudNavLink>
+<nav class="cs-nav @(Mobile ? "cs-nav--mobile" : string.Empty)" aria-label="Navegacao principal">
+    @* Todos os destinos sao reais: as entradas de pagina usam NavLink (destacam a rota ativa) e
+       apontam para @@page existentes; as ancoras levam a secoes que existem na landing (/#id). *@
+    <NavLink href="/" Match="NavLinkMatch.All" @onclick="NotifyNavigate">Início</NavLink>
+    <a href="/#como-funciona" @onclick="NotifyNavigate">Como funciona</a>
+    <NavLink href="/campanhas" Match="NavLinkMatch.Prefix" @onclick="NotifyNavigate">Campanhas</NavLink>
+    <a href="/#instituicoes" @onclick="NotifyNavigate">Instituicoes</a>
+    <a href="/#impacto" @onclick="NotifyNavigate">Impacto</a>
+    <NavLink href="/transparencia" Match="NavLinkMatch.Prefix" @onclick="NotifyNavigate">Transparencia</NavLink>
 
     <AuthorizeView Roles="Doador">
-        <MudDivider Class="my-2" />
-        <MudNavGroup Title="Doador" Icon="@Icons.Material.Filled.Favorite" Expanded="true">
-            <MudNavLink Href="/doador" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">
-                Meu painel
-            </MudNavLink>
-            <MudNavLink Href="/doador/doacoes" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.ReceiptLong">
-                Minhas doacoes
-            </MudNavLink>
-        </MudNavGroup>
+        <NavLink class="cs-nav__private" href="/doador" Match="NavLinkMatch.All" @onclick="NotifyNavigate">
+            Meu painel
+        </NavLink>
+        <NavLink class="cs-nav__private" href="/doador/doacoes" Match="NavLinkMatch.Prefix" @onclick="NotifyNavigate">
+            Minhas doacoes
+        </NavLink>
     </AuthorizeView>
 
     <AuthorizeView Roles="GestorONG">
-        <MudDivider Class="my-2" />
-        <MudNavGroup Title="Gestor" Icon="@Icons.Material.Filled.AdminPanelSettings" Expanded="true">
-            <MudNavLink Href="/gestor" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">
-                Painel
-            </MudNavLink>
-            <MudNavLink Href="/gestor/campanhas/nova" Icon="@Icons.Material.Filled.AddCircle">
-                Nova campanha
-            </MudNavLink>
-        </MudNavGroup>
+        <NavLink class="cs-nav__private" href="/gestor" Match="NavLinkMatch.All" @onclick="NotifyNavigate">
+            Painel gestor
+        </NavLink>
+        <NavLink class="cs-nav__private" href="/gestor/campanhas/nova" Match="NavLinkMatch.Prefix" @onclick="NotifyNavigate">
+            Nova campanha
+        </NavLink>
     </AuthorizeView>
+</nav>
 
-    <MudDivider Class="my-2" />
-    <MudNavLink Href="/status" Icon="@Icons.Material.Filled.MonitorHeart">
-        Status
-    </MudNavLink>
-</MudNavMenu>
+@code {
+    [Parameter] public bool Mobile { get; set; }
+    [Parameter] public EventCallback OnNavigate { get; set; }
+
+    private Task NotifyNavigate() => OnNavigate.InvokeAsync();
+}

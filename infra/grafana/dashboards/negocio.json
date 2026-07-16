@@ -1,50 +1,51 @@
 {
-  "annotations": {
-    "list": []
-  },
+  "annotations": { "list": [] },
   "editable": true,
   "fiscalYearStartMonth": 0,
-  "graphTooltip": 0,
+  "graphTooltip": 1,
   "id": null,
   "links": [],
   "liveNow": false,
   "panels": [
     {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "panels": [],
+      "title": "Visao executiva - doacoes",
+      "type": "row"
+    },
+    {
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "description": "Total de doacoes processadas com sucesso pelo worker desde o inicio.",
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "thresholds" },
+          "color": { "mode": "fixed", "fixedColor": "green" },
           "mappings": [],
           "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] },
           "unit": "short"
         },
         "overrides": []
       },
-      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 0 },
+      "gridPos": { "h": 6, "w": 5, "x": 0, "y": 1 },
       "id": 1,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
-        "justifyMode": "auto",
+        "justifyMode": "center",
         "orientation": "auto",
         "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false },
-        "textMode": "auto"
+        "textMode": "value"
       },
       "targets": [
-        {
-          "datasource": { "type": "prometheus", "uid": "Prometheus" },
-          "editorMode": "code",
-          "expr": "sum(conexao_donations_processed_total)",
-          "legendFormat": "processadas",
-          "range": true,
-          "refId": "A"
-        }
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "sum(conexao_donations_processed_total)", "legendFormat": "processadas", "range": true, "refId": "A" }
       ],
-      "title": "Doacoes processadas (total)",
+      "title": "Doacoes processadas",
       "type": "stat"
     },
     {
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "description": "Total de doacoes rejeitadas (campanha encerrada ou cancelada).",
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
@@ -54,65 +55,81 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 0 },
+      "gridPos": { "h": 6, "w": 5, "x": 5, "y": 1 },
       "id": 2,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
-        "justifyMode": "auto",
+        "justifyMode": "center",
         "orientation": "auto",
         "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false },
-        "textMode": "auto"
+        "textMode": "value"
       },
       "targets": [
-        {
-          "datasource": { "type": "prometheus", "uid": "Prometheus" },
-          "editorMode": "code",
-          "expr": "sum(conexao_donations_rejected_total)",
-          "legendFormat": "rejeitadas",
-          "range": true,
-          "refId": "A"
-        }
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "sum(conexao_donations_rejected_total)", "legendFormat": "rejeitadas", "range": true, "refId": "A" }
       ],
-      "title": "Doacoes rejeitadas (total)",
+      "title": "Doacoes rejeitadas",
       "type": "stat"
     },
     {
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "description": "Percentual de doacoes aceitas sobre o total (processadas + rejeitadas). Indicador central de saude do funil de doacoes.",
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
           "mappings": [],
-          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "orange", "value": 10 }, { "color": "red", "value": 20 } ] },
-          "unit": "short"
+          "max": 1,
+          "min": 0,
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "orange", "value": 0.8 }, { "color": "green", "value": 0.95 } ] },
+          "unit": "percentunit"
         },
         "overrides": []
       },
-      "gridPos": { "h": 6, "w": 6, "x": 12, "y": 0 },
+      "gridPos": { "h": 6, "w": 6, "x": 10, "y": 1 },
       "id": 3,
+      "options": {
+        "orientation": "auto",
+        "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "sum(conexao_donations_processed_total) / clamp_min(sum(conexao_donations_processed_total) + sum(conexao_donations_rejected_total), 1)", "legendFormat": "aceitacao", "range": true, "refId": "A" }
+      ],
+      "title": "Taxa de aceitacao",
+      "type": "gauge"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "description": "Vazao atual: doacoes processadas por segundo (media 1min).",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "blue" },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "blue", "value": null } ] },
+          "unit": "cps"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 6, "w": 4, "x": 16, "y": 1 },
+      "id": 4,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
-        "justifyMode": "auto",
+        "justifyMode": "center",
         "orientation": "auto",
         "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false },
-        "textMode": "auto"
+        "textMode": "value"
       },
       "targets": [
-        {
-          "datasource": { "type": "prometheus", "uid": "Prometheus" },
-          "editorMode": "code",
-          "expr": "sum(conexao_outbox_pending_messages)",
-          "legendFormat": "pendentes",
-          "range": true,
-          "refId": "A"
-        }
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "sum(rate(conexao_donations_processed_total[1m]))", "legendFormat": "vazao", "range": true, "refId": "A" }
       ],
-      "title": "Outbox pendente",
+      "title": "Vazao atual",
       "type": "stat"
     },
     {
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "description": "Mensagens descartadas para a dead-letter queue. Qualquer valor > 0 exige investigacao.",
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
@@ -122,140 +139,370 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 6, "w": 6, "x": 18, "y": 0 },
-      "id": 4,
+      "gridPos": { "h": 6, "w": 4, "x": 20, "y": 1 },
+      "id": 5,
       "options": {
         "colorMode": "background",
         "graphMode": "area",
-        "justifyMode": "auto",
+        "justifyMode": "center",
         "orientation": "auto",
         "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false },
-        "textMode": "auto"
+        "textMode": "value"
       },
       "targets": [
-        {
-          "datasource": { "type": "prometheus", "uid": "Prometheus" },
-          "editorMode": "code",
-          "expr": "sum(conexao_dead_letter_messages)",
-          "legendFormat": "dead-letter",
-          "range": true,
-          "refId": "A"
-        }
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "sum(conexao_dead_letter_messages)", "legendFormat": "DLQ", "range": true, "refId": "A" }
       ],
       "title": "Dead-letter (DLQ)",
       "type": "stat"
     },
     {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 7 },
+      "id": 101,
+      "panels": [],
+      "title": "Vazao e composicao",
+      "type": "row"
+    },
+    {
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "description": "Taxa de doacoes processadas vs rejeitadas por segundo.",
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
           "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "drawStyle": "line",
-            "fillOpacity": 15,
-            "gradientMode": "none",
+            "axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto",
+            "drawStyle": "line", "fillOpacity": 25, "gradientMode": "opacity",
             "hideFrom": { "legend": false, "tooltip": false, "viz": false },
-            "lineInterpolation": "linear",
-            "lineWidth": 2,
-            "pointSize": 4,
-            "scaleDistribution": { "type": "linear" },
-            "showPoints": "never",
-            "spanNulls": false,
-            "stacking": { "group": "A", "mode": "none" },
-            "thresholdsStyle": { "mode": "off" }
+            "lineInterpolation": "smooth", "lineWidth": 2, "pointSize": 5,
+            "scaleDistribution": { "type": "linear" }, "showPoints": "never", "spanNulls": false,
+            "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "off" }
           },
           "mappings": [],
           "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] },
-          "unit": "reqps"
+          "unit": "cps"
         },
-        "overrides": []
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "processadas/s" }, "properties": [ { "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } } ] },
+          { "matcher": { "id": "byName", "options": "rejeitadas/s" }, "properties": [ { "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } } ] }
+        ]
       },
-      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 6 },
-      "id": 5,
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "id": 6,
       "options": {
         "legend": { "calcs": [ "mean", "max" ], "displayMode": "table", "placement": "bottom", "showLegend": true },
         "tooltip": { "mode": "multi", "sort": "desc" }
       },
       "targets": [
-        {
-          "datasource": { "type": "prometheus", "uid": "Prometheus" },
-          "editorMode": "code",
-          "expr": "sum(rate(conexao_donations_processed_total[1m]))",
-          "legendFormat": "processadas/s",
-          "range": true,
-          "refId": "A"
-        },
-        {
-          "datasource": { "type": "prometheus", "uid": "Prometheus" },
-          "editorMode": "code",
-          "expr": "sum(rate(conexao_donations_rejected_total[1m]))",
-          "legendFormat": "rejeitadas/s",
-          "range": true,
-          "refId": "B"
-        }
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "sum(rate(conexao_donations_processed_total[1m]))", "legendFormat": "processadas/s", "range": true, "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "sum(rate(conexao_donations_rejected_total[1m]))", "legendFormat": "rejeitadas/s", "range": true, "refId": "B" }
       ],
       "title": "Taxa de processamento de doacoes",
       "type": "timeseries"
     },
     {
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "description": "Composicao acumulada: proporcao entre doacoes aceitas e rejeitadas.",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] },
+          "unit": "short"
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "aceitas" }, "properties": [ { "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } } ] },
+          { "matcher": { "id": "byName", "options": "rejeitadas" }, "properties": [ { "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } } ] }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 8 },
+      "id": 7,
+      "options": {
+        "displayLabels": [ "percent" ],
+        "legend": { "displayMode": "table", "placement": "right", "showLegend": true, "values": [ "value" ] },
+        "pieType": "donut",
+        "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "sum(conexao_donations_processed_total)", "legendFormat": "aceitas", "range": true, "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "sum(conexao_donations_rejected_total)", "legendFormat": "rejeitadas", "range": true, "refId": "B" }
+      ],
+      "title": "Composicao aceitas x rejeitadas",
+      "type": "piechart"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "description": "Taxa de rejeicao (%) como fracao do total. Subida sustentada indica muitas campanhas encerradas/canceladas recebendo doacoes.",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "custom": {
+            "axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto",
+            "drawStyle": "line", "fillOpacity": 25, "gradientMode": "scheme",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "lineInterpolation": "smooth", "lineWidth": 2, "pointSize": 5,
+            "scaleDistribution": { "type": "linear" }, "showPoints": "never", "spanNulls": false,
+            "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "max": 1,
+          "min": 0,
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "orange", "value": 0.1 }, { "color": "red", "value": 0.3 } ] },
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 8 },
+      "id": 8,
+      "options": {
+        "legend": { "calcs": [ "mean", "max" ], "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "sum(rate(conexao_donations_rejected_total[5m])) / clamp_min(sum(rate(conexao_donations_processed_total[5m])) + sum(rate(conexao_donations_rejected_total[5m])), 0.0001)", "legendFormat": "taxa de rejeicao", "range": true, "refId": "A" }
+      ],
+      "title": "Taxa de rejeicao",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 16 },
+      "id": 102,
+      "panels": [],
+      "title": "Acumulados e desempenho do pipeline",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "description": "Doacoes acumuladas ao longo do tempo (aceitas x rejeitadas).",
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
           "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "drawStyle": "line",
-            "fillOpacity": 15,
-            "gradientMode": "none",
+            "axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto",
+            "drawStyle": "line", "fillOpacity": 20, "gradientMode": "opacity",
             "hideFrom": { "legend": false, "tooltip": false, "viz": false },
-            "lineInterpolation": "linear",
-            "lineWidth": 2,
-            "pointSize": 4,
-            "scaleDistribution": { "type": "linear" },
-            "showPoints": "never",
-            "spanNulls": false,
-            "stacking": { "group": "A", "mode": "none" },
-            "thresholdsStyle": { "mode": "off" }
+            "lineInterpolation": "smooth", "lineWidth": 2, "pointSize": 5,
+            "scaleDistribution": { "type": "linear" }, "showPoints": "never", "spanNulls": false,
+            "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "off" }
           },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] },
+          "unit": "short"
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "processadas acumuladas" }, "properties": [ { "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } } ] },
+          { "matcher": { "id": "byName", "options": "rejeitadas acumuladas" }, "properties": [ { "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } } ] }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 17 },
+      "id": 9,
+      "options": {
+        "legend": { "calcs": [ "last", "max" ], "displayMode": "table", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "sum(conexao_donations_processed_total)", "legendFormat": "processadas acumuladas", "range": true, "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "sum(conexao_donations_rejected_total)", "legendFormat": "rejeitadas acumuladas", "range": true, "refId": "B" }
+      ],
+      "title": "Doacoes acumuladas ao longo do tempo",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "description": "Tempo de processamento por doacao no worker (p50 e p95). Reflete a experiencia real de latencia do pipeline de doacoes.",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto",
+            "drawStyle": "line", "fillOpacity": 10, "gradientMode": "opacity",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "lineInterpolation": "smooth", "lineWidth": 2, "pointSize": 5,
+            "scaleDistribution": { "type": "linear" }, "showPoints": "never", "spanNulls": false,
+            "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] },
+          "unit": "s"
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "p95" }, "properties": [ { "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } } ] },
+          { "matcher": { "id": "byName", "options": "p50" }, "properties": [ { "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } } ] }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 17 },
+      "id": 10,
+      "options": {
+        "legend": { "calcs": [ "mean", "max" ], "displayMode": "table", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "histogram_quantile(0.50, sum(rate(conexao_donation_processing_duration_seconds_bucket[5m])) by (le))", "legendFormat": "p50", "range": true, "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "histogram_quantile(0.95, sum(rate(conexao_donation_processing_duration_seconds_bucket[5m])) by (le))", "legendFormat": "p95", "range": true, "refId": "B" }
+      ],
+      "title": "Tempo de processamento por doacao (p50/p95)",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 25 },
+      "id": 103,
+      "panels": [],
+      "title": "Arrecadacao (R$)",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "description": "Valor total arrecadado em doacoes processadas com sucesso, em reais.",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "green" },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] },
+          "unit": "currencyBRL"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 26 },
+      "id": 11,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false },
+        "textMode": "value"
+      },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "sum(conexao_donation_amount_brl_total)", "legendFormat": "total arrecadado", "range": true, "refId": "A" }
+      ],
+      "title": "Total arrecadado",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "description": "Valor medio por doacao processada (total arrecadado / doacoes processadas).",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "blue" },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "blue", "value": null } ] },
+          "unit": "currencyBRL"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 26 },
+      "id": 12,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false },
+        "textMode": "value"
+      },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "sum(conexao_donation_amount_brl_total) / clamp_min(sum(conexao_donations_processed_total), 1)", "legendFormat": "ticket medio", "range": true, "refId": "A" }
+      ],
+      "title": "Ticket medio",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "description": "Evolucao do valor total arrecadado ao longo do tempo.",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "green" },
+          "custom": {
+            "axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto",
+            "drawStyle": "line", "fillOpacity": 25, "gradientMode": "opacity",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "lineInterpolation": "smooth", "lineWidth": 2, "pointSize": 5,
+            "scaleDistribution": { "type": "linear" }, "showPoints": "never", "spanNulls": false,
+            "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] },
+          "unit": "currencyBRL"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 26 },
+      "id": 13,
+      "options": {
+        "legend": { "calcs": [ "last", "max" ], "displayMode": "table", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "sum(conexao_donation_amount_brl_total)", "legendFormat": "arrecadado acumulado", "range": true, "refId": "A" }
+      ],
+      "title": "Arrecadacao acumulada",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "description": "Campanhas que mais arrecadaram (top 10), em reais.",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "continuous-GrYlRd" },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] },
+          "unit": "currencyBRL"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 32 },
+      "id": 14,
+      "options": {
+        "displayMode": "gradient",
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": false },
+        "maxVizHeight": 300,
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "namePlacement": "left",
+        "orientation": "horizontal",
+        "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false },
+        "showUnfilled": true,
+        "valueMode": "color"
+      },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "topk(10, sum(conexao_donation_amount_by_campaign_brl_total) by (campanha))", "legendFormat": "{{campanha}}", "range": true, "refId": "A" }
+      ],
+      "title": "Top campanhas por valor arrecadado",
+      "type": "bargauge"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "description": "Campanhas com mais doacoes processadas (top 10).",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "continuous-BlPu" },
           "mappings": [],
           "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] },
           "unit": "short"
         },
         "overrides": []
       },
-      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 6 },
-      "id": 6,
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 32 },
+      "id": 15,
       "options": {
-        "legend": { "calcs": [ "last", "max" ], "displayMode": "table", "placement": "bottom", "showLegend": true },
-        "tooltip": { "mode": "multi", "sort": "desc" }
+        "displayMode": "gradient",
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": false },
+        "maxVizHeight": 300,
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "namePlacement": "left",
+        "orientation": "horizontal",
+        "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false },
+        "showUnfilled": true,
+        "valueMode": "color"
       },
       "targets": [
-        {
-          "datasource": { "type": "prometheus", "uid": "Prometheus" },
-          "editorMode": "code",
-          "expr": "sum(conexao_donations_processed_total)",
-          "legendFormat": "processadas acumuladas",
-          "range": true,
-          "refId": "A"
-        },
-        {
-          "datasource": { "type": "prometheus", "uid": "Prometheus" },
-          "editorMode": "code",
-          "expr": "sum(conexao_donations_rejected_total)",
-          "legendFormat": "rejeitadas acumuladas",
-          "range": true,
-          "refId": "B"
-        }
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "topk(10, sum(conexao_donations_by_campaign_total) by (campanha))", "legendFormat": "{{campanha}}", "range": true, "refId": "A" }
       ],
-      "title": "Doacoes acumuladas ao longo do tempo",
-      "type": "timeseries"
+      "title": "Top campanhas por numero de doacoes",
+      "type": "bargauge"
     }
   ],
   "refresh": "5s",
@@ -267,6 +514,6 @@
   "timezone": "browser",
   "title": "Conexao Solidaria - Visao Executiva (Negocio)",
   "uid": "conexao-solidaria-negocio",
-  "version": 1,
+  "version": 2,
   "weekStart": ""
 }

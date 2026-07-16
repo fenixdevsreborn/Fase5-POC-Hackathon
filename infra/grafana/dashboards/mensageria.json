@@ -21,9 +21,9 @@
             "axisPlacement": "auto",
             "drawStyle": "line",
             "fillOpacity": 15,
-            "gradientMode": "none",
+            "gradientMode": "opacity",
             "hideFrom": { "legend": false, "tooltip": false, "viz": false },
-            "lineInterpolation": "linear",
+            "lineInterpolation": "smooth",
             "lineWidth": 2,
             "pointSize": 4,
             "scaleDistribution": { "type": "linear" },
@@ -85,9 +85,9 @@
             "axisPlacement": "auto",
             "drawStyle": "line",
             "fillOpacity": 10,
-            "gradientMode": "none",
+            "gradientMode": "opacity",
             "hideFrom": { "legend": false, "tooltip": false, "viz": false },
-            "lineInterpolation": "linear",
+            "lineInterpolation": "smooth",
             "lineWidth": 2,
             "pointSize": 4,
             "scaleDistribution": { "type": "linear" },
@@ -244,9 +244,9 @@
             "axisPlacement": "auto",
             "drawStyle": "line",
             "fillOpacity": 15,
-            "gradientMode": "none",
+            "gradientMode": "opacity",
             "hideFrom": { "legend": false, "tooltip": false, "viz": false },
-            "lineInterpolation": "linear",
+            "lineInterpolation": "smooth",
             "lineWidth": 2,
             "pointSize": 4,
             "scaleDistribution": { "type": "linear" },
@@ -286,6 +286,213 @@
         }
       ],
       "title": "Backlog e DLQ ao longo do tempo",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "description": "Mensagens prontas na fila mas ainda nao entregues a nenhum consumidor (esperando na fila). Requer o plugin rabbitmq_prometheus.",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "orange", "value": 50 }, { "color": "red", "value": 200 } ] },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 7, "w": 6, "x": 0, "y": 24 },
+      "id": 7,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "editorMode": "code",
+          "expr": "sum(rabbitmq_queue_messages_ready{queue=\"doacoes-recebidas\"})",
+          "legendFormat": "esperando na fila",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Esperando na fila (ready) - requer plugin",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "description": "Mensagens entregues a um consumidor mas ainda sem ack: em processamento agora. Requer o plugin rabbitmq_prometheus.",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "orange", "value": 20 }, { "color": "red", "value": 100 } ] },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 7, "w": 6, "x": 6, "y": 24 },
+      "id": 8,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "editorMode": "code",
+          "expr": "sum(rabbitmq_queue_messages_unacked{queue=\"doacoes-recebidas\"})",
+          "legendFormat": "em processamento",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Em processamento (unacked) - requer plugin",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "description": "Consumidores ativos ligados a fila de doacoes. Se cair para 0 com fila cheia, o worker esta parado. Requer o plugin rabbitmq_prometheus.",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "green", "value": 1 } ] },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 7, "w": 6, "x": 12, "y": 24 },
+      "id": 9,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "editorMode": "code",
+          "expr": "sum(rabbitmq_queue_consumers{queue=\"doacoes-recebidas\"})",
+          "legendFormat": "consumidores",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Consumidores ativos - requer plugin",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "description": "Fracao de publicacoes de eventos de doacao bem-sucedidas em relacao ao total (sucesso + falhas) na janela de 5min.",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "max": 1,
+          "min": 0,
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "orange", "value": 0.95 }, { "color": "green", "value": 0.99 } ] },
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 7, "w": 6, "x": 18, "y": 24 },
+      "id": 10,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "editorMode": "code",
+          "expr": "sum(rate(conexao_donation_publish_total[5m])) / clamp_min(sum(rate(conexao_donation_publish_total[5m])) + sum(rate(conexao_donation_publish_failures_total[5m])), 1)",
+          "legendFormat": "taxa de sucesso",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Taxa de sucesso na publicacao",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "description": "Composicao da fila RabbitMQ ao longo do tempo: total, prontas (esperando) e nao confirmadas (em processamento). Requer o plugin rabbitmq_prometheus.",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "opacity",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "scaleDistribution": { "type": "linear" },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": { "group": "A", "mode": "none" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 31 },
+      "id": 11,
+      "options": {
+        "legend": { "calcs": [ "last", "max" ], "displayMode": "table", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "editorMode": "code",
+          "expr": "sum(rabbitmq_queue_messages{queue=\"doacoes-recebidas\"})",
+          "legendFormat": "total na fila",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "editorMode": "code",
+          "expr": "sum(rabbitmq_queue_messages_ready{queue=\"doacoes-recebidas\"})",
+          "legendFormat": "esperando (ready)",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "editorMode": "code",
+          "expr": "sum(rabbitmq_queue_messages_unacked{queue=\"doacoes-recebidas\"})",
+          "legendFormat": "em processamento (unacked)",
+          "range": true,
+          "refId": "C"
+        }
+      ],
+      "title": "Fila RabbitMQ: total / esperando / em processamento",
       "type": "timeseries"
     }
   ],

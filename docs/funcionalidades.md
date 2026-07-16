@@ -22,12 +22,17 @@ Autorização por **policies nomeadas** (`AD-16`): `CampaignManagement` (GestorO
 ## Visitante (anônimo)
 
 ### V1 — Explorar/buscar campanhas
-- **O que faz:** busca campanhas por termo (título/descrição), paginada.
+- **O que faz:** busca campanhas por termo em **título, descrição e categoria**, paginada e
+  ordenada por relevância. **Tolera erro de digitação e acento**: `cadera gamer` acha
+  "Cadeira Gamer", `sao paulo` acha "São Paulo", `metrica` acha "Metricas" (plural/stemming) e
+  `comput` acha "Comprar computador" (prefixo/autocomplete).
 - **UI / endpoint:** página `/campanhas` → `GET /api/campanhas/search?q=&page=&pageSize=`
   (anônimo).
-- **Encaixe arquitetural:** busca no **Elasticsearch** (fuzzy) com **fallback para Postgres**
-  (`AD-12`) protegido por **circuit breaker** (`AD-34`); resposta com **output cache ~5s**
-  (`AD-31`). Sem termo (`q` vazio), retorna lista vazia por design.
+- **Encaixe arquitetural:** busca no **Elasticsearch** com analisador pt-BR e query fuzzy
+  multi-campo (`AD-35`), com **fallback para Postgres** (`AD-12`) protegido por **circuit
+  breaker** (`AD-34`); resposta com **output cache ~5s** (`AD-31`). Sem termo (`q` vazio) **não**
+  vai ao ES: lista todas as campanhas direto do Postgres, paginadas, da mais recente para a mais
+  antiga (é o que alimenta a vitrine e o painel do gestor).
 
 ### V2 — Ver detalhe público de uma campanha
 - **O que faz:** consulta uma campanha específica por Id, sem precisar listar/filtrar.
@@ -170,7 +175,7 @@ Inclui tudo do Visitante, mais:
 
 | # | Funcionalidade | Persona | Endpoint principal | Decisões |
 |---|---|---|---|---|
-| V1 | Buscar campanhas | Visitante | `GET /api/campanhas/search` | AD-12, AD-34, AD-31 |
+| V1 | Buscar campanhas | Visitante | `GET /api/campanhas/search` | AD-35, AD-12, AD-34, AD-31 |
 | V2 | Detalhe da campanha | Visitante | `GET /api/campanhas/{id}` | A1 |
 | V3 | Transparência | Visitante | `GET /api/campanhas/transparencia` | AD-31 |
 | V4 | Estatísticas (read model) | Visitante | `GET /api/campanhas/stats` | AD-26, AD-31 |

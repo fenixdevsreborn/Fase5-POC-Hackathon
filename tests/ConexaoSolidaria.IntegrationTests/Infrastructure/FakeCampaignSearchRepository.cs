@@ -11,7 +11,12 @@ namespace ConexaoSolidaria.IntegrationTests.Infrastructure;
 /// </summary>
 public sealed class FakeCampaignSearchRepository : ICampaignSearchRepository
 {
+    public Task<bool> EnsureIndexAsync(CancellationToken cancellationToken) => Task.FromResult(false);
+
     public Task IndexAsync(Campaign campaign, CancellationToken cancellationToken) => Task.CompletedTask;
+
+    public Task IndexManyAsync(IReadOnlyCollection<Campaign> campaigns, CancellationToken cancellationToken)
+        => Task.CompletedTask;
 
     public Task<CampaignSearchResult<CampaignSearchDocument>> SearchAsync(
         string term,

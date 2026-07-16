@@ -1,21 +1,275 @@
-/* Layout estilizado via MudBlazor (MudLayout/MudAppBar/MudDrawer). */
+.cs-app-shell {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+}
+
+.cs-site-header {
+    position: sticky;
+    top: 0;
+    z-index: 1200;
+    background: rgba(255, 255, 255, 0.94);
+    border-bottom: 1px solid rgba(12, 37, 75, 0.06);
+    box-shadow: 0 8px 32px rgba(18, 50, 91, 0.04);
+    backdrop-filter: blur(18px);
+    animation: cs-header-enter .55s cubic-bezier(.22, 1, .36, 1) both;
+}
+
+.cs-site-header__inner {
+    width: min(100% - 48px, 1500px);
+    min-height: 76px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: minmax(180px, 1fr) auto minmax(210px, 1fr);
+    align-items: center;
+    gap: 24px;
+    min-width: 0;
+}
+
+.cs-brand {
+    display: inline-flex;
+    width: 168px;
+    height: 64px;
+    align-items: center;
+    overflow: hidden;
+    min-width: 0;
+}
+
+.cs-brand img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: left center;
+}
+
+.cs-site-header__desktop-nav {
+    display: flex;
+    justify-content: center;
+}
+
+.cs-site-header__actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    min-width: 0;
+}
+
+.cs-account-link,
+.cs-login-button,
+.cs-donate-button,
+.cs-profile-button {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 0 28px;
+    border: 1.5px solid var(--cs-blue);
+    border-radius: 999px;
+    background: #fff;
+    color: var(--cs-blue);
+    font: inherit;
+    font-size: 0.98rem;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    transition: color .2s ease, background .2s ease, box-shadow .2s ease, transform .2s ease;
+}
+
+.cs-donate-button {
+    min-height: 42px;
+    padding-inline: 23px;
+    border-color: transparent;
+    border-radius: 12px;
+    color: #fff;
+    background: linear-gradient(135deg, #1670f8 0%, #075de7 100%);
+    box-shadow: 0 9px 22px rgba(22, 112, 248, .22);
+}
+
+.cs-profile-button {
+    width: 42px;
+    min-height: 42px;
+    padding: 0;
+    border-color: rgba(12, 37, 75, .08);
+    color: var(--cs-ink);
+    background: #f4f7fc;
+}
+
+.cs-account-link {
+    border-color: transparent;
+    padding-inline: 14px;
+}
+
+.cs-account-link:hover,
+.cs-login-button:hover,
+.cs-donate-button:hover,
+.cs-profile-button:hover {
+    background: var(--cs-blue);
+    color: #fff;
+    box-shadow: 0 10px 26px rgba(23, 104, 239, .2);
+    transform: translateY(-1px);
+}
+
+.cs-donate-button:hover {
+    background: linear-gradient(135deg, #075de7 0%, #064fc5 100%);
+}
+
+.cs-profile-button:hover {
+    background: #eaf1ff;
+    color: var(--cs-blue);
+    box-shadow: 0 8px 20px rgba(23, 104, 239, .12);
+}
+
+.cs-login-button--subtle {
+    min-height: 40px;
+    padding-inline: 20px;
+    border-color: rgba(23, 104, 239, .24);
+}
+
+.cs-menu-button {
+    display: none;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(12, 37, 75, .1);
+    border-radius: 12px;
+    background: #fff;
+    color: var(--cs-ink);
+    cursor: pointer;
+}
+
+.cs-mobile-panel {
+    display: none;
+}
+
+.cs-mobile-panel__account {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding-top: 18px;
+    margin-top: 18px;
+    border-top: 1px solid rgba(12, 37, 75, .08);
+    color: var(--text-secondary);
+}
+
+.cs-mobile-panel__account a:not(.cs-login-button),
+.cs-mobile-panel__account button {
+    border: 0;
+    background: none;
+    color: var(--cs-blue);
+    font: inherit;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.cs-main-content {
+    flex: 1 0 auto;
+}
+
+.cs-page-container {
+    width: min(100% - 48px, 1500px);
+    margin: 0 auto;
+    padding: 38px 0 72px;
+}
+
 #blazor-error-ui {
     color-scheme: light only;
-    background: #ffffff;
+    background: #fff;
     bottom: 0;
-    box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 -1px 12px rgba(0, 0, 0, .16);
     box-sizing: border-box;
     display: none;
     left: 0;
-    padding: 0.6rem 1.25rem 0.7rem 1.25rem;
+    padding: .75rem 1.25rem;
     position: fixed;
     width: 100%;
     z-index: 1500;
 }
 
-    #blazor-error-ui .dismiss {
-        cursor: pointer;
-        position: absolute;
-        right: 0.75rem;
-        top: 0.5rem;
+#blazor-error-ui .dismiss {
+    cursor: pointer;
+    position: absolute;
+    right: .75rem;
+    top: .5rem;
+}
+
+@media (max-width: 1120px) {
+    .cs-site-header__inner {
+        grid-template-columns: 165px 1fr auto;
+        gap: 14px;
     }
+
+    .cs-brand {
+        width: 158px;
+    }
+}
+
+@media (max-width: 959px) {
+    .cs-site-header__inner {
+        min-height: 82px;
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .cs-brand {
+        width: 180px;
+        height: 74px;
+    }
+
+    .cs-site-header__desktop-nav,
+    .cs-site-header__actions > .cs-account-link,
+    .cs-site-header__actions > .cs-login-button,
+    .cs-site-header__actions > .cs-donate-button,
+    .cs-site-header__actions > .cs-profile-button {
+        display: none;
+    }
+
+    .cs-menu-button,
+    .cs-mobile-panel {
+        display: flex;
+    }
+
+    .cs-mobile-panel {
+        width: min(100% - 48px, 1500px);
+        margin: 0 auto;
+        padding: 8px 0 24px;
+        flex-direction: column;
+    }
+
+    .cs-page-container {
+        padding-top: 28px;
+    }
+}
+
+@keyframes cs-header-enter {
+    from { opacity: 0; transform: translateY(-12px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cs-site-header { animation: none; }
+}
+
+@media (max-width: 599px) {
+    .cs-site-header__inner,
+    .cs-mobile-panel,
+    .cs-page-container,
+    .cs-footer__inner {
+        width: min(100% - 32px, 1500px);
+    }
+
+    .cs-brand {
+        width: 176px;
+    }
+
+    .cs-page-container {
+        padding: 22px 0 56px;
+    }
+
+}

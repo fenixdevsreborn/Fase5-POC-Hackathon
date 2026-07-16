@@ -1,0 +1,2265 @@
+# GERADO automaticamente a partir de infra/grafana/dashboards/*.json
+# (fonte unica de verdade dos dashboards). Nao editar a mao: regenerar via script.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards
+data:
+  aplicacao.json: |
+    {
+      "annotations": { "list": [] },
+      "editable": true,
+      "fiscalYearStartMonth": 0,
+      "graphTooltip": 1,
+      "id": null,
+      "links": [],
+      "liveNow": false,
+      "panels": [
+        {
+          "collapsed": false,
+          "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+          "id": 100,
+          "panels": [],
+          "title": "Indicadores-chave (tempo real)",
+          "type": "row"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "description": "Requisicoes por segundo agregadas em todos os servicos.",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "fixed", "fixedColor": "blue" },
+              "mappings": [],
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "blue", "value": null } ] },
+              "unit": "reqps"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 5, "w": 4, "x": 0, "y": 1 },
+          "id": 1,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "center",
+            "orientation": "auto",
+            "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false },
+            "textMode": "value"
+          },
+          "targets": [
+            { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "sum(rate(http_requests_received_total[1m]))", "legendFormat": "RPS", "range": true, "refId": "A" }
+          ],
+          "title": "RPS total",
+          "type": "stat"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "description": "Latencia p95 global (todas as rotas e servicos).",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "mappings": [],
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "orange", "value": 0.5 }, { "color": "red", "value": 1 } ] },
+              "unit": "s"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 5, "w": 4, "x": 4, "y": 1 },
+          "id": 2,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "center",
+            "orientation": "auto",
+            "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false },
+            "textMode": "value"
+          },
+          "targets": [
+            { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))", "legendFormat": "p95", "range": true, "refId": "A" }
+          ],
+          "title": "Latencia p95",
+          "type": "stat"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "description": "Fracao de respostas 5xx sobre o total nos ultimos 5min. Meta: abaixo de 1%.",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "mappings": [],
+              "max": 0.1,
+              "min": 0,
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "orange", "value": 0.01 }, { "color": "red", "value": 0.05 } ] },
+              "unit": "percentunit"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 5, "w": 4, "x": 8, "y": 1 },
+          "id": 3,
+          "options": {
+            "orientation": "auto",
+            "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false },
+            "showThresholdLabels": false,
+            "showThresholdMarkers": true
+          },
+          "targets": [
+            { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "sum(rate(http_request_duration_seconds_count{code=~\"5..\"}[5m])) / clamp_min(sum(rate(http_request_duration_seconds_count[5m])), 1)", "legendFormat": "5xx", "range": true, "refId": "A" }
+          ],
+          "title": "Erro 5xx",
+          "type": "gauge"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "description": "Apdex (T=0.25s): satisfacao do usuario com a latencia. 1.0 = perfeito. Satisfeitos (<=0.25s) + tolerantes (<=1s)/2 sobre o total.",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "mappings": [],
+              "max": 1,
+              "min": 0,
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "orange", "value": 0.85 }, { "color": "green", "value": 0.94 } ] },
+              "unit": "percentunit"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 5, "w": 4, "x": 12, "y": 1 },
+          "id": 4,
+          "options": {
+            "orientation": "auto",
+            "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false },
+            "showThresholdLabels": false,
+            "showThresholdMarkers": true
+          },
+          "targets": [
+            { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "(sum(rate(http_request_duration_seconds_bucket{le=\"0.25\"}[5m])) + sum(rate(http_request_duration_seconds_bucket{le=\"1\"}[5m]))) / (2 * clamp_min(sum(rate(http_request_duration_seconds_count[5m])), 1))", "legendFormat": "apdex", "range": true, "refId": "A" }
+          ],
+          "title": "Apdex (satisfacao)",
+          "type": "gauge"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "description": "Requisicoes sendo processadas neste instante (concorrencia).",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "fixed", "fixedColor": "purple" },
+              "mappings": [],
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "purple", "value": null } ] },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 5, "w": 4, "x": 16, "y": 1 },
+          "id": 5,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "center",
+            "orientation": "auto",
+            "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false },
+            "textMode": "value"
+          },
+          "targets": [
+            { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "sum(http_requests_in_progress)", "legendFormat": "em andamento", "range": true, "refId": "A" }
+          ],
+          "title": "Requests em andamento",
+          "type": "stat"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "description": "Fracao de respostas 4xx (erros do cliente: validacao, auth, not found) nos ultimos 5min.",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "mappings": [],
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "orange", "value": 0.1 }, { "color": "red", "value": 0.3 } ] },
+              "unit": "percentunit"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 5, "w": 4, "x": 20, "y": 1 },
+          "id": 6,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "center",
+            "orientation": "auto",
+            "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false },
+            "textMode": "value"
+          },
+          "targets": [
+            { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "sum(rate(http_request_duration_seconds_count{code=~\"4..\"}[5m])) / clamp_min(sum(rate(http_request_duration_seconds_count[5m])), 1)", "legendFormat": "4xx", "range": true, "refId": "A" }
+          ],
+          "title": "Erro 4xx (cliente)",
+          "type": "stat"
+        },
+        {
+          "collapsed": false,
+          "gridPos": { "h": 1, "w": 24, "x": 0, "y": 6 },
+          "id": 101,
+          "panels": [],
+          "title": "Trafego",
+          "type": "row"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "description": "Requisicoes por segundo por servico.",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto",
+                "drawStyle": "line", "fillOpacity": 25, "gradientMode": "opacity",
+                "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+                "lineInterpolation": "smooth", "lineWidth": 2, "pointSize": 5,
+                "scaleDistribution": { "type": "linear" }, "showPoints": "never", "spanNulls": false,
+                "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "off" }
+              },
+              "mappings": [],
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] },
+              "unit": "reqps"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 7 },
+          "id": 7,
+          "options": {
+            "legend": { "calcs": [ "mean", "max", "lastNotNull" ], "displayMode": "table", "placement": "right", "showLegend": true },
+            "tooltip": { "mode": "multi", "sort": "desc" }
+          },
+          "targets": [
+            { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "sum(rate(http_requests_received_total[1m])) by (job)", "legendFormat": "{{job}}", "range": true, "refId": "A" }
+          ],
+          "title": "RPS por servico",
+          "type": "timeseries"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "description": "Rotas mais chamadas (top 10) por requisicoes/s nos ultimos 5min.",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "continuous-BlPu" },
+              "mappings": [],
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] },
+              "unit": "reqps"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 7 },
+          "id": 8,
+          "options": {
+            "displayMode": "gradient",
+            "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": false },
+            "maxVizHeight": 300,
+            "minVizHeight": 16,
+            "minVizWidth": 8,
+            "namePlacement": "left",
+            "orientation": "horizontal",
+            "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false },
+            "showUnfilled": true,
+            "valueMode": "color"
+          },
+          "targets": [
+            { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "topk(10, sum(rate(http_request_duration_seconds_count[5m])) by (job, method, action))", "legendFormat": "{{job}} {{method}} {{action}}", "range": true, "refId": "A" }
+          ],
+          "title": "Top rotas por RPS",
+          "type": "bargauge"
+        },
+        {
+          "collapsed": false,
+          "gridPos": { "h": 1, "w": 24, "x": 0, "y": 15 },
+          "id": 102,
+          "panels": [],
+          "title": "Latencia",
+          "type": "row"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "description": "Percentis de latencia globais. p99 alto com p50 baixo indica cauda longa (poucas requisicoes muito lentas).",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto",
+                "drawStyle": "line", "fillOpacity": 10, "gradientMode": "opacity",
+                "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+                "lineInterpolation": "smooth", "lineWidth": 2, "pointSize": 5,
+                "scaleDistribution": { "type": "linear" }, "showPoints": "never", "spanNulls": false,
+                "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "dashed" }
+              },
+              "mappings": [],
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "transparent", "value": null }, { "color": "red", "value": 1 } ] },
+              "unit": "s"
+            },
+            "overrides": [
+              { "matcher": { "id": "byName", "options": "p99" }, "properties": [ { "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } } ] },
+              { "matcher": { "id": "byName", "options": "p90" }, "properties": [ { "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } } ] },
+              { "matcher": { "id": "byName", "options": "p50" }, "properties": [ { "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } } ] }
+            ]
+          },
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+          "id": 9,
+          "options": {
+            "legend": { "calcs": [ "mean", "max" ], "displayMode": "table", "placement": "bottom", "showLegend": true },
+            "tooltip": { "mode": "multi", "sort": "desc" }
+          },
+          "targets": [
+            { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))", "legendFormat": "p50", "range": true, "refId": "A" },
+            { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "histogram_quantile(0.90, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))", "legendFormat": "p90", "range": true, "refId": "B" },
+            { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))", "legendFormat": "p99", "range": true, "refId": "C" }
+          ],
+          "title": "Latencia p50 / p90 / p99",
+          "type": "timeseries"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "description": "Distribuicao completa da latencia ao longo do tempo. Cores quentes = mais requisicoes naquela faixa de tempo. Revela padroes que os percentis escondem.",
+          "fieldConfig": {
+            "defaults": { "custom": { "hideFrom": { "legend": false, "tooltip": false, "viz": false }, "scaleDistribution": { "type": "linear" } } },
+            "overrides": []
+          },
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+          "id": 10,
+          "options": {
+            "calculate": false,
+            "cellGap": 1,
+            "cellValues": { "unit": "short" },
+            "color": { "exponent": 0.5, "fill": "dark-orange", "mode": "scheme", "scale": "exponential", "scheme": "Turbo", "steps": 64 },
+            "exemplars": { "color": "rgba(255,0,255,0.7)" },
+            "filterValues": { "le": 1e-9 },
+            "legend": { "show": true },
+            "rowsFrame": { "layout": "auto" },
+            "tooltip": { "mode": "single", "showColorScale": true, "yHistogram": true },
+            "yAxis": { "axisPlacement": "left", "reverse": false, "unit": "s" }
+          },
+          "targets": [
+            { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "sum(increase(http_request_duration_seconds_bucket[$__rate_interval])) by (le)", "format": "heatmap", "legendFormat": "{{le}}", "range": true, "refId": "A" }
+          ],
+          "title": "Heatmap de latencia",
+          "type": "heatmap"
+        },
+        {
+          "collapsed": false,
+          "gridPos": { "h": 1, "w": 24, "x": 0, "y": 24 },
+          "id": 103,
+          "panels": [],
+          "title": "Erros e codigos de status",
+          "type": "row"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "description": "Distribuicao de respostas por classe de status HTTP (empilhado). Verde = sucesso; laranja = erro do cliente; vermelho = erro do servidor.",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto",
+                "drawStyle": "line", "fillOpacity": 45, "gradientMode": "opacity",
+                "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+                "lineInterpolation": "smooth", "lineWidth": 1, "pointSize": 5,
+                "scaleDistribution": { "type": "linear" }, "showPoints": "never", "spanNulls": false,
+                "stacking": { "group": "A", "mode": "normal" }, "thresholdsStyle": { "mode": "off" }
+              },
+              "mappings": [],
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] },
+              "unit": "reqps"
+            },
+            "overrides": [
+              { "matcher": { "id": "byName", "options": "2xx sucesso" }, "properties": [ { "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } } ] },
+              { "matcher": { "id": "byName", "options": "3xx redirect" }, "properties": [ { "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } } ] },
+              { "matcher": { "id": "byName", "options": "4xx cliente" }, "properties": [ { "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } } ] },
+              { "matcher": { "id": "byName", "options": "5xx servidor" }, "properties": [ { "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } } ] }
+            ]
+          },
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 25 },
+          "id": 11,
+          "options": {
+            "legend": { "calcs": [ "mean" ], "displayMode": "table", "placement": "bottom", "showLegend": true },
+            "tooltip": { "mode": "multi", "sort": "desc" }
+          },
+          "targets": [
+            { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "sum(rate(http_request_duration_seconds_count{code=~\"2..\"}[1m]))", "legendFormat": "2xx sucesso", "range": true, "refId": "A" },
+            { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "sum(rate(http_request_duration_seconds_count{code=~\"3..\"}[1m]))", "legendFormat": "3xx redirect", "range": true, "refId": "B" },
+            { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "sum(rate(http_request_duration_seconds_count{code=~\"4..\"}[1m]))", "legendFormat": "4xx cliente", "range": true, "refId": "C" },
+            { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "sum(rate(http_request_duration_seconds_count{code=~\"5..\"}[1m]))", "legendFormat": "5xx servidor", "range": true, "refId": "D" }
+          ],
+          "title": "Codigos de status por classe",
+          "type": "timeseries"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "description": "Taxa de erro (4xx + 5xx) por servico como fracao do total. Identifica qual servico esta degradado.",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto",
+                "drawStyle": "line", "fillOpacity": 15, "gradientMode": "opacity",
+                "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+                "lineInterpolation": "smooth", "lineWidth": 2, "pointSize": 5,
+                "scaleDistribution": { "type": "linear" }, "showPoints": "never", "spanNulls": false,
+                "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "off" }
+              },
+              "mappings": [],
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] },
+              "unit": "percentunit"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 25 },
+          "id": 12,
+          "options": {
+            "legend": { "calcs": [ "mean", "max" ], "displayMode": "table", "placement": "bottom", "showLegend": true },
+            "tooltip": { "mode": "multi", "sort": "desc" }
+          },
+          "targets": [
+            { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "sum(rate(http_request_duration_seconds_count{code=~\"5..\"}[5m])) by (job) / clamp_min(sum(rate(http_request_duration_seconds_count[5m])) by (job), 1)", "legendFormat": "5xx {{job}}", "range": true, "refId": "A" }
+          ],
+          "title": "Taxa de erro 5xx por servico",
+          "type": "timeseries"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "description": "Requisicoes concorrentes em andamento por servico. Picos sustentados indicam saturacao ou dependencia lenta.",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto",
+                "drawStyle": "line", "fillOpacity": 20, "gradientMode": "opacity",
+                "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+                "lineInterpolation": "smooth", "lineWidth": 2, "pointSize": 5,
+                "scaleDistribution": { "type": "linear" }, "showPoints": "never", "spanNulls": false,
+                "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "off" }
+              },
+              "mappings": [],
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 7, "w": 24, "x": 0, "y": 33 },
+          "id": 13,
+          "options": {
+            "legend": { "calcs": [ "last", "max" ], "displayMode": "table", "placement": "right", "showLegend": true },
+            "tooltip": { "mode": "multi", "sort": "desc" }
+          },
+          "targets": [
+            { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "sum(http_requests_in_progress) by (job)", "legendFormat": "{{job}}", "range": true, "refId": "A" }
+          ],
+          "title": "Requisicoes em andamento por servico",
+          "type": "timeseries"
+        }
+      ],
+      "refresh": "5s",
+      "schemaVersion": 39,
+      "tags": [ "hackathon", "conexao-solidaria", "aplicacao" ],
+      "templating": { "list": [] },
+      "time": { "from": "now-30m", "to": "now" },
+      "timepicker": {},
+      "timezone": "browser",
+      "title": "Conexao Solidaria - Aplicacao (HTTP)",
+      "uid": "conexao-solidaria-aplicacao",
+      "version": 2,
+      "weekStart": ""
+    }
+  negocio.json: |
+    {
+      "annotations": { "list": [] },
+      "editable": true,
+      "fiscalYearStartMonth": 0,
+      "graphTooltip": 1,
+      "id": null,
+      "links": [],
+      "liveNow": false,
+      "panels": [
+        {
+          "collapsed": false,
+          "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+          "id": 100,
+          "panels": [],
+          "title": "Visao executiva - doacoes",
+          "type": "row"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "description": "Total de doacoes processadas com sucesso pelo worker desde o inicio.",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "fixed", "fixedColor": "green" },
+              "mappings": [],
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 6, "w": 5, "x": 0, "y": 1 },
+          "id": 1,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "center",
+            "orientation": "auto",
+            "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false },
+            "textMode": "value"
+          },
+          "targets": [
+            { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "sum(conexao_donations_processed_total)", "legendFormat": "processadas", "range": true, "refId": "A" }
+          ],
+          "title": "Doacoes processadas",
+          "type": "stat"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "description": "Total de doacoes rejeitadas (campanha encerrada ou cancelada).",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "mappings": [],
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "orange", "value": 1 } ] },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 6, "w": 5, "x": 5, "y": 1 },
+          "id": 2,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "center",
+            "orientation": "auto",
+            "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false },
+            "textMode": "value"
+          },
+          "targets": [
+            { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "sum(conexao_donations_rejected_total)", "legendFormat": "rejeitadas", "range": true, "refId": "A" }
+          ],
+          "title": "Doacoes rejeitadas",
+          "type": "stat"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "description": "Percentual de doacoes aceitas sobre o total (processadas + rejeitadas). Indicador central de saude do funil de doacoes.",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "mappings": [],
+              "max": 1,
+              "min": 0,
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "orange", "value": 0.8 }, { "color": "green", "value": 0.95 } ] },
+              "unit": "percentunit"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 6, "w": 6, "x": 10, "y": 1 },
+          "id": 3,
+          "options": {
+            "orientation": "auto",
+            "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false },
+            "showThresholdLabels": false,
+            "showThresholdMarkers": true
+          },
+          "targets": [
+            { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "sum(conexao_donations_processed_total) / clamp_min(sum(conexao_donations_processed_total) + sum(conexao_donations_rejected_total), 1)", "legendFormat": "aceitacao", "range": true, "refId": "A" }
+          ],
+          "title": "Taxa de aceitacao",
+          "type": "gauge"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "description": "Vazao atual: doacoes processadas por segundo (media 1min).",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "fixed", "fixedColor": "blue" },
+              "mappings": [],
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "blue", "value": null } ] },
+              "unit": "cps"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 6, "w": 4, "x": 16, "y": 1 },
+          "id": 4,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "center",
+            "orientation": "auto",
+            "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false },
+            "textMode": "value"
+          },
+          "targets": [
+            { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "sum(rate(conexao_donations_processed_total[1m]))", "legendFormat": "vazao", "range": true, "refId": "A" }
+          ],
+          "title": "Vazao atual",
+          "type": "stat"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "description": "Mensagens descartadas para a dead-letter queue. Qualquer valor > 0 exige investigacao.",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "mappings": [],
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 1 } ] },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 6, "w": 4, "x": 20, "y": 1 },
+          "id": 5,
+          "options": {
+            "colorMode": "background",
+            "graphMode": "area",
+            "justifyMode": "center",
+            "orientation": "auto",
+            "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false },
+            "textMode": "value"
+          },
+          "targets": [
+            { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "sum(conexao_dead_letter_messages)", "legendFormat": "DLQ", "range": true, "refId": "A" }
+          ],
+          "title": "Dead-letter (DLQ)",
+          "type": "stat"
+        },
+        {
+          "collapsed": false,
+          "gridPos": { "h": 1, "w": 24, "x": 0, "y": 7 },
+          "id": 101,
+          "panels": [],
+          "title": "Vazao e composicao",
+          "type": "row"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "description": "Taxa de doacoes processadas vs rejeitadas por segundo.",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto",
+                "drawStyle": "line", "fillOpacity": 25, "gradientMode": "opacity",
+                "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+                "lineInterpolation": "smooth", "lineWidth": 2, "pointSize": 5,
+                "scaleDistribution": { "type": "linear" }, "showPoints": "never", "spanNulls": false,
+                "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "off" }
+              },
+              "mappings": [],
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] },
+              "unit": "cps"
+            },
+            "overrides": [
+              { "matcher": { "id": "byName", "options": "processadas/s" }, "properties": [ { "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } } ] },
+              { "matcher": { "id": "byName", "options": "rejeitadas/s" }, "properties": [ { "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } } ] }
+            ]
+          },
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+          "id": 6,
+          "options": {
+            "legend": { "calcs": [ "mean", "max" ], "displayMode": "table", "placement": "bottom", "showLegend": true },
+            "tooltip": { "mode": "multi", "sort": "desc" }
+          },
+          "targets": [
+            { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "sum(rate(conexao_donations_processed_total[1m]))", "legendFormat": "processadas/s", "range": true, "refId": "A" },
+            { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "sum(rate(conexao_donations_rejected_total[1m]))", "legendFormat": "rejeitadas/s", "range": true, "refId": "B" }
+          ],
+          "title": "Taxa de processamento de doacoes",
+          "type": "timeseries"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "description": "Composicao acumulada: proporcao entre doacoes aceitas e rejeitadas.",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" },
+              "mappings": [],
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] },
+              "unit": "short"
+            },
+            "overrides": [
+              { "matcher": { "id": "byName", "options": "aceitas" }, "properties": [ { "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } } ] },
+              { "matcher": { "id": "byName", "options": "rejeitadas" }, "properties": [ { "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } } ] }
+            ]
+          },
+          "gridPos": { "h": 8, "w": 6, "x": 12, "y": 8 },
+          "id": 7,
+          "options": {
+            "displayLabels": [ "percent" ],
+            "legend": { "displayMode": "table", "placement": "right", "showLegend": true, "values": [ "value" ] },
+            "pieType": "donut",
+            "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false },
+            "tooltip": { "mode": "single", "sort": "none" }
+          },
+          "targets": [
+            { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "sum(conexao_donations_processed_total)", "legendFormat": "aceitas", "range": true, "refId": "A" },
+            { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "sum(conexao_donations_rejected_total)", "legendFormat": "rejeitadas", "range": true, "refId": "B" }
+          ],
+          "title": "Composicao aceitas x rejeitadas",
+          "type": "piechart"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "description": "Taxa de rejeicao (%) como fracao do total. Subida sustentada indica muitas campanhas encerradas/canceladas recebendo doacoes.",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "custom": {
+                "axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto",
+                "drawStyle": "line", "fillOpacity": 25, "gradientMode": "scheme",
+                "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+                "lineInterpolation": "smooth", "lineWidth": 2, "pointSize": 5,
+                "scaleDistribution": { "type": "linear" }, "showPoints": "never", "spanNulls": false,
+                "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "off" }
+              },
+              "mappings": [],
+              "max": 1,
+              "min": 0,
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "orange", "value": 0.1 }, { "color": "red", "value": 0.3 } ] },
+              "unit": "percentunit"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 8, "w": 6, "x": 18, "y": 8 },
+          "id": 8,
+          "options": {
+            "legend": { "calcs": [ "mean", "max" ], "displayMode": "list", "placement": "bottom", "showLegend": true },
+            "tooltip": { "mode": "multi", "sort": "desc" }
+          },
+          "targets": [
+            { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "sum(rate(conexao_donations_rejected_total[5m])) / clamp_min(sum(rate(conexao_donations_processed_total[5m])) + sum(rate(conexao_donations_rejected_total[5m])), 0.0001)", "legendFormat": "taxa de rejeicao", "range": true, "refId": "A" }
+          ],
+          "title": "Taxa de rejeicao",
+          "type": "timeseries"
+        },
+        {
+          "collapsed": false,
+          "gridPos": { "h": 1, "w": 24, "x": 0, "y": 16 },
+          "id": 102,
+          "panels": [],
+          "title": "Acumulados e desempenho do pipeline",
+          "type": "row"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "description": "Doacoes acumuladas ao longo do tempo (aceitas x rejeitadas).",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto",
+                "drawStyle": "line", "fillOpacity": 20, "gradientMode": "opacity",
+                "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+                "lineInterpolation": "smooth", "lineWidth": 2, "pointSize": 5,
+                "scaleDistribution": { "type": "linear" }, "showPoints": "never", "spanNulls": false,
+                "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "off" }
+              },
+              "mappings": [],
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] },
+              "unit": "short"
+            },
+            "overrides": [
+              { "matcher": { "id": "byName", "options": "processadas acumuladas" }, "properties": [ { "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } } ] },
+              { "matcher": { "id": "byName", "options": "rejeitadas acumuladas" }, "properties": [ { "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } } ] }
+            ]
+          },
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 17 },
+          "id": 9,
+          "options": {
+            "legend": { "calcs": [ "last", "max" ], "displayMode": "table", "placement": "bottom", "showLegend": true },
+            "tooltip": { "mode": "multi", "sort": "desc" }
+          },
+          "targets": [
+            { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "sum(conexao_donations_processed_total)", "legendFormat": "processadas acumuladas", "range": true, "refId": "A" },
+            { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "sum(conexao_donations_rejected_total)", "legendFormat": "rejeitadas acumuladas", "range": true, "refId": "B" }
+          ],
+          "title": "Doacoes acumuladas ao longo do tempo",
+          "type": "timeseries"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "description": "Tempo de processamento por doacao no worker (p50 e p95). Reflete a experiencia real de latencia do pipeline de doacoes.",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto",
+                "drawStyle": "line", "fillOpacity": 10, "gradientMode": "opacity",
+                "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+                "lineInterpolation": "smooth", "lineWidth": 2, "pointSize": 5,
+                "scaleDistribution": { "type": "linear" }, "showPoints": "never", "spanNulls": false,
+                "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "off" }
+              },
+              "mappings": [],
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] },
+              "unit": "s"
+            },
+            "overrides": [
+              { "matcher": { "id": "byName", "options": "p95" }, "properties": [ { "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } } ] },
+              { "matcher": { "id": "byName", "options": "p50" }, "properties": [ { "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } } ] }
+            ]
+          },
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 17 },
+          "id": 10,
+          "options": {
+            "legend": { "calcs": [ "mean", "max" ], "displayMode": "table", "placement": "bottom", "showLegend": true },
+            "tooltip": { "mode": "multi", "sort": "desc" }
+          },
+          "targets": [
+            { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "histogram_quantile(0.50, sum(rate(conexao_donation_processing_duration_seconds_bucket[5m])) by (le))", "legendFormat": "p50", "range": true, "refId": "A" },
+            { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "histogram_quantile(0.95, sum(rate(conexao_donation_processing_duration_seconds_bucket[5m])) by (le))", "legendFormat": "p95", "range": true, "refId": "B" }
+          ],
+          "title": "Tempo de processamento por doacao (p50/p95)",
+          "type": "timeseries"
+        },
+        {
+          "collapsed": false,
+          "gridPos": { "h": 1, "w": 24, "x": 0, "y": 25 },
+          "id": 103,
+          "panels": [],
+          "title": "Arrecadacao (R$)",
+          "type": "row"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "description": "Valor total arrecadado em doacoes processadas com sucesso, em reais.",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "fixed", "fixedColor": "green" },
+              "mappings": [],
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] },
+              "unit": "currencyBRL"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 6, "w": 6, "x": 0, "y": 26 },
+          "id": 11,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "center",
+            "orientation": "auto",
+            "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false },
+            "textMode": "value"
+          },
+          "targets": [
+            { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "sum(conexao_donation_amount_brl_total)", "legendFormat": "total arrecadado", "range": true, "refId": "A" }
+          ],
+          "title": "Total arrecadado",
+          "type": "stat"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "description": "Valor medio por doacao processada (total arrecadado / doacoes processadas).",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "fixed", "fixedColor": "blue" },
+              "mappings": [],
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "blue", "value": null } ] },
+              "unit": "currencyBRL"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 6, "w": 6, "x": 6, "y": 26 },
+          "id": 12,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "center",
+            "orientation": "auto",
+            "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false },
+            "textMode": "value"
+          },
+          "targets": [
+            { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "sum(conexao_donation_amount_brl_total) / clamp_min(sum(conexao_donations_processed_total), 1)", "legendFormat": "ticket medio", "range": true, "refId": "A" }
+          ],
+          "title": "Ticket medio",
+          "type": "stat"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "description": "Evolucao do valor total arrecadado ao longo do tempo.",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "fixed", "fixedColor": "green" },
+              "custom": {
+                "axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto",
+                "drawStyle": "line", "fillOpacity": 25, "gradientMode": "opacity",
+                "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+                "lineInterpolation": "smooth", "lineWidth": 2, "pointSize": 5,
+                "scaleDistribution": { "type": "linear" }, "showPoints": "never", "spanNulls": false,
+                "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "off" }
+              },
+              "mappings": [],
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] },
+              "unit": "currencyBRL"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 6, "w": 12, "x": 12, "y": 26 },
+          "id": 13,
+          "options": {
+            "legend": { "calcs": [ "last", "max" ], "displayMode": "table", "placement": "bottom", "showLegend": true },
+            "tooltip": { "mode": "multi", "sort": "desc" }
+          },
+          "targets": [
+            { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "sum(conexao_donation_amount_brl_total)", "legendFormat": "arrecadado acumulado", "range": true, "refId": "A" }
+          ],
+          "title": "Arrecadacao acumulada",
+          "type": "timeseries"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "description": "Campanhas que mais arrecadaram (top 10), em reais.",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "continuous-GrYlRd" },
+              "mappings": [],
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] },
+              "unit": "currencyBRL"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 32 },
+          "id": 14,
+          "options": {
+            "displayMode": "gradient",
+            "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": false },
+            "maxVizHeight": 300,
+            "minVizHeight": 16,
+            "minVizWidth": 8,
+            "namePlacement": "left",
+            "orientation": "horizontal",
+            "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false },
+            "showUnfilled": true,
+            "valueMode": "color"
+          },
+          "targets": [
+            { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "topk(10, sum(conexao_donation_amount_by_campaign_brl_total) by (campanha))", "legendFormat": "{{campanha}}", "range": true, "refId": "A" }
+          ],
+          "title": "Top campanhas por valor arrecadado",
+          "type": "bargauge"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "description": "Campanhas com mais doacoes processadas (top 10).",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "continuous-BlPu" },
+              "mappings": [],
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 32 },
+          "id": 15,
+          "options": {
+            "displayMode": "gradient",
+            "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": false },
+            "maxVizHeight": 300,
+            "minVizHeight": 16,
+            "minVizWidth": 8,
+            "namePlacement": "left",
+            "orientation": "horizontal",
+            "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false },
+            "showUnfilled": true,
+            "valueMode": "color"
+          },
+          "targets": [
+            { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "editorMode": "code", "expr": "topk(10, sum(conexao_donations_by_campaign_total) by (campanha))", "legendFormat": "{{campanha}}", "range": true, "refId": "A" }
+          ],
+          "title": "Top campanhas por numero de doacoes",
+          "type": "bargauge"
+        }
+      ],
+      "refresh": "5s",
+      "schemaVersion": 39,
+      "tags": [ "hackathon", "conexao-solidaria", "negocio" ],
+      "templating": { "list": [] },
+      "time": { "from": "now-30m", "to": "now" },
+      "timepicker": {},
+      "timezone": "browser",
+      "title": "Conexao Solidaria - Visao Executiva (Negocio)",
+      "uid": "conexao-solidaria-negocio",
+      "version": 2,
+      "weekStart": ""
+    }
+  mensageria.json: |
+    {
+      "annotations": {
+        "list": []
+      },
+      "editable": true,
+      "fiscalYearStartMonth": 0,
+      "graphTooltip": 0,
+      "id": null,
+      "links": [],
+      "liveNow": false,
+      "panels": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "drawStyle": "line",
+                "fillOpacity": 15,
+                "gradientMode": "opacity",
+                "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+                "lineInterpolation": "smooth",
+                "lineWidth": 2,
+                "pointSize": 4,
+                "scaleDistribution": { "type": "linear" },
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": { "group": "A", "mode": "none" },
+                "thresholdsStyle": { "mode": "off" }
+              },
+              "mappings": [],
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] },
+              "unit": "cps"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 9, "w": 12, "x": 0, "y": 0 },
+          "id": 1,
+          "options": {
+            "legend": { "calcs": [ "mean", "max" ], "displayMode": "table", "placement": "bottom", "showLegend": true },
+            "tooltip": { "mode": "multi", "sort": "desc" }
+          },
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "Prometheus" },
+              "editorMode": "code",
+              "expr": "sum(rate(conexao_donation_publish_total[1m]))",
+              "legendFormat": "publicadas/s",
+              "range": true,
+              "refId": "A"
+            },
+            {
+              "datasource": { "type": "prometheus", "uid": "Prometheus" },
+              "editorMode": "code",
+              "expr": "sum(rate(conexao_donations_processed_total[1m]))",
+              "legendFormat": "consumidas-processadas/s",
+              "range": true,
+              "refId": "B"
+            },
+            {
+              "datasource": { "type": "prometheus", "uid": "Prometheus" },
+              "editorMode": "code",
+              "expr": "sum(rate(conexao_donation_publish_failures_total[1m]))",
+              "legendFormat": "falhas-publish/s",
+              "range": true,
+              "refId": "C"
+            }
+          ],
+          "title": "Fluxo de mensageria: publish vs consume",
+          "type": "timeseries"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "gradientMode": "opacity",
+                "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+                "lineInterpolation": "smooth",
+                "lineWidth": 2,
+                "pointSize": 4,
+                "scaleDistribution": { "type": "linear" },
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": { "group": "A", "mode": "none" },
+                "thresholdsStyle": { "mode": "off" }
+              },
+              "mappings": [],
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] },
+              "unit": "s"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 9, "w": 12, "x": 12, "y": 0 },
+          "id": 2,
+          "options": {
+            "legend": { "calcs": [ "mean", "max" ], "displayMode": "table", "placement": "bottom", "showLegend": true },
+            "tooltip": { "mode": "multi", "sort": "desc" }
+          },
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "Prometheus" },
+              "editorMode": "code",
+              "expr": "histogram_quantile(0.95, sum(rate(conexao_donation_processing_duration_seconds_bucket[5m])) by (le))",
+              "legendFormat": "p95",
+              "range": true,
+              "refId": "A"
+            },
+            {
+              "datasource": { "type": "prometheus", "uid": "Prometheus" },
+              "editorMode": "code",
+              "expr": "histogram_quantile(0.50, sum(rate(conexao_donation_processing_duration_seconds_bucket[5m])) by (le))",
+              "legendFormat": "p50",
+              "range": true,
+              "refId": "B"
+            }
+          ],
+          "title": "Tempo de processamento por doacao (p50/p95)",
+          "type": "timeseries"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "mappings": [],
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "orange", "value": 10 }, { "color": "red", "value": 20 } ] },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 7, "w": 8, "x": 0, "y": 9 },
+          "id": 3,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false },
+            "textMode": "auto"
+          },
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "Prometheus" },
+              "editorMode": "code",
+              "expr": "sum(conexao_outbox_pending_messages)",
+              "legendFormat": "pendentes",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Outbox pendente",
+          "type": "stat"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "mappings": [],
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 1 } ] },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 7, "w": 8, "x": 8, "y": 9 },
+          "id": 4,
+          "options": {
+            "colorMode": "background",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false },
+            "textMode": "auto"
+          },
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "Prometheus" },
+              "editorMode": "code",
+              "expr": "sum(conexao_dead_letter_messages)",
+              "legendFormat": "dead-letter",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Dead-letter (DLQ)",
+          "type": "stat"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "description": "Requer o plugin rabbitmq_prometheus habilitado no broker (job 'rabbitmq' no Prometheus). Sem o plugin este painel fica sem dados.",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "mappings": [],
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "orange", "value": 50 }, { "color": "red", "value": 200 } ] },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 7, "w": 8, "x": 16, "y": 9 },
+          "id": 5,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false },
+            "textMode": "auto"
+          },
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "Prometheus" },
+              "editorMode": "code",
+              "expr": "sum(rabbitmq_queue_messages{queue=\"doacoes-recebidas\"})",
+              "legendFormat": "fila doacoes-recebidas",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Profundidade da fila RabbitMQ (requer plugin)",
+          "type": "stat"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "drawStyle": "line",
+                "fillOpacity": 15,
+                "gradientMode": "opacity",
+                "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+                "lineInterpolation": "smooth",
+                "lineWidth": 2,
+                "pointSize": 4,
+                "scaleDistribution": { "type": "linear" },
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": { "group": "A", "mode": "none" },
+                "thresholdsStyle": { "mode": "off" }
+              },
+              "mappings": [],
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 8, "w": 24, "x": 0, "y": 16 },
+          "id": 6,
+          "options": {
+            "legend": { "calcs": [ "last", "max" ], "displayMode": "table", "placement": "bottom", "showLegend": true },
+            "tooltip": { "mode": "multi", "sort": "desc" }
+          },
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "Prometheus" },
+              "editorMode": "code",
+              "expr": "sum(conexao_outbox_pending_messages)",
+              "legendFormat": "outbox pendente",
+              "range": true,
+              "refId": "A"
+            },
+            {
+              "datasource": { "type": "prometheus", "uid": "Prometheus" },
+              "editorMode": "code",
+              "expr": "sum(conexao_dead_letter_messages)",
+              "legendFormat": "dead-letter acumulado",
+              "range": true,
+              "refId": "B"
+            }
+          ],
+          "title": "Backlog e DLQ ao longo do tempo",
+          "type": "timeseries"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "description": "Mensagens prontas na fila mas ainda nao entregues a nenhum consumidor (esperando na fila). Requer o plugin rabbitmq_prometheus.",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "mappings": [],
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "orange", "value": 50 }, { "color": "red", "value": 200 } ] },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 7, "w": 6, "x": 0, "y": 24 },
+          "id": 7,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false },
+            "textMode": "auto"
+          },
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "Prometheus" },
+              "editorMode": "code",
+              "expr": "sum(rabbitmq_queue_messages_ready{queue=\"doacoes-recebidas\"})",
+              "legendFormat": "esperando na fila",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Esperando na fila (ready) - requer plugin",
+          "type": "stat"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "description": "Mensagens entregues a um consumidor mas ainda sem ack: em processamento agora. Requer o plugin rabbitmq_prometheus.",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "mappings": [],
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "orange", "value": 20 }, { "color": "red", "value": 100 } ] },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 7, "w": 6, "x": 6, "y": 24 },
+          "id": 8,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false },
+            "textMode": "auto"
+          },
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "Prometheus" },
+              "editorMode": "code",
+              "expr": "sum(rabbitmq_queue_messages_unacked{queue=\"doacoes-recebidas\"})",
+              "legendFormat": "em processamento",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Em processamento (unacked) - requer plugin",
+          "type": "stat"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "description": "Consumidores ativos ligados a fila de doacoes. Se cair para 0 com fila cheia, o worker esta parado. Requer o plugin rabbitmq_prometheus.",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "mappings": [],
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "green", "value": 1 } ] },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 7, "w": 6, "x": 12, "y": 24 },
+          "id": 9,
+          "options": {
+            "colorMode": "background",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false },
+            "textMode": "auto"
+          },
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "Prometheus" },
+              "editorMode": "code",
+              "expr": "sum(rabbitmq_queue_consumers{queue=\"doacoes-recebidas\"})",
+              "legendFormat": "consumidores",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Consumidores ativos - requer plugin",
+          "type": "stat"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "description": "Fracao de publicacoes de eventos de doacao bem-sucedidas em relacao ao total (sucesso + falhas) na janela de 5min.",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "mappings": [],
+              "max": 1,
+              "min": 0,
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "orange", "value": 0.95 }, { "color": "green", "value": 0.99 } ] },
+              "unit": "percentunit"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 7, "w": 6, "x": 18, "y": 24 },
+          "id": 10,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false },
+            "textMode": "auto"
+          },
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "Prometheus" },
+              "editorMode": "code",
+              "expr": "sum(rate(conexao_donation_publish_total[5m])) / clamp_min(sum(rate(conexao_donation_publish_total[5m])) + sum(rate(conexao_donation_publish_failures_total[5m])), 1)",
+              "legendFormat": "taxa de sucesso",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Taxa de sucesso na publicacao",
+          "type": "stat"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "description": "Composicao da fila RabbitMQ ao longo do tempo: total, prontas (esperando) e nao confirmadas (em processamento). Requer o plugin rabbitmq_prometheus.",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "drawStyle": "line",
+                "fillOpacity": 20,
+                "gradientMode": "opacity",
+                "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+                "lineInterpolation": "smooth",
+                "lineWidth": 2,
+                "pointSize": 4,
+                "scaleDistribution": { "type": "linear" },
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": { "group": "A", "mode": "none" },
+                "thresholdsStyle": { "mode": "off" }
+              },
+              "mappings": [],
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 8, "w": 24, "x": 0, "y": 31 },
+          "id": 11,
+          "options": {
+            "legend": { "calcs": [ "last", "max" ], "displayMode": "table", "placement": "bottom", "showLegend": true },
+            "tooltip": { "mode": "multi", "sort": "desc" }
+          },
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "Prometheus" },
+              "editorMode": "code",
+              "expr": "sum(rabbitmq_queue_messages{queue=\"doacoes-recebidas\"})",
+              "legendFormat": "total na fila",
+              "range": true,
+              "refId": "A"
+            },
+            {
+              "datasource": { "type": "prometheus", "uid": "Prometheus" },
+              "editorMode": "code",
+              "expr": "sum(rabbitmq_queue_messages_ready{queue=\"doacoes-recebidas\"})",
+              "legendFormat": "esperando (ready)",
+              "range": true,
+              "refId": "B"
+            },
+            {
+              "datasource": { "type": "prometheus", "uid": "Prometheus" },
+              "editorMode": "code",
+              "expr": "sum(rabbitmq_queue_messages_unacked{queue=\"doacoes-recebidas\"})",
+              "legendFormat": "em processamento (unacked)",
+              "range": true,
+              "refId": "C"
+            }
+          ],
+          "title": "Fila RabbitMQ: total / esperando / em processamento",
+          "type": "timeseries"
+        }
+      ],
+      "refresh": "5s",
+      "schemaVersion": 39,
+      "tags": [ "hackathon", "conexao-solidaria", "mensageria" ],
+      "templating": { "list": [] },
+      "time": { "from": "now-30m", "to": "now" },
+      "timepicker": {},
+      "timezone": "browser",
+      "title": "Conexao Solidaria - Mensageria",
+      "uid": "conexao-solidaria-mensageria",
+      "version": 1,
+      "weekStart": ""
+    }
+  saude.json: |
+    {
+      "annotations": {
+        "list": []
+      },
+      "editable": true,
+      "fiscalYearStartMonth": 0,
+      "graphTooltip": 0,
+      "id": null,
+      "links": [],
+      "liveNow": false,
+      "panels": [
+        {
+          "collapsed": false,
+          "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+          "id": 100,
+          "panels": [],
+          "title": "Status dos servicos (rodando / parado)",
+          "type": "row"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "description": "Quantos servicos estao respondendo ao scrape do Prometheus agora (up == 1). O total esperado e 4: identity-api, campaigns-api, donations-worker e gateway.",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "mappings": [],
+              "max": 4,
+              "min": 0,
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "orange", "value": 3 }, { "color": "green", "value": 4 } ] },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 6, "w": 6, "x": 0, "y": 1 },
+          "id": 1,
+          "options": {
+            "colorMode": "background",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false },
+            "textMode": "value_and_name"
+          },
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "Prometheus" },
+              "editorMode": "code",
+              "expr": "count(up{job=~\"identity-api|campaigns-api|donations-worker|gateway\"} == 1)",
+              "legendFormat": "servicos no ar",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Servicos no ar",
+          "type": "stat"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "description": "Estado atual de cada servico. Verde = RODANDO (up == 1); vermelho = PARADO (up == 0 ou target sem resposta).",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "mappings": [
+                {
+                  "type": "value",
+                  "options": {
+                    "0": { "text": "PARADO", "color": "red", "index": 1 },
+                    "1": { "text": "RODANDO", "color": "green", "index": 0 }
+                  }
+                }
+              ],
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "green", "value": 1 } ] },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 6, "w": 18, "x": 6, "y": 1 },
+          "id": 2,
+          "options": {
+            "colorMode": "background",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "horizontal",
+            "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false },
+            "textMode": "value_and_name"
+          },
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "Prometheus" },
+              "editorMode": "code",
+              "expr": "up{job=~\"identity-api|campaigns-api|donations-worker|gateway\"}",
+              "legendFormat": "{{job}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Saude por servico (RODANDO / PARADO)",
+          "type": "stat"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "description": "Linha do tempo de disponibilidade. Faixas vermelhas mostram exatamente quando um servico ficou PARADO (util para demonstrar o cenario de falha e a recuperacao).",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "custom": { "fillOpacity": 80, "lineWidth": 0, "spanNulls": false },
+              "mappings": [
+                {
+                  "type": "value",
+                  "options": {
+                    "0": { "text": "PARADO", "color": "red", "index": 1 },
+                    "1": { "text": "RODANDO", "color": "green", "index": 0 }
+                  }
+                }
+              ],
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "green", "value": 1 } ] },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 8, "w": 24, "x": 0, "y": 7 },
+          "id": 3,
+          "options": {
+            "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+            "mergeValues": true,
+            "rowHeight": 0.9,
+            "showValue": "auto",
+            "tooltip": { "mode": "single", "sort": "none" }
+          },
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "Prometheus" },
+              "editorMode": "code",
+              "expr": "up{job=~\"identity-api|campaigns-api|donations-worker|gateway\"}",
+              "legendFormat": "{{job}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Disponibilidade ao longo do tempo",
+          "type": "state-timeline"
+        },
+        {
+          "collapsed": false,
+          "gridPos": { "h": 1, "w": 24, "x": 0, "y": 15 },
+          "id": 101,
+          "panels": [],
+          "title": "Uptime e reinicios",
+          "type": "row"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "description": "Ha quanto tempo cada processo esta no ar sem reiniciar. Um valor que zera indica que o servico foi reiniciado.",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "mappings": [],
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "orange", "value": null }, { "color": "green", "value": 60 } ] },
+              "unit": "s"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 6, "w": 12, "x": 0, "y": 16 },
+          "id": 4,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "horizontal",
+            "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false },
+            "textMode": "value_and_name"
+          },
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "Prometheus" },
+              "editorMode": "code",
+              "expr": "time() - process_start_time_seconds{job=~\"identity-api|campaigns-api|donations-worker|gateway\"}",
+              "legendFormat": "{{job}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Uptime por servico",
+          "type": "stat"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "description": "Numero de reinicios detectados por servico na janela selecionada (mudanca no horario de start do processo). Picos indicam crash-loops ou restarts.",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "drawStyle": "bars",
+                "fillOpacity": 60,
+                "gradientMode": "opacity",
+                "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+                "lineInterpolation": "smooth",
+                "lineWidth": 1,
+                "pointSize": 4,
+                "scaleDistribution": { "type": "linear" },
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": { "group": "A", "mode": "none" },
+                "thresholdsStyle": { "mode": "off" }
+              },
+              "mappings": [],
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 6, "w": 12, "x": 12, "y": 16 },
+          "id": 5,
+          "options": {
+            "legend": { "calcs": [ "sum" ], "displayMode": "table", "placement": "bottom", "showLegend": true },
+            "tooltip": { "mode": "multi", "sort": "desc" }
+          },
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "Prometheus" },
+              "editorMode": "code",
+              "expr": "changes(process_start_time_seconds{job=~\"identity-api|campaigns-api|donations-worker|gateway\"}[$__interval])",
+              "legendFormat": "{{job}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Reinicios detectados",
+          "type": "timeseries"
+        },
+        {
+          "collapsed": false,
+          "gridPos": { "h": 1, "w": 24, "x": 0, "y": 22 },
+          "id": 102,
+          "panels": [],
+          "title": "Fila e backlog (aguardando processamento)",
+          "type": "row"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "description": "Eventos de doacao gravados na outbox aguardando publicacao no broker pelo OutboxDispatcher. Cresce quando o broker esta indisponivel ou o dispatcher esta lento.",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "mappings": [],
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "orange", "value": 10 }, { "color": "red", "value": 20 } ] },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 6, "w": 6, "x": 0, "y": 23 },
+          "id": 6,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false },
+            "textMode": "auto"
+          },
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "Prometheus" },
+              "editorMode": "code",
+              "expr": "sum(conexao_outbox_pending_messages)",
+              "legendFormat": "outbox pendente",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Aguardando publicacao (outbox)",
+          "type": "stat"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "description": "Mensagens ja no broker prontas para consumo mas ainda NAO entregues a nenhum consumidor (esperando na fila). Requer o plugin rabbitmq_prometheus habilitado.",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "mappings": [],
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "orange", "value": 50 }, { "color": "red", "value": 200 } ] },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 6, "w": 6, "x": 6, "y": 23 },
+          "id": 7,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false },
+            "textMode": "auto"
+          },
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "Prometheus" },
+              "editorMode": "code",
+              "expr": "sum(rabbitmq_queue_messages_ready{queue=\"doacoes-recebidas\"})",
+              "legendFormat": "esperando na fila",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Esperando na fila (ready) - requer plugin",
+          "type": "stat"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "description": "Mensagens entregues a um consumidor mas ainda nao confirmadas (ack) - ou seja, em processamento neste instante. Requer o plugin rabbitmq_prometheus.",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "mappings": [],
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "orange", "value": 20 }, { "color": "red", "value": 100 } ] },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 6, "w": 6, "x": 12, "y": 23 },
+          "id": 8,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false },
+            "textMode": "auto"
+          },
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "Prometheus" },
+              "editorMode": "code",
+              "expr": "sum(rabbitmq_queue_messages_unacked{queue=\"doacoes-recebidas\"})",
+              "legendFormat": "em processamento",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Em processamento (unacked) - requer plugin",
+          "type": "stat"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "description": "Numero de consumidores ativos conectados a fila de doacoes. Se cair para 0 com a fila cheia, o worker esta parado. Requer o plugin rabbitmq_prometheus.",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "mappings": [],
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "green", "value": 1 } ] },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 6, "w": 6, "x": 18, "y": 23 },
+          "id": 9,
+          "options": {
+            "colorMode": "background",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false },
+            "textMode": "auto"
+          },
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "Prometheus" },
+              "editorMode": "code",
+              "expr": "sum(rabbitmq_queue_consumers{queue=\"doacoes-recebidas\"})",
+              "legendFormat": "consumidores",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Consumidores ativos - requer plugin",
+          "type": "stat"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "description": "Evolucao do que esta aguardando no pipeline: outbox pendente (app), fila ready e unacked (broker). Ideal para acompanhar backlog subir e vazar.",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "drawStyle": "line",
+                "fillOpacity": 20,
+                "gradientMode": "opacity",
+                "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+                "lineInterpolation": "smooth",
+                "lineWidth": 2,
+                "pointSize": 4,
+                "scaleDistribution": { "type": "linear" },
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": { "group": "A", "mode": "none" },
+                "thresholdsStyle": { "mode": "off" }
+              },
+              "mappings": [],
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 8, "w": 24, "x": 0, "y": 29 },
+          "id": 10,
+          "options": {
+            "legend": { "calcs": [ "last", "max" ], "displayMode": "table", "placement": "bottom", "showLegend": true },
+            "tooltip": { "mode": "multi", "sort": "desc" }
+          },
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "Prometheus" },
+              "editorMode": "code",
+              "expr": "sum(conexao_outbox_pending_messages)",
+              "legendFormat": "outbox aguardando",
+              "range": true,
+              "refId": "A"
+            },
+            {
+              "datasource": { "type": "prometheus", "uid": "Prometheus" },
+              "editorMode": "code",
+              "expr": "sum(rabbitmq_queue_messages_ready{queue=\"doacoes-recebidas\"})",
+              "legendFormat": "fila esperando (ready)",
+              "range": true,
+              "refId": "B"
+            },
+            {
+              "datasource": { "type": "prometheus", "uid": "Prometheus" },
+              "editorMode": "code",
+              "expr": "sum(rabbitmq_queue_messages_unacked{queue=\"doacoes-recebidas\"})",
+              "legendFormat": "em processamento (unacked)",
+              "range": true,
+              "refId": "C"
+            }
+          ],
+          "title": "Backlog aguardando ao longo do tempo",
+          "type": "timeseries"
+        },
+        {
+          "collapsed": false,
+          "gridPos": { "h": 1, "w": 24, "x": 0, "y": 37 },
+          "id": 103,
+          "panels": [],
+          "title": "Recursos (saude de execucao)",
+          "type": "row"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "description": "Uso de CPU por servico (em nucleos equivalentes). rate do tempo de CPU consumido pelo processo.",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "cores",
+                "axisPlacement": "auto",
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "gradientMode": "opacity",
+                "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+                "lineInterpolation": "smooth",
+                "lineWidth": 2,
+                "pointSize": 4,
+                "scaleDistribution": { "type": "linear" },
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": { "group": "A", "mode": "none" },
+                "thresholdsStyle": { "mode": "off" }
+              },
+              "mappings": [],
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 38 },
+          "id": 11,
+          "options": {
+            "legend": { "calcs": [ "mean", "max" ], "displayMode": "table", "placement": "bottom", "showLegend": true },
+            "tooltip": { "mode": "multi", "sort": "desc" }
+          },
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "Prometheus" },
+              "editorMode": "code",
+              "expr": "sum(rate(process_cpu_seconds_total{job=~\"identity-api|campaigns-api|donations-worker|gateway\"}[1m])) by (job)",
+              "legendFormat": "{{job}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "CPU por servico",
+          "type": "timeseries"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "description": "Memoria residente (working set) de cada processo. Crescimento continuo sem estabilizar pode indicar vazamento.",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "gradientMode": "opacity",
+                "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+                "lineInterpolation": "smooth",
+                "lineWidth": 2,
+                "pointSize": 4,
+                "scaleDistribution": { "type": "linear" },
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": { "group": "A", "mode": "none" },
+                "thresholdsStyle": { "mode": "off" }
+              },
+              "mappings": [],
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] },
+              "unit": "bytes"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 38 },
+          "id": 12,
+          "options": {
+            "legend": { "calcs": [ "mean", "max" ], "displayMode": "table", "placement": "bottom", "showLegend": true },
+            "tooltip": { "mode": "multi", "sort": "desc" }
+          },
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "Prometheus" },
+              "editorMode": "code",
+              "expr": "process_working_set_bytes{job=~\"identity-api|campaigns-api|donations-worker|gateway\"}",
+              "legendFormat": "{{job}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Memoria por servico (working set)",
+          "type": "timeseries"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "description": "Numero de threads por processo. Saltos podem indicar contencao/thread-pool starvation.",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "gradientMode": "opacity",
+                "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+                "lineInterpolation": "smooth",
+                "lineWidth": 2,
+                "pointSize": 4,
+                "scaleDistribution": { "type": "linear" },
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": { "group": "A", "mode": "none" },
+                "thresholdsStyle": { "mode": "off" }
+              },
+              "mappings": [],
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 8, "w": 8, "x": 0, "y": 46 },
+          "id": 13,
+          "options": {
+            "legend": { "calcs": [ "last", "max" ], "displayMode": "table", "placement": "bottom", "showLegend": true },
+            "tooltip": { "mode": "multi", "sort": "desc" }
+          },
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "Prometheus" },
+              "editorMode": "code",
+              "expr": "process_num_threads{job=~\"identity-api|campaigns-api|donations-worker|gateway\"}",
+              "legendFormat": "{{job}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Threads por servico",
+          "type": "timeseries"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "description": "Taxa de coletas de lixo (GC) do .NET por servico. Muito GC continuo indica pressao de alocacao de memoria.",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "coletas/s",
+                "axisPlacement": "auto",
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "gradientMode": "opacity",
+                "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+                "lineInterpolation": "smooth",
+                "lineWidth": 2,
+                "pointSize": 4,
+                "scaleDistribution": { "type": "linear" },
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": { "group": "A", "mode": "none" },
+                "thresholdsStyle": { "mode": "off" }
+              },
+              "mappings": [],
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 8, "w": 8, "x": 8, "y": 46 },
+          "id": 14,
+          "options": {
+            "legend": { "calcs": [ "mean", "max" ], "displayMode": "table", "placement": "bottom", "showLegend": true },
+            "tooltip": { "mode": "multi", "sort": "desc" }
+          },
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "Prometheus" },
+              "editorMode": "code",
+              "expr": "sum(rate(dotnet_collection_count_total{job=~\"identity-api|campaigns-api|donations-worker|gateway\"}[5m])) by (job)",
+              "legendFormat": "{{job}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "GC .NET por servico",
+          "type": "timeseries"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "description": "Memoria gerenciada conhecida pelo runtime .NET (heap gerenciado) por servico.",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "gradientMode": "opacity",
+                "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+                "lineInterpolation": "smooth",
+                "lineWidth": 2,
+                "pointSize": 4,
+                "scaleDistribution": { "type": "linear" },
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": { "group": "A", "mode": "none" },
+                "thresholdsStyle": { "mode": "off" }
+              },
+              "mappings": [],
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] },
+              "unit": "bytes"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 8, "w": 8, "x": 16, "y": 46 },
+          "id": 15,
+          "options": {
+            "legend": { "calcs": [ "mean", "max" ], "displayMode": "table", "placement": "bottom", "showLegend": true },
+            "tooltip": { "mode": "multi", "sort": "desc" }
+          },
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "Prometheus" },
+              "editorMode": "code",
+              "expr": "dotnet_total_memory_bytes{job=~\"identity-api|campaigns-api|donations-worker|gateway\"}",
+              "legendFormat": "{{job}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Memoria gerenciada .NET",
+          "type": "timeseries"
+        },
+        {
+          "collapsed": false,
+          "gridPos": { "h": 1, "w": 24, "x": 0, "y": 54 },
+          "id": 104,
+          "panels": [],
+          "title": "Coleta de metricas (scrape health)",
+          "type": "row"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "description": "Duracao do scrape de cada alvo pelo Prometheus. Latencia alta ou lacunas indicam alvo lento ou intermitente.",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "gradientMode": "opacity",
+                "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+                "lineInterpolation": "smooth",
+                "lineWidth": 2,
+                "pointSize": 4,
+                "scaleDistribution": { "type": "linear" },
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": { "group": "A", "mode": "none" },
+                "thresholdsStyle": { "mode": "off" }
+              },
+              "mappings": [],
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] },
+              "unit": "s"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 8, "w": 24, "x": 0, "y": 55 },
+          "id": 16,
+          "options": {
+            "legend": { "calcs": [ "mean", "max" ], "displayMode": "table", "placement": "bottom", "showLegend": true },
+            "tooltip": { "mode": "multi", "sort": "desc" }
+          },
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "Prometheus" },
+              "editorMode": "code",
+              "expr": "scrape_duration_seconds",
+              "legendFormat": "{{job}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Duracao do scrape por alvo",
+          "type": "timeseries"
+        }
+      ],
+      "refresh": "5s",
+      "schemaVersion": 39,
+      "tags": [ "hackathon", "conexao-solidaria", "saude", "infraestrutura" ],
+      "templating": { "list": [] },
+      "time": { "from": "now-30m", "to": "now" },
+      "timepicker": {},
+      "timezone": "browser",
+      "title": "Conexao Solidaria - Saude & Infraestrutura",
+      "uid": "conexao-solidaria-saude",
+      "version": 1,
+      "weekStart": ""
+    }

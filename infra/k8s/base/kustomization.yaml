@@ -20,6 +20,8 @@ resources:
   - web.yaml
   # Observabilidade / monitoramento.
   - observability.yaml
+  # Dashboards ricos do Grafana (gerado de infra/grafana/dashboards/*.json).
+  - grafana-dashboards.yaml
   - zabbix.yaml
   # Rede e resiliencia.
   - ingress.yaml

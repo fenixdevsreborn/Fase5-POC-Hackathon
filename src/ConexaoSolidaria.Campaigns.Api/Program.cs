@@ -177,6 +177,10 @@ if (runMigrationsOnly)
 
 await CampaignsDatabaseInitializer.InitializeAsync(app.Services);
 
+// Best-effort: garante o indice de busca (analisadores pt-BR) e faz backfill do Postgres quando o
+// indice e criado agora. Falhas nao derrubam a API (a busca degrada para o PostgreSQL).
+await ElasticsearchIndexInitializer.InitializeAsync(app.Services);
+
 app.UseExceptionHandler();
 
 app.UseSwagger();

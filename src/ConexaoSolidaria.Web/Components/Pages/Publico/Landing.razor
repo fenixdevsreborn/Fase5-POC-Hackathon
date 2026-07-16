@@ -1,4 +1,5 @@
 @page "/"
+@using System.Globalization
 @using ConexaoSolidaria.Web.Components.Common
 @using ConexaoSolidaria.Web.Components.Campaigns
 @inject ApiClient Api
@@ -6,40 +7,128 @@
 <PageTitle>Conexao Solidaria - Doe com transparencia</PageTitle>
 
 @* ---------------- Hero ---------------- *@
-<MudPaper Elevation="0" Class="pa-8 pa-md-12 mb-8"
-          Style="background:linear-gradient(135deg,#0b3b60 0%,#0f7594 100%);color:#fff;border-radius:var(--radius-md);">
-    <MudGrid AlignItems="Center">
-        <MudItem xs="12" md="8">
-            <MudChip T="string" Color="Color.Warning" Variant="Variant.Filled" Size="Size.Small" Class="mb-3">
-                Transparencia de ponta a ponta
-            </MudChip>
-            <MudText Typo="Typo.h3" Style="color:#fff;font-weight:800;line-height:1.1;">
-                Pequenos gestos, grandes transformacoes.
-            </MudText>
-            <MudText Typo="Typo.h6" Style="color:rgba(255,255,255,.85);font-weight:400;" Class="mt-4">
-                A Conexao Solidaria conecta doadores a campanhas sociais com prestacao de contas
-                aberta: voce ve exatamente para onde cada real vai.
-            </MudText>
-            <div class="d-flex flex-wrap mt-6" style="gap:12px;">
-                <MudButton Href="/campanhas" Variant="Variant.Filled" Color="Color.Warning"
-                           Size="Size.Large" EndIcon="@Icons.Material.Filled.Favorite">
-                    Ver campanhas
-                </MudButton>
-                <MudButton Href="/transparencia" Variant="Variant.Outlined"
-                           Size="Size.Large" Style="color:#fff;border-color:rgba(255,255,255,.6);"
-                           EndIcon="@Icons.Material.Filled.QueryStats">
-                    Transparencia
-                </MudButton>
+<section class="cs-hero" aria-labelledby="hero-title">
+    <div class="cs-hero__left">
+        <span class="cs-hero__badge">
+            <MudIcon Icon="@Icons.Material.Filled.Favorite" Size="Size.Small" />
+            Juntos, podemos mais
+        </span>
+
+        <h1 id="hero-title" class="cs-hero__title">
+            Conectamos quem quer <span class="cs-accent-blue">ajudar</span>
+            com quem <span class="cs-accent-orange">precisa.</span>
+        </h1>
+
+        <p class="cs-hero__lead">
+            Uma plataforma segura e transparente para doacoes, campanhas e projetos
+            que transformam vidas e fortalecem comunidades.
+        </p>
+
+        <div class="cs-hero__actions">
+            <a class="cs-hero__btn cs-hero__btn--primary" href="/campanhas">
+                <MudIcon Icon="@Icons.Material.Filled.Favorite" Size="Size.Small" />
+                Quero Doar
+            </a>
+            <a class="cs-hero__btn cs-hero__btn--ghost" href="/cadastrar">
+                <MudIcon Icon="@Icons.Material.Filled.Add" Size="Size.Small" />
+                Criar Campanha
+            </a>
+        </div>
+
+        <div class="cs-hero__trust">
+            <span class="cs-hero__trust-item">
+                <MudIcon Icon="@Icons.Material.Filled.VerifiedUser" Size="Size.Small" />
+                100% Seguro
+            </span>
+            <span class="cs-hero__trust-item">
+                <MudIcon Icon="@Icons.Material.Filled.Visibility" Size="Size.Small" />
+                Transparencia
+            </span>
+            <span class="cs-hero__trust-item">
+                <MudIcon Icon="@Icons.Material.Filled.Groups" Size="Size.Small" />
+                Impacto Real
+            </span>
+        </div>
+    </div>
+
+    <div class="cs-hero__right">
+        <div class="cs-hero__network" aria-hidden="true">
+            <span class="cs-hero__orbit cs-hero__orbit--one"></span>
+            <span class="cs-hero__orbit cs-hero__orbit--two"></span>
+            <span class="cs-hero__node cs-hero__node--one"></span>
+            <span class="cs-hero__node cs-hero__node--two"></span>
+            <span class="cs-hero__node cs-hero__node--three"></span>
+            <span class="cs-hero__node cs-hero__node--four"></span>
+        </div>
+
+        <div class="cs-hero__showcase">
+            <div class="cs-hero__showcase-head">
+                <span class="cs-hero__showcase-eyebrow">Campanha</span>
+                <span class="cs-hero__showcase-chip">@_showcaseCategoria</span>
             </div>
-        </MudItem>
-        <MudItem xs="12" md="4" Class="d-none d-md-flex justify-center">
-            <MudIcon Icon="@Icons.Material.Filled.Diversity3" Style="font-size:11rem;color:rgba(255,255,255,.18);" />
-        </MudItem>
-    </MudGrid>
-</MudPaper>
+            <h3 class="cs-hero__showcase-title">@_showcaseTitulo</h3>
+            <div class="cs-hero__showcase-media">
+                <img src="@_showcaseImagem" alt="@_showcaseTitulo" loading="lazy" />
+            </div>
+            <div class="cs-hero__showcase-amounts">
+                <span class="cs-hero__showcase-raised">@ShowcaseArrecadado</span>
+                <span class="cs-hero__showcase-goal">Meta: @ShowcaseMeta</span>
+            </div>
+            <div class="cs-hero__showcase-progress">
+                <div class="cs-hero__showcase-track">
+                    <div class="cs-hero__showcase-fill" style="width:@ShowcasePercentCss;"></div>
+                </div>
+                <span class="cs-hero__showcase-percent">@ShowcasePercentLabel</span>
+            </div>
+            <div class="cs-hero__showcase-footer">
+                <span>
+                    <MudIcon Icon="@Icons.Material.Filled.Group" Size="Size.Small" />
+                    @ShowcaseDoadoresLabel
+                </span>
+                <span>
+                    <MudIcon Icon="@Icons.Material.Filled.Schedule" Size="Size.Small" />
+                    @ShowcaseDiasLabel
+                </span>
+            </div>
+        </div>
+
+        <div class="cs-hero__stat cs-hero__stat--donors">
+            <span class="cs-hero__stat-icon cs-hero__stat-icon--blue">
+                <MudIcon Icon="@Icons.Material.Filled.Groups" />
+            </span>
+            <div>
+                <span class="cs-hero__stat-label">Doadores</span>
+                <span class="cs-hero__stat-value">@_showcaseDoadores.ToString("N0", Ptbr)</span>
+                <span class="cs-hero__stat-trend">conectados a esta causa</span>
+            </div>
+        </div>
+
+        <div class="cs-hero__stat cs-hero__stat--impact">
+            <span class="cs-hero__stat-icon cs-hero__stat-icon--orange">
+                <MudIcon Icon="@Icons.Material.Filled.Favorite" />
+            </span>
+            <div>
+                <span class="cs-hero__stat-label">Impacto</span>
+                <span class="cs-hero__stat-value">@TotalArrecadadoCompacto</span>
+                <span class="cs-hero__stat-trend">arrecadados</span>
+            </div>
+        </div>
+
+        <div class="cs-hero__stat cs-hero__stat--institutions">
+            <span class="cs-hero__stat-icon cs-hero__stat-icon--blue">
+                <MudIcon Icon="@Icons.Material.Filled.AccountBalance" />
+            </span>
+            <div>
+                <span class="cs-hero__stat-label">Iniciativas</span>
+                <span class="cs-hero__stat-value">@_campanhasAtivas</span>
+                <span class="cs-hero__stat-trend">ativas na plataforma</span>
+            </div>
+        </div>
+    </div>
+</section>
 
 @* ---------------- Numeros de impacto ---------------- *@
-<MudPaper Elevation="1" Class="pa-6 mb-10" Style="border-radius:var(--radius-md);">
+<section id="impacto" class="cs-impact-strip" aria-label="Numeros de impacto">
     @if (_loading)
     {
         <MudGrid Justify="Justify.SpaceAround">
@@ -75,11 +164,15 @@
             </MudItem>
         </MudGrid>
     }
-</MudPaper>
+</section>
 
 @* ---------------- Campanhas em destaque ---------------- *@
-<div class="d-flex justify-space-between align-center mb-4" style="gap:12px;">
-    <MudText Typo="Typo.h4" Style="font-weight:700;">Campanhas em destaque</MudText>
+<section class="cs-section" aria-labelledby="campanhas-title">
+<div class="cs-section__heading">
+    <div>
+        <span class="cs-section__eyebrow">Causas que transformam</span>
+        <h2 id="campanhas-title">Campanhas em destaque</h2>
+    </div>
     <MudButton Href="/campanhas" Variant="Variant.Text" Color="Color.Primary"
                EndIcon="@Icons.Material.Filled.ArrowForward" Class="d-none d-sm-flex">
         Ver todas
@@ -107,31 +200,116 @@ else
         }
     </MudGrid>
 }
+</section>
 
 @* ---------------- Como funciona ---------------- *@
-<MudText Typo="Typo.h4" Style="font-weight:700;" Class="mt-12 mb-4">Como funciona</MudText>
-<MudGrid>
+<section id="como-funciona" class="cs-section cs-section--soft" aria-labelledby="como-funciona-title">
+<div class="cs-section__heading cs-section__heading--center">
+    <div>
+        <span class="cs-section__eyebrow">Simples e transparente</span>
+        <h2 id="como-funciona-title">Como funciona</h2>
+    </div>
+</div>
+<MudGrid Class="cs-steps-grid">
     @foreach (var passo in _passos)
     {
         <MudItem xs="12" md="4">
-            <MudPaper Elevation="0" Class="pa-6"
-                      Style="height:100%;border-radius:var(--radius-md);background:var(--surface);border:1px solid rgba(11,59,96,.10);">
-                <MudAvatar Color="Color.Primary" Variant="Variant.Filled" Rounded="true" Size="Size.Large">
+            <article class="cs-step-card">
+                <MudAvatar Color="Color.Primary" Variant="Variant.Filled" Rounded="true" Size="Size.Large" Class="cs-step-card__icon">
                     <MudIcon Icon="@passo.Icon" />
                 </MudAvatar>
                 <MudText Typo="Typo.h6" Class="mt-3" Style="font-weight:700;">@passo.Titulo</MudText>
                 <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-1">@passo.Texto</MudText>
-            </MudPaper>
+            </article>
         </MudItem>
     }
 </MudGrid>
+</section>
+
+<section id="instituicoes" class="cs-institutions" aria-labelledby="instituicoes-title">
+    <div class="cs-institutions__content">
+        <span class="cs-section__eyebrow">Para quem faz acontecer</span>
+        <h2 id="instituicoes-title">Sua instituicao pode ampliar o impacto.</h2>
+        <p>Crie campanhas, acompanhe resultados e mostre cada etapa da arrecadacao com transparencia.</p>
+        <a class="cs-hero__btn cs-hero__btn--ghost" href="/cadastrar">
+            <MudIcon Icon="@Icons.Material.Filled.AddBusiness" Size="Size.Small" />
+            Criar campanha
+        </a>
+    </div>
+    <div class="cs-institutions__visual" aria-hidden="true">
+        <MudIcon Icon="@Icons.Material.Filled.VolunteerActivism" />
+        <span>Conexoes que geram impacto real</span>
+    </div>
+</section>
+
+<section id="sobre" class="cs-about" aria-labelledby="sobre-title">
+    <span class="cs-section__eyebrow">Conexao Solidaria</span>
+    <h2 id="sobre-title">Tecnologia a servico da solidariedade.</h2>
+    <p>Aproximamos quem quer ajudar de projetos confiaveis, com seguranca e visibilidade sobre cada contribuicao.</p>
+</section>
 
 @code {
+    private static readonly CultureInfo Ptbr = CultureInfo.GetCultureInfo("pt-BR");
+
     private bool _loading = true;
     private decimal _totalArrecadado;
     private int _campanhasAtivas;
     private int _totalCampanhas;
     private IReadOnlyList<CampanhaDto> _destaques = Array.Empty<CampanhaDto>();
+
+    // Cartao ilustrativo do hero: usa a primeira campanha em destaque quando houver,
+    // ou valores de exemplo enquanto os dados nao carregam / nao existem campanhas.
+    private CampanhaDto? _showcase;
+    private string _showcaseTitulo = "Alimentando Esperancas";
+    private string _showcaseCategoria = "Alimentação";
+    private string _showcaseImagem = "images/campanhas/web/medium-shot-mother-girl-home.jpg";
+    private int _showcaseDoadores = 320;
+
+    private decimal ShowcaseArrecadadoVal => _showcase?.ValorTotalArrecadado ?? 18750m;
+    private decimal ShowcaseMetaVal => _showcase?.MetaFinanceira ?? 30000m;
+    private string ShowcaseArrecadado => ShowcaseArrecadadoVal.ToString("C0", Ptbr);
+    private string ShowcaseMeta => ShowcaseMetaVal.ToString("C0", Ptbr);
+
+    private double ShowcasePercent => ShowcaseMetaVal <= 0m
+        ? 0d
+        : Math.Clamp((double)(ShowcaseArrecadadoVal / ShowcaseMetaVal) * 100d, 0d, 100d);
+
+    private string ShowcasePercentCss => ShowcasePercent.ToString("0.#", CultureInfo.InvariantCulture) + "%";
+    private string ShowcasePercentLabel => $"{ShowcasePercent.ToString("0", Ptbr)}%";
+
+    private string ShowcaseDoadoresLabel => _showcaseDoadores switch
+    {
+        <= 0 => "Seja o primeiro a doar",
+        1 => "1 doador",
+        var n => $"{n.ToString("N0", Ptbr)} doadores",
+    };
+
+    private string ShowcaseDiasLabel
+    {
+        get
+        {
+            if (_showcase is null)
+            {
+                return "12 dias restantes";
+            }
+
+            var dias = Math.Max(0, (int)Math.Ceiling((_showcase.DataFim - DateTimeOffset.Now).TotalDays));
+            return dias switch
+            {
+                0 => "Ultimo dia",
+                1 => "1 dia restante",
+                _ => $"{dias} dias restantes",
+            };
+        }
+    }
+
+    private string TotalArrecadadoCompacto => _totalArrecadado switch
+    {
+        >= 1_000_000m => $"R$ {(_totalArrecadado / 1_000_000m).ToString("0.#", Ptbr)} mi",
+        >= 1_000m => $"R$ {(_totalArrecadado / 1_000m).ToString("0.#", Ptbr)} mil",
+        > 0m => _totalArrecadado.ToString("C0", Ptbr),
+        _ => ShowcaseArrecadadoVal.ToString("C0", Ptbr),
+    };
 
     private readonly (string Icon, string Titulo, string Texto)[] _passos =
     {
@@ -157,6 +335,15 @@ else
                 .Where(c => c.Status == "Ativa")
                 .Take(3)
                 .ToList();
+
+            if (_destaques.Count > 0)
+            {
+                _showcase = _destaques[0];
+                _showcaseTitulo = _showcase.Titulo;
+                _showcaseCategoria = CampaignVisuals.RotuloCategoria(_showcase.Categoria);
+                _showcaseImagem = CampaignVisuals.ImagemDe(_showcase.Id);
+                _showcaseDoadores = _showcase.TotalDoadores;
+            }
         }
         catch
         {

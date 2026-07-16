@@ -21,7 +21,9 @@ public sealed record CampanhaDto(
     DateTimeOffset DataFim,
     decimal MetaFinanceira,
     decimal ValorTotalArrecadado,
-    string Status);
+    string Status,
+    string Categoria = "Outros",
+    int TotalDoadores = 0);
 
 /// <summary>Item da vitrine publica de transparencia.</summary>
 public sealed record TransparenciaDto(
@@ -48,7 +50,8 @@ public sealed record SalvarCampanha(
     DateTimeOffset DataInicio,
     DateTimeOffset DataFim,
     decimal MetaFinanceira,
-    string Status);
+    string Status,
+    string Categoria = "Outros");
 
 /// <summary>Payload de cadastro de doador.</summary>
 public sealed record CadastroDoador(

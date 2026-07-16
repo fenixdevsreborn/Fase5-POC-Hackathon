@@ -143,12 +143,15 @@ no próprio bloco.
   e a `readinessProbe` usa `/health`, para não reiniciar o pod em cascata durante o Migrate.
 
 ### AD-12 — Fallback de busca Elasticsearch → Postgres
-- **Contexto:** a busca de campanhas usa Elasticsearch (fuzzy em título/descrição), mas o ES
-  pode estar indisponível ou sem índice.
-- **Decisão:** **fallback** — se o ES falhar/indisponível, a busca cai para o Postgres.
+- **Contexto:** a busca de campanhas usa Elasticsearch (relevância, fuzzy e multi-campo — `AD-35`),
+  mas o ES pode estar indisponível ou sem índice.
+- **Decisão:** **fallback** — se o ES falhar/indisponível, a busca cai para o Postgres
+  (`ILIKE` em título/descrição), com a mesma paginação e formato de resposta.
 - **Consequências:** (+) disponibilidade da busca mesmo sem ES; degradação graciosa.
-  (−) resultados do fallback são menos ricos (sem fuzzy/scoring); só campanhas criadas após a
-  integração são indexadas no ES.
+  (−) resultados do fallback são **bem menos ricos**: `ILIKE` é substring literal — sem
+  fuzzy/scoring, sem tolerância a acento e sem busca por categoria (um typo simplesmente não
+  retorna nada). O gap de "só campanhas criadas após a integração são indexadas" foi **fechado
+  pelo backfill** do `AD-35`: o Postgres é a fonte da verdade e o índice é reconstruível.
 
 ### AD-23 — `Campaigns.Api` e `Donations.Worker` são um único bounded context (dois processos)
 - **Contexto:** `Campaigns.Api` e `Donations.Worker` **compartilham o mesmo banco
@@ -520,3 +523,47 @@ persona) e `docs/api-reference.md` (contrato HTTP).
   - (−) resultados do fallback continuam **menos ricos** (sem fuzzy/scoring); com o circuito aberto,
     **toda** busca é degradada por um tempo, mesmo que o ES já tenha voltado (até o half-open testar).
   - (−) mais um pipeline de resiliência a configurar/observar (limiares de falha e tempo de abertura).
+
+### AD-35 — Índice explícito com analisador pt-BR, busca fuzzy multi-campo e backfill
+- **Contexto:** o índice `campanhas` nascia por **mapeamento dinâmico** do ES, no primeiro
+  `IndexAsync`. Consequência: analisador `standard` como padrão — **sem tratamento de acento**
+  ("saude" não encontrava "Saúde"), sem stemming pt-BR e sem stopwords. A query era um
+  `multi_match` com `fuzziness: AUTO` restrito a `titulo^3`/`descricao`: categoria não era
+  pesquisável, não havia busca por prefixo (autocomplete) e a relevância não distinguia frase
+  exata de match espalhado. Além disso, o índice só continha campanhas **criadas após** a
+  integração (não havia backfill) e cada busca fazia **duas** idas ao ES (`Count` + `Search`,
+  com a query duplicada nos dois lugares).
+- **Decisão:**
+  - **Criar o índice explicitamente** (`EnsureIndexAsync`, idempotente) com análise pt-BR:
+    `asciifolding` (ignora acento nos dois sentidos), stemmer `light_portuguese`, stopwords
+    `_portuguese_`, e um subcampo `titulo.prefix` com `edge_ngram` para autocomplete. A definição
+    é enviada como **JSON cru pelo transporte low-level** — o DSL tipado de `analysis` é verboso
+    e frágil entre versões do client, e o JSON espelha a documentação do ES.
+  - **Query composta** (`bool/should` com `minimum_should_match: 1`) somando quatro sinais
+    complementares: `multi_match best_fields` com `fuzziness AUTO` (absorve typos),
+    `multi_match phrase_prefix` (busca conforme digita), `match` em `titulo.prefix`
+    (autocomplete por prefixo de palavra) e `match_phrase` no título com boost 5 (frase exata
+    rankeia no topo). Campos pesquisados: **título (peso 3) + descrição + categoria**
+    (`categoriaTexto`, rótulo humano — "Meio Ambiente" não sairia do enum `MeioAmbiente`, que o
+    tokenizer trata como um token só).
+  - **Enums como string** no `_source` (`JsonStringEnumConverter` no source serializer), para
+    mapear `status`/`categoria` como `keyword` (filtro exato) e lê-los de volta corretamente.
+  - **Backfill automático no startup** (`ElasticsearchIndexInitializer`): quando `EnsureIndexAsync`
+    **cria** o índice, reindexa em bulk todas as campanhas do Postgres. Best-effort — falha apenas
+    loga (o ES não é crítico; a busca degrada para o Postgres).
+  - **Remover a query `Count` duplicada**, usando `TrackTotalHits(true)` + `response.Total`.
+- **Consequências:**
+  - (+) busca tolerante a **erro de digitação, acento e plural**, sobre título/descrição/categoria;
+    autocomplete por prefixo; frase exata no topo do ranking.
+  - (+) o índice deixa de ser efeito colateral do primeiro write: é **reconstruível** a partir do
+    Postgres (fonte da verdade) — basta dropar o índice e reiniciar a API.
+  - (+) metade das idas ao ES por busca (uma query em vez de duas).
+  - (−) **o mapeamento não é retroativo**: o ES não permite trocar o analisador de um campo já
+    criado e `EnsureIndexAsync` **só cria se não existir**. Aplicar mudança de mapeamento exige
+    **dropar o índice e reiniciar** a `campaigns-api`, deixando o backfill repopular — ver
+    **Cenário 9** do runbook. Não há alias + reindex versionado (custo aceito nesta POC).
+  - (−) `asciifolding` com `preserve_original` e o subcampo `edge_ngram` incham o índice;
+    irrelevante nesta escala, relevante se o volume crescer.
+  - (−) os testes de integração usam `FakeCampaignSearchRepository`, então **mapeamento e query
+    reais não têm cobertura automatizada**; a validação foi feita contra um Elasticsearch 8.15.3
+    real (typo, sem acento, stemming, prefixo e categoria).

@@ -409,6 +409,72 @@ consome o fanout).
 
 ---
 
+## Cenario 9 - Busca pobre / indice do Elasticsearch ausente ou com mapeamento antigo
+
+**Sintomas:** `GET /api/campanhas/search?q=...` responde 200, mas a busca "emburrece": um termo
+com typo ou **sem acento** nao acha nada (`sao paulo` nao retorna "Sao Paulo"), categoria nao e
+pesquisavel, ou campanhas que existem no Postgres nao aparecem. Nos logs da `campaigns-api`:
+"Busca no Elasticsearch indisponivel ... fallback para PostgreSQL" ou "Circuito do Elasticsearch
+ABERTO".
+
+**Contexto:** a busca usa o indice `campanhas` com analisadores pt-BR (AD-35). O indice e criado
+no startup por `EnsureIndexAsync` **somente se nao existir**; quando e criado, a API faz
+**backfill** de todas as campanhas do Postgres (fonte da verdade). Dois modos de falha distintos:
+
+- **ES fora** -> a busca degrada para o Postgres com ILIKE (AD-12/AD-34): resultados corretos,
+  porem sem fuzzy/acento/categoria. Nao ha nada a fazer no indice.
+- **Indice com mapeamento antigo** -> o ES **nao permite trocar o analisador** de um campo ja
+  criado, e o `EnsureIndexAsync` nao altera indice existente. Um indice criado por mapeamento
+  dinamico (analisador `standard`) **continua velho mesmo apos o deploy do codigo novo** - o
+  sintoma e busca sem fuzzy/acento com o ES saudavel e sem erro nos logs.
+
+**Diagnostico:**
+```bash
+NS=conexao-solidaria
+ES=$(kubectl get pod -n $NS -l app=elasticsearch -o jsonpath='{.items[0].metadata.name}')
+# 1. O indice existe e tem documentos?
+kubectl exec -n $NS $ES -- curl -s "http://localhost:9200/_cat/indices/campanhas?v"
+# 2. O mapeamento e o novo? titulo DEVE ter "analyzer":"campanha_analyzer" e existir categoriaTexto
+kubectl exec -n $NS $ES -- curl -s "http://localhost:9200/campanhas/_mapping"
+# 3. O startup criou o indice e fez o backfill?
+kubectl logs -n $NS deploy/campaigns-api | grep -iE "indice|backfill"
+# 4. O ES esta de pe?
+kubectl get pods -n $NS -l app=elasticsearch
+```
+Se (2) nao mostrar `campanha_analyzer`, o indice esta com o mapeamento antigo.
+
+**Recuperacao (indice antigo/defasado) - dropar e deixar a API recriar + repopular:**
+```bash
+kubectl exec -n $NS $ES -- curl -s -X DELETE "http://localhost:9200/campanhas"
+kubectl rollout restart deploy/campaigns-api -n $NS
+kubectl rollout status  deploy/campaigns-api -n $NS --timeout=180s
+kubectl logs -n $NS deploy/campaigns-api | grep -iE "indice|backfill"
+# esperado:
+#   Indice 'campanhas' criado no Elasticsearch com analisadores pt-BR.
+#   Indice recem-criado: iniciando backfill de N campanha(s).
+#   Backfill do Elasticsearch indexou N campanha(s).
+```
+**Seguro por design:** o Postgres e a fonte da verdade e o backfill reindexa tudo. Enquanto o
+indice nao existe, a busca cai no fallback do Postgres - o usuario nao ve erro, so a busca
+degradada por alguns segundos.
+
+- **ES fora:** restabelecer o pod `elasticsearch`; a busca segue no fallback ate o circuito fechar
+  sozinho (half-open, AD-34). Nenhuma acao no indice e necessaria.
+- **Deploy que muda mapeamento/analisador:** exige o mesmo drop + restart acima - `EnsureIndexAsync`
+  nao migra indice existente (AD-35).
+- **Atencao ao rebuildar a imagem:** o deployment `campaigns-api` usa a tag **`catv1`** (ver
+  `overlays/local/kustomization.yaml`), nao `local`. Buildar/importar so a `:local` reinicia o pod
+  com a imagem **antiga** e o codigo novo nao entra.
+
+**Verificacao (com `kubectl port-forward -n $NS svc/gateway 18080:80`):**
+```bash
+# sem acento e com typo devem retornar resultado
+curl -s "http://localhost:18080/api/campanhas/search?q=sao%20paulo&pageSize=3"
+curl -s "http://localhost:18080/api/campanhas/search?q=cadera%20gamer&pageSize=3"
+```
+
+---
+
 ## Boas praticas de verificacao pos-incidente
 
 - Zabbix -> Monitoring -> Problems: alertas resolvidos (recovery).

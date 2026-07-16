@@ -1,4 +1,4 @@
-<Project Sdk="Aspire.AppHost.Sdk/13.2.0">
+<Project Sdk="Aspire.AppHost.Sdk/13.4.6">
 
   <ItemGroup>
     <ProjectReference Include="..\ConexaoSolidaria.Identity.Api\ConexaoSolidaria.Identity.Api.csproj" />
@@ -9,9 +9,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Aspire.Hosting.Elasticsearch" Version="13.2.0" />
-    <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="13.2.0" />
-    <PackageReference Include="Aspire.Hosting.RabbitMQ" Version="13.2.0" />
+    <PackageReference Include="Aspire.Hosting.AppHost" Version="13.4.6" />
+    <!-- Ultima versao disponivel do pacote (nao ha 13.4.6); nao precisa casar com o SDK/DCP. -->
+    <PackageReference Include="Aspire.Hosting.Elasticsearch" Version="13.3.0" />
+    <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="13.4.6" />
+    <PackageReference Include="Aspire.Hosting.RabbitMQ" Version="13.4.6" />
+    <PackageReference Include="MessagePack" Version="3.1.8" />
   </ItemGroup>
 
   <PropertyGroup>

@@ -124,7 +124,23 @@ Enum **`CampaignStatus`**: `Ativa`, `Concluida`, `Cancelada` — serializado/ace
 Busca paginada por termo (ES com fallback Postgres — `AD-12`/`AD-34`). **Output cache ~5s**
 (`AD-31`).
 
-Query: `q` (termo; vazio → 0 resultados), `page` (default 1), `pageSize` (default 10, máx 100).
+O termo é buscado em **título (peso 3), descrição e categoria**, com analisador pt-BR e query
+fuzzy multi-campo (`AD-35`) — os resultados vêm ordenados por **relevância**:
+
+| Comportamento | Exemplo |
+|---|---|
+| Corrige erro de digitação (`fuzziness AUTO`) | `cadera gamer` → "Cadeira Gamer" |
+| Ignora acento (nos dois sentidos) | `sao paulo` ↔ "São Paulo"; `saude` ↔ "Saúde" |
+| Plural/derivação (stemming pt-BR) | `metrica` → "Metricas Demo Julho" |
+| Prefixo / autocomplete (`edge_ngram`) | `comput` → "Comprar computador" |
+| Busca por categoria | `ambiente` → campanhas de "Meio Ambiente" |
+| Frase exata no título rankeia no topo | `match_phrase` com boost 5 |
+
+Query: `q` (termo; **vazio → lista todas** as campanhas do Postgres, paginadas, da mais recente
+para a mais antiga — não consulta o ES), `page` (default 1), `pageSize` (default 10, máx 100).
+
+> Com o ES indisponível a busca degrada para o Postgres (`ILIKE` substring): os resultados seguem
+> corretos, porém **sem** fuzzy, acento-insensível ou categoria (`AD-12`).
 
 Response **200 OK** (`PaginatedResponse<CampanhaResponse>`):
 ```json

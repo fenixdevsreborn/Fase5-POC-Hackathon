@@ -11,13 +11,41 @@
     --danger: #c43838;
     --radius-md: 14px;
     --shadow-soft: 0 6px 24px rgba(11, 59, 96, 0.08);
+    /* Cores de destaque da marca (hero e cartoes) */
+    --cs-blue: #2563eb;
+    --cs-blue-dark: #1d4ed8;
+    --cs-orange: #f97316;
+    --cs-orange-soft: #fff2e8;
+    --cs-ink: #16233a;
 }
 
 html, body {
-    background-color: var(--surface-alt);
+    min-height: 100%;
+    margin: 0;
+    background-color: #ffffff;
     color: var(--text-primary);
+    font-family: Inter, "Segoe UI", Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+}
+
+html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 120px;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+a {
+    color: inherit;
+}
+
+h1:focus {
+    outline: none;
 }
 
 .cs-footer {

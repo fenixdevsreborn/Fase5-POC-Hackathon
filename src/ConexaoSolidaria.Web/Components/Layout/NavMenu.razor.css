@@ -1,1 +1,85 @@
-/* Navegacao estilizada via MudNavMenu. */
+.cs-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(20px, 2.25vw, 38px);
+}
+
+.cs-nav a {
+    position: relative;
+    padding: 27px 0 25px;
+    color: #111827;
+    font-size: .98rem;
+    font-weight: 600;
+    line-height: 1;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: color .22s ease, transform .22s ease;
+}
+
+.cs-nav a::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    height: 3px;
+    border-radius: 99px;
+    background: linear-gradient(90deg, var(--cs-blue), var(--cs-orange));
+    width: 26px;
+    transform: translateX(-50%) scaleX(0);
+    transform-origin: center;
+    transition: transform .2s ease;
+}
+
+.cs-nav a:hover,
+.cs-nav a.active {
+    color: var(--cs-blue);
+    transform: translateY(-1px);
+}
+
+.cs-nav a:hover::after,
+.cs-nav a.active::after {
+    transform: translateX(-50%) scaleX(1);
+}
+
+.cs-nav__private {
+    display: none;
+}
+
+.cs-nav--mobile {
+    width: 100%;
+    align-items: stretch;
+    flex-direction: column;
+    gap: 0;
+}
+
+.cs-nav--mobile a {
+    padding: 14px 4px;
+    border-bottom: 1px solid rgba(12, 37, 75, .07);
+    font-size: 1rem;
+}
+
+.cs-nav--mobile a:hover,
+.cs-nav--mobile a.active {
+    padding-left: 12px;
+    transform: none;
+}
+
+.cs-nav--mobile a::after {
+    display: none;
+}
+
+.cs-nav--mobile .cs-nav__private {
+    display: block;
+    color: var(--cs-blue);
+}
+
+@media (max-width: 1120px) {
+    .cs-nav:not(.cs-nav--mobile) {
+        gap: 20px;
+    }
+
+    .cs-nav:not(.cs-nav--mobile) a {
+        font-size: .9rem;
+    }
+}

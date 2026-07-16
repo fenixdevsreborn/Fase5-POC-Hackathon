@@ -70,8 +70,15 @@ public sealed class AuthController(IdentityDbContext db, JwtTokenService jwtToke
             });
         }
 
-        var email = AppUser.NormalizeEmail(request.Email);
-        var user = await db.Users.SingleOrDefaultAsync(item => item.Email == email, cancellationToken);
+        var identificador = request.Email.Trim();
+        var email = AppUser.NormalizeEmail(identificador);
+        var cpf = CpfValidator.IsValid(identificador)
+            ? CpfValidator.Normalize(identificador)
+            : null;
+
+        var user = await db.Users.SingleOrDefaultAsync(
+            item => item.Email == email || (cpf != null && item.Cpf == cpf),
+            cancellationToken);
 
         if (user is null || !BCrypt.Net.BCrypt.Verify(request.Senha, user.PasswordHash))
         {

@@ -1,127 +1,150 @@
 @page "/entrar"
+@layout AuthLayout
 @using System.ComponentModel.DataAnnotations
+@using System.Text.RegularExpressions
 @inject AuthService Auth
 @inject NavigationManager Nav
+@inject ISnackbar Snackbar
 
-<PageTitle>Entrar</PageTitle>
+<PageTitle>Entrar - Conexao Solidaria</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.ExtraSmall" Class="pa-0">
-    <MudPaper Elevation="0" Class="pa-6 mt-4" Style="border:1px solid var(--mud-palette-lines-default);border-radius:16px;">
-        <div class="d-flex align-center mb-1">
-            <MudIcon Icon="@Icons.Material.Filled.Login" Color="Color.Primary" Class="mr-2" />
-            <MudText Typo="Typo.h5">Entrar</MudText>
-        </div>
-        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
-            Acesse sua conta para doar e acompanhar suas contribuicoes.
-        </MudText>
+<section class="cs-login-card" aria-labelledby="login-title">
+    <a class="cs-login-card__brand" href="/" aria-label="Voltar para a pagina inicial">
+        <img src="images/logo/logomarca-horizontal.png" alt="Conexao Solidaria" />
+    </a>
 
-        <MudForm @ref="_form">
-            <MudTextField T="string"
-                          @bind-Value="_email"
-                          Label="E-mail"
-                          Variant="Variant.Outlined"
-                          InputType="InputType.Email"
-                          Adornment="Adornment.Start"
-                          AdornmentIcon="@Icons.Material.Filled.Email"
-                          Required="true"
-                          RequiredError="Informe seu e-mail."
-                          Validation="@(new Func<string, string?>(ValidarEmail))"
-                          Immediate="false"
-                          Class="mb-3" />
+    <header class="cs-login-card__header">
+        <h1 id="login-title">Entrar</h1>
+        <p>Acesso para <span>Doador</span> e <strong>Gestor ONG</strong></p>
+    </header>
 
-            <MudTextField T="string"
-                          @bind-Value="_senha"
-                          Label="Senha"
-                          Variant="Variant.Outlined"
-                          InputType="@(_mostrarSenha ? InputType.Text : InputType.Password)"
-                          Adornment="Adornment.End"
-                          AdornmentIcon="@(_mostrarSenha ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
-                          OnAdornmentClick="@(() => _mostrarSenha = !_mostrarSenha)"
-                          AdornmentAriaLabel="Mostrar ou ocultar senha"
-                          Required="true"
-                          RequiredError="Informe sua senha."
-                          OnKeyDown="OnKeyDown" />
-
-            @if (_erro)
+    <form class="cs-login-form" @onsubmit="EntrarAsync" @onsubmit:preventDefault novalidate>
+        <div class="cs-login-form__field">
+            <label for="identificador">E-mail ou CPF</label>
+            <div class="cs-login-form__input @(_identificadorInvalido ? "cs-login-form__input--invalid" : string.Empty)">
+                <MudIcon Icon="@Icons.Material.Outlined.Email" Size="Size.Small" />
+                <input id="identificador"
+                       name="identificador"
+                       type="text"
+                       inputmode="email"
+                       autocomplete="username"
+                       placeholder="Digite seu e-mail ou CPF"
+                       aria-invalid="@_identificadorInvalido"
+                       @bind="_identificador"
+                       @bind:event="oninput" />
+            </div>
+            @if (_identificadorInvalido)
             {
-                <div @key="_shakeKey" class="cs-shake mt-3">
-                    <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Dense="true">
-                        Credenciais invalidas. Verifique o e-mail e a senha.
-                    </MudAlert>
-                </div>
+                <span class="cs-login-form__validation">Informe um e-mail ou CPF valido.</span>
             }
+        </div>
 
-            <MudButton Variant="Variant.Filled"
-                       Color="Color.Primary"
-                       FullWidth="true"
-                       Class="mt-4"
-                       Size="Size.Large"
-                       OnClick="EntrarAsync"
-                       Disabled="_enviando">
-                @if (_enviando)
-                {
-                    <MudProgressCircular Class="mr-2" Size="Size.Small" Indeterminate="true" />
-                    <span>Entrando...</span>
-                }
-                else
-                {
-                    <span>Entrar</span>
-                }
-            </MudButton>
-        </MudForm>
+        <div class="cs-login-form__field">
+            <label for="senha">Senha</label>
+            <div class="cs-login-form__input @(_senhaInvalida ? "cs-login-form__input--invalid" : string.Empty)">
+                <MudIcon Icon="@Icons.Material.Outlined.Lock" Size="Size.Small" />
+                <input id="senha"
+                       name="senha"
+                       type="@(_mostrarSenha ? "text" : "password")"
+                       autocomplete="current-password"
+                       placeholder="Digite sua senha"
+                       aria-invalid="@_senhaInvalida"
+                       @bind="_senha"
+                       @bind:event="oninput" />
+                <button class="cs-login-form__visibility"
+                        type="button"
+                        aria-label="@(_mostrarSenha ? "Ocultar senha" : "Mostrar senha")"
+                        @onclick="ToggleSenha">
+                    <MudIcon Icon="@(_mostrarSenha ? Icons.Material.Outlined.VisibilityOff : Icons.Material.Outlined.Visibility)" Size="Size.Small" />
+                </button>
+            </div>
+            @if (_senhaInvalida)
+            {
+                <span class="cs-login-form__validation">Informe sua senha.</span>
+            }
+        </div>
 
-        <MudDivider Class="my-4" />
-        <MudText Typo="Typo.body2" Align="Align.Center" Color="Color.Secondary">
-            Ainda nao tem conta?
-            <MudLink Href="@CadastrarHref">Cadastre-se</MudLink>
-        </MudText>
-    </MudPaper>
-</MudContainer>
+        <div class="cs-login-form__options">
+            <label class="cs-login-form__remember">
+                <input type="checkbox" @bind="_lembrarMe" />
+                <span>Lembrar-me</span>
+            </label>
+            <button type="button" class="cs-login-form__forgot" @onclick="AvisarRecuperacao">
+                Esqueci minha senha
+            </button>
+        </div>
 
-<style>
-    .cs-shake { animation: cs-shake 380ms cubic-bezier(.36,.07,.19,.97) both; }
-    @@keyframes cs-shake {
-        10%, 90% { transform: translateX(-1px); }
-        20%, 80% { transform: translateX(2px); }
-        30%, 50%, 70% { transform: translateX(-4px); }
-        40%, 60% { transform: translateX(4px); }
-    }
-    @@media (prefers-reduced-motion: reduce) {
-        .cs-shake { animation: none; }
-    }
-</style>
+        @if (_erro)
+        {
+            <div @key="_shakeKey" class="cs-login-form__error cs-shake" role="alert">
+                <MudIcon Icon="@Icons.Material.Outlined.ErrorOutline" Size="Size.Small" />
+                Credenciais invalidas. Verifique os dados informados.
+            </div>
+        }
+
+        <button class="cs-login-form__submit" type="submit" disabled="@_enviando">
+            @if (_enviando)
+            {
+                <span class="cs-login-form__spinner" aria-hidden="true"></span>
+                <span>Entrando...</span>
+            }
+            else
+            {
+                <span>Entrar</span>
+                <MudIcon Icon="@Icons.Material.Outlined.ArrowForward" Size="Size.Small" />
+            }
+        </button>
+
+        <div class="cs-login-form__divider"><span>ou</span></div>
+
+        <a class="cs-login-form__create" href="@CadastrarHref">
+            <span>Criar conta</span>
+            <MudIcon Icon="@Icons.Material.Outlined.PersonAdd" Size="Size.Small" />
+        </a>
+    </form>
+
+    <p class="cs-login-card__security">
+        <MudIcon Icon="@Icons.Material.Outlined.Lock" Size="Size.Small" />
+        Seus dados estao protegidos e seguros conosco.
+    </p>
+</section>
 
 @code {
     [SupplyParameterFromQuery]
     public string? ReturnUrl { get; set; }
 
-    private MudForm _form = default!;
-    private string _email = string.Empty;
+    private string _identificador = string.Empty;
     private string _senha = string.Empty;
     private bool _mostrarSenha;
+    private bool _lembrarMe;
     private bool _enviando;
     private bool _erro;
+    private bool _identificadorInvalido;
+    private bool _senhaInvalida;
     private int _shakeKey;
 
     private string CadastrarHref =>
         string.IsNullOrWhiteSpace(ReturnUrl) ? "/cadastrar" : $"/cadastrar?returnUrl={Uri.EscapeDataString(ReturnUrl)}";
 
-    private static string? ValidarEmail(string email) =>
-        new EmailAddressAttribute().IsValid(email) ? null : "E-mail invalido.";
+    private void ToggleSenha() => _mostrarSenha = !_mostrarSenha;
 
-    private async Task OnKeyDown(KeyboardEventArgs e)
+    private void AvisarRecuperacao() => Snackbar.Add(
+        "A recuperacao de senha ainda nao esta disponivel. Entre em contato com o suporte.",
+        Severity.Info);
+
+    private bool Validar()
     {
-        if (e.Key is "Enter" or "NumpadEnter")
-        {
-            await EntrarAsync();
-        }
+        var valor = _identificador.Trim();
+        _identificadorInvalido = !new EmailAddressAttribute().IsValid(valor)
+            && !Regex.IsMatch(valor, "^[0-9]{11}$");
+        _senhaInvalida = string.IsNullOrWhiteSpace(_senha);
+        return !_identificadorInvalido && !_senhaInvalida;
     }
 
     private async Task EntrarAsync()
     {
         _erro = false;
-        await _form.ValidateAsync();
-        if (!_form.IsValid)
+        if (!Validar())
         {
             return;
         }
@@ -129,7 +152,7 @@
         _enviando = true;
         try
         {
-            var result = await Auth.LoginAsync(_email.Trim(), _senha);
+            var result = await Auth.LoginAsync(_identificador.Trim(), _senha);
             if (result is null)
             {
                 _erro = true;

@@ -17,7 +17,7 @@ namespace ConexaoSolidaria.Shared.Persistence.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.4")
+                .HasAnnotation("ProductVersion", "10.0.9")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -30,6 +30,13 @@ namespace ConexaoSolidaria.Shared.Persistence.Migrations
 
                     b.Property<DateTimeOffset?>("AtualizadaEm")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Categoria")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasDefaultValue("Outros");
 
                     b.Property<DateTimeOffset>("CriadaEm")
                         .HasColumnType("timestamp with time zone");

@@ -11,75 +11,80 @@
 <MudDialogProvider />
 <MudSnackbarProvider />
 
-<MudLayout>
-    <MudAppBar Elevation="1" Color="Color.Primary">
-        <MudIconButton Icon="@Icons.Material.Filled.Menu"
-                       Color="Color.Inherit"
-                       Edge="Edge.Start"
-                       aria-label="Abrir menu de navegacao"
-                       OnClick="ToggleDrawer" />
-        <MudIcon Icon="@Icons.Material.Filled.VolunteerActivism" Class="ml-1 mr-2" />
-        <MudText Typo="Typo.h6" Class="mud-text-truncate">Conexao Solidaria</MudText>
-        <MudSpacer />
+<div class="cs-app-shell">
+    <header class="cs-site-header">
+        <div class="cs-site-header__inner">
+            <a class="cs-brand" href="/" aria-label="Conexao Solidaria - pagina inicial">
+                <img src="images/logo/logomarca-horizontal.png" alt="Conexao Solidaria" />
+            </a>
 
-        <AuthorizeView>
-            <Authorized>
-                <MudText Typo="Typo.body2" Class="mr-3 d-none d-sm-flex">
-                    Ola, @(context.User.Identity?.Name ?? "usuario")
-                </MudText>
-                <MudButton Color="Color.Inherit"
-                           StartIcon="@Icons.Material.Filled.Logout"
-                           OnClick="LogoutAsync">
-                    Sair
-                </MudButton>
-            </Authorized>
-            <NotAuthorized>
-                <MudButton Href="/entrar" Color="Color.Inherit" StartIcon="@Icons.Material.Filled.Login">
-                    Entrar
-                </MudButton>
-                <MudButton Href="/cadastrar"
-                           Variant="Variant.Outlined"
-                           Color="Color.Inherit"
-                           Class="ml-2 d-none d-sm-flex">
-                    Cadastrar
-                </MudButton>
-            </NotAuthorized>
-        </AuthorizeView>
-    </MudAppBar>
+            <div class="cs-site-header__desktop-nav">
+                <NavMenu OnNavigate="CloseMobileMenu" />
+            </div>
 
-    <MudDrawer @bind-Open="_drawerOpen"
-               Elevation="2"
-               ClipMode="DrawerClipMode.Always"
-               Variant="DrawerVariant.Responsive">
-        <MudDrawerHeader>
-            <MudText Typo="Typo.subtitle1" Color="Color.Primary">Navegacao</MudText>
-        </MudDrawerHeader>
-        <NavMenu />
-    </MudDrawer>
+            <div class="cs-site-header__actions">
+                <AuthorizeView>
+                    <Authorized>
+                        <a class="cs-account-link"
+                           href="@(context.User.IsInRole("GestorONG") ? "/gestor" : "/doador")">
+                            <MudIcon Icon="@Icons.Material.Filled.Dashboard" Size="Size.Small" />
+                            Painel
+                        </a>
+                        <button class="cs-login-button cs-login-button--subtle" type="button" @onclick="LogoutAsync">
+                            Sair
+                        </button>
+                    </Authorized>
+                    <NotAuthorized>
+                        <a class="cs-donate-button" href="/campanhas">
+                            <MudIcon Icon="@Icons.Material.Filled.FavoriteBorder" Size="Size.Small" />
+                            Quero doar
+                        </a>
+                        <a class="cs-profile-button" href="/entrar" aria-label="Entrar na plataforma" title="Entrar">
+                            <MudIcon Icon="@Icons.Material.Outlined.Person" Size="Size.Small" />
+                        </a>
+                    </NotAuthorized>
+                </AuthorizeView>
 
-    <MudMainContent>
-        <MudContainer MaxWidth="MaxWidth.Large" Class="pt-6 pb-4 px-4">
+                <button class="cs-menu-button"
+                        type="button"
+                        aria-label="@(_mobileMenuOpen ? "Fechar menu" : "Abrir menu")"
+                        aria-expanded="@_mobileMenuOpen"
+                        @onclick="ToggleMobileMenu">
+                    <MudIcon Icon="@(_mobileMenuOpen ? Icons.Material.Filled.Close : Icons.Material.Filled.Menu)" />
+                </button>
+            </div>
+        </div>
+
+        @if (_mobileMenuOpen)
+        {
+            <div class="cs-mobile-panel">
+                <NavMenu Mobile="true" OnNavigate="CloseMobileMenu" />
+                <AuthorizeView>
+                    <Authorized>
+                        <div class="cs-mobile-panel__account">
+                            <span>Ola, @(context.User.Identity?.Name ?? "usuario")</span>
+                            <button type="button" @onclick="LogoutAsync">Sair</button>
+                        </div>
+                    </Authorized>
+                    <NotAuthorized>
+                        <div class="cs-mobile-panel__account">
+                            <a href="/cadastrar" @onclick="CloseMobileMenu">Criar uma conta</a>
+                            <a class="cs-login-button" href="/entrar" @onclick="CloseMobileMenu">Entrar</a>
+                        </div>
+                    </NotAuthorized>
+                </AuthorizeView>
+            </div>
+        }
+    </header>
+
+    <main class="cs-main-content">
+        <div class="cs-page-container">
             @Body
-        </MudContainer>
+        </div>
+    </main>
 
-        <footer class="cs-footer mt-8">
-            <MudContainer MaxWidth="MaxWidth.Large" Class="py-6 px-4">
-                <MudText Typo="Typo.subtitle1" Style="color:#fff;">Conexao Solidaria</MudText>
-                <MudText Typo="Typo.body2" Style="color:rgba(255,255,255,.75);" Class="mt-1">
-                    Plataforma de campanhas e doacoes transparentes.
-                </MudText>
-                <div class="mt-3">
-                    <a href="/campanhas" class="mr-4">Campanhas</a>
-                    <a href="/transparencia" class="mr-4">Transparencia</a>
-                    <a href="/status">Status</a>
-                </div>
-                <MudText Typo="Typo.caption" Style="color:rgba(255,255,255,.6);" Class="d-block mt-4">
-                    &copy; @DateTime.UtcNow.Year Conexao Solidaria - FIAP Hackathon.
-                </MudText>
-            </MudContainer>
-        </footer>
-    </MudMainContent>
-</MudLayout>
+    <Footer />
+</div>
 
 <div id="blazor-error-ui" data-nosnippet>
     Ocorreu um erro inesperado.
@@ -88,14 +93,14 @@
 </div>
 
 @code {
-    private bool _drawerOpen = true;
+    private bool _mobileMenuOpen;
 
-    private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
+    private void ToggleMobileMenu() => _mobileMenuOpen = !_mobileMenuOpen;
+
+    private void CloseMobileMenu() => _mobileMenuOpen = false;
 
     protected override void OnInitialized()
     {
-        // Toast global e festivo quando qualquer campanha atinge a meta — para todos os
-        // usuarios conectados. A notificacao chega de outra thread (consumidor RabbitMQ).
         Notifications.Received += OnNotificacaoRecebida;
     }
 
@@ -119,6 +124,7 @@
 
     private async Task LogoutAsync()
     {
+        _mobileMenuOpen = false;
         await AuthService.LogoutAsync();
         Navigation.NavigateTo("/");
     }

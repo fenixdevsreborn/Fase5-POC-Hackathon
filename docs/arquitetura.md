@@ -28,7 +28,7 @@ flowchart TB
     NC -->|"tempo real (SignalR)"| WEB
     CAMP -->|"le stats"| RM
 
-    CAMP <--> ES[("Elasticsearch<br/>indice campanhas<br/>(fallback -> Postgres)")]
+    CAMP <--> ES[("Elasticsearch<br/>indice campanhas (analisador pt-BR,<br/>busca fuzzy multi-campo)<br/>(fallback -> Postgres)")]
 
     subgraph Contratos
         CT["Contracts<br/>(tipos puros, sem EF:<br/>eventos, Cpf, JWT, RabbitMQ)"]
@@ -53,7 +53,7 @@ flowchart TB
 - **Gateway (YARP)**: ponto unico de entrada. Roteia `/api/auth/*` para a Identity e `/api/campanhas/*` + `/api/doacoes/*` para a Campaigns via service discovery; injeta `X-Correlation-Id`; aplica rate limiting (auth 10/min, donation 30/min, global 100/min); adiciona security headers + HSTS; expoe `/metrics`.
 - **Web (Blazor Server + MudBlazor)**: UI publica, area do doador e painel do gestor. Fala apenas com o Gateway. Auth via JWT em `ProtectedLocalStorage` + `AuthenticationStateProvider` custom; Data Protection keys persistidas (multi-replica). Consome o fanout `conexao-solidaria.notifications` (`NotificationConsumer`, fila anonima) e empurra as atualizacoes para a UI via `NotificationDispatcher` (tempo real sobre o circuito SignalR); o **polling** em `GET /api/doacoes/{id}` funciona como fallback.
 - **Identity.Api**: cadastro de doadores, login e emissao de JWT (roles `GestorONG` e `Doador`); policies `CampaignManagement`/`DonationCreation`; erros em ProblemDetails; **API versioning** (header `x-api-version`/query, default `1.0`). Aplica migrations do `identitydb` no start. Referencia apenas `Contracts`.
-- **Campaigns.Api**: CRUD de campanhas + **acoes de ciclo de vida** (Ativar/Concluir/Cancelar), busca com fallback Elasticsearch -> Postgres, transparencia publica e detalhe publico de campanha, endpoint `stats` (le o read model `campaign_stats`), intencao de doacao (`202 Accepted`) gravada com **Outbox** na mesma transacao, consulta de status, historico "minhas doacoes" e **Idempotency-Key**; **API versioning**. Dona do `campaignsdb`: aplica as migrations (`MigrateAsync`) no start.
+- **Campaigns.Api**: CRUD de campanhas + **acoes de ciclo de vida** (Ativar/Concluir/Cancelar), **busca fuzzy multi-campo** no Elasticsearch (indice com analisador pt-BR criado no startup + backfill do Postgres) com fallback -> Postgres, transparencia publica e detalhe publico de campanha, endpoint `stats` (le o read model `campaign_stats`), intencao de doacao (`202 Accepted`) gravada com **Outbox** na mesma transacao, consulta de status, historico "minhas doacoes" e **Idempotency-Key**; **API versioning**. Dona do `campaignsdb`: aplica as migrations (`MigrateAsync`) no start.
 - **Donations.Worker**: consome `doacoes-recebidas`, deduplica por `EventId` (`processed_messages`), incrementa o valor arrecadado com `ExecuteUpdateAsync` (atomico), faz **upsert do read model `campaign_stats`** na mesma transacao e publica `DoacaoProcessadaNotification` no fanout `conexao-solidaria.notifications` (best-effort). Usa **prefetch 10**, retry escalonado (10s/60s) + DLQ e execution strategy no EF. Aguarda o schema estar migrado antes de consumir.
 - **Contracts**: **tipos puros, sem EF** — eventos (`DoacaoRecebidaEvent`, `DoacaoProcessadaNotification`), roles/`JwtOptions`, VO `Cpf` + validacao e helpers de RabbitMQ (`RabbitMqOptions`, connection factory builder). Referenciado por todos os servicos sem acoplar persistencia.
 - **Shared**: **dominio + persistencia EF** — `Campaign`, `Donation` (estados Pendente/Processada/Rejeitada/Falha), `OutboxMessage`, `ProcessedMessage`, `DonationIdempotencyKey`, `CampaignStats`, `DomainRuleException`, e o `CampaignsDbContext` unico com EF Migrations, usado por Campaigns.Api e Worker.
@@ -102,10 +102,11 @@ O schema e criado e evoluido por **EF Core Migrations** (`InitialCreate` + `AddP
 
 - **Traces/metricas** via OpenTelemetry (ServiceDefaults) exportados por OTLP. Local: Aspire Dashboard. Compose/k8s: **OTel Collector** (`infra/otel/`) roteia traces para o **Tempo** (`infra/tempo/`) e metricas para o Prometheus.
 - **Tracing distribuido**: traces correlacionados app -> OTel Collector -> Tempo, exploraveis na aba Explore do Grafana (datasource `Tempo`, API em `:3200`), com `traceparent` propagado ate o Worker (incluindo o salto pela fila).
-- **`/metrics`** (prometheus-net) em todos os servicos, incluindo o Gateway; Prometheus faz scrape. Metricas custom: `conexao_donations_processed_total`, `conexao_donations_rejected_total`, `conexao_donation_publish_total`, `conexao_donation_publish_failures_total`, `conexao_outbox_pending_messages`, `conexao_donation_processing_duration_seconds`, `conexao_dead_letter_messages`.
-- **Grafana** com dashboards provisionados (`infra/grafana/dashboards/`: negocio, aplicacao, mensageria), datasources Prometheus + Tempo e alertas (`infra/grafana/provisioning/alerting/`: DLQ > 0, Outbox > 20 por 2 min, 5xx).
+- **`/metrics`** (prometheus-net) em todos os servicos, incluindo o Gateway; Prometheus faz scrape (5s). Alem das metricas HTTP e de runtime (.NET/processo), ha metricas custom de negocio/mensageria: `conexao_donations_processed_total`, `conexao_donations_rejected_total`, `conexao_donation_publish_total`, `conexao_donation_publish_failures_total`, `conexao_outbox_pending_messages`, `conexao_donation_processing_duration_seconds`, `conexao_dead_letter_messages` e as de valor/campanha `conexao_donation_amount_brl_total`, `conexao_donations_by_campaign_total{campanha}`, `conexao_donation_amount_by_campaign_brl_total{campanha}`.
+- **RabbitMQ** expoe metricas nativas do broker em `:15692` (plugin `rabbitmq_prometheus`): fila `ready`/`unacked`, consumidores. Prometheus tambem coleta `up` e `scrape_duration_seconds` (saude rodando/parado).
+- **Grafana** com dashboards provisionados (`infra/grafana/dashboards/`: **negocio**, **aplicacao**, **mensageria**, **saude**), datasources Prometheus + Tempo e alertas (`infra/grafana/provisioning/alerting/`: DLQ > 0, Outbox > 20 por 2 min, 5xx).
 - **Zabbix** com template real em `infra/zabbix/templates/` (itens HTTP + 9 triggers) para monitoramento complementar.
-- Correlacao ponta a ponta via `X-Correlation-Id` (Gateway) e `traceparent` propagado ate o Worker. Ver [runbook.md](runbook.md) e [cenario-falha-recuperacao.md](cenario-falha-recuperacao.md).
+- Correlacao ponta a ponta via `X-Correlation-Id` (Gateway) e `traceparent` propagado ate o Worker. Detalhes completos em [observabilidade.md](observabilidade.md); ver tambem [runbook.md](runbook.md) e [cenario-falha-recuperacao.md](cenario-falha-recuperacao.md).
 
 ## Decisoes principais
 

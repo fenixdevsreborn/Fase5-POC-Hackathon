@@ -32,6 +32,25 @@ public sealed class DonationConsumerWorker(
         "conexao_donations_rejected_total",
         "Quantidade de tentativas de doacao rejeitadas por campanha encerrada ou cancelada.");
 
+    // Valor monetario total arrecadado em doacoes processadas (BRL). KPI de negocio central:
+    // complementa a CONTAGEM de doacoes com o VALOR efetivamente arrecadado.
+    private static readonly Counter ProcessedAmount = Metrics.CreateCounter(
+        "conexao_donation_amount_brl_total",
+        "Valor total arrecadado em doacoes processadas, em BRL.");
+
+    // Metricas por campanha (label 'campanha' = titulo). Cardinalidade limitada pelo numero de
+    // campanhas ativas; adequado para o cenario da POC. Permite ranking (top campanhas) e valor
+    // arrecadado por campanha nos dashboards.
+    private static readonly Counter ProcessedByCampaign = Metrics.CreateCounter(
+        "conexao_donations_by_campaign_total",
+        "Quantidade de doacoes processadas por campanha.",
+        new CounterConfiguration { LabelNames = new[] { "campanha" } });
+
+    private static readonly Counter ProcessedAmountByCampaign = Metrics.CreateCounter(
+        "conexao_donation_amount_by_campaign_brl_total",
+        "Valor arrecadado por campanha, em BRL.",
+        new CounterConfiguration { LabelNames = new[] { "campanha" } });
+
     private static readonly Counter DeadLetterMessages = Metrics.CreateCounter(
         "conexao_dead_letter_messages",
         "Quantidade de mensagens enviadas para a dead-letter queue.");
@@ -476,6 +495,18 @@ public sealed class DonationConsumerWorker(
         {
             case ProcessOutcome.Processed:
                 ProcessedDonations.Inc();
+                // notification e sempre nao-nulo no caminho Processed (preenchido junto com outcome).
+                if (notification is not null)
+                {
+                    var amount = (double)notification.Valor;
+                    var campanha = string.IsNullOrWhiteSpace(notification.CampanhaTitulo)
+                        ? "(sem titulo)"
+                        : notification.CampanhaTitulo;
+
+                    ProcessedAmount.Inc(amount);
+                    ProcessedByCampaign.WithLabels(campanha).Inc();
+                    ProcessedAmountByCampaign.WithLabels(campanha).Inc(amount);
+                }
                 break;
             case ProcessOutcome.Rejected:
                 RejectedDonations.Inc();

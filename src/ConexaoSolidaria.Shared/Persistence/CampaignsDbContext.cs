@@ -36,6 +36,11 @@ public sealed class CampaignsDbContext(DbContextOptions<CampaignsDbContext> opti
             entity.Property(campaign => campaign.MetaFinanceira).HasPrecision(18, 2).IsRequired();
             entity.Property(campaign => campaign.ValorTotalArrecadado).HasPrecision(18, 2).IsRequired();
             entity.Property(campaign => campaign.Status).HasConversion<string>().HasMaxLength(30).IsRequired();
+            entity.Property(campaign => campaign.Categoria)
+                .HasConversion<string>()
+                .HasMaxLength(40)
+                .HasDefaultValue(CampaignCategory.Outros)
+                .IsRequired();
             entity.Property(campaign => campaign.DataInicio).IsRequired();
             entity.Property(campaign => campaign.DataFim).IsRequired();
             entity.Property(campaign => campaign.CriadaEm).IsRequired();

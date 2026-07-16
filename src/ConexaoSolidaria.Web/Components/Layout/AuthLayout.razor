@@ -1,0 +1,12 @@
+@inherits LayoutComponentBase
+
+<MudThemeProvider Theme="AppTheme.Theme" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<main class="cs-auth-layout">
+    <div class="cs-auth-layout__glow cs-auth-layout__glow--blue" aria-hidden="true"></div>
+    <div class="cs-auth-layout__glow cs-auth-layout__glow--orange" aria-hidden="true"></div>
+    @Body
+</main>

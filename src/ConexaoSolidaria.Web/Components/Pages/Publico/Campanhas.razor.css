@@ -1,0 +1,58 @@
+.campaign-page { color: var(--cs-ink); }
+
+.campaign-hero {
+    position: relative;
+    min-height: 210px;
+    padding: 22px 42% 30px 4px;
+    overflow: hidden;
+    animation: campaign-rise .65s cubic-bezier(.22, 1, .36, 1) both;
+}
+
+.campaign-hero__eyebrow,
+.campaign-results__heading span { color: var(--cs-blue); font-size: .76rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.campaign-hero h1 { max-width: 760px; margin: 8px 0 10px; font-size: clamp(2.3rem, 4vw, 4.2rem); line-height: 1.02; letter-spacing: -.045em; }
+.campaign-hero h1 span { color: var(--cs-blue); }
+.campaign-hero p { max-width: 650px; margin: 0; color: #60708b; font-size: 1.02rem; line-height: 1.55; }
+
+.campaign-hero__orbit { position: absolute; width: 520px; height: 180px; right: -25px; top: 8px; border-top: 2px solid #2380ff; border-radius: 50%; transform: rotate(8deg); }
+.campaign-hero__orbit::after { content: ""; position: absolute; inset: 42px -10px auto 80px; height: 120px; border-top: 2px solid #ff8a00; border-radius: 50%; transform: rotate(-17deg); }
+.campaign-hero__orbit i { position: absolute; width: 12px; height: 12px; border: 3px solid #2583ff; border-radius: 50%; background: #fff; box-shadow: 0 0 0 7px rgba(37,131,255,.08); animation: orbit-pulse 2s ease-in-out infinite; }
+.campaign-hero__orbit i:nth-child(1) { left: 45px; top: -5px; }
+.campaign-hero__orbit i:nth-child(2) { left: 190px; top: -8px; animation-delay: .5s; }
+.campaign-hero__orbit i:nth-child(3) { right: 24px; top: 24px; border-color: #ff8a00; animation-delay: 1s; }
+
+.campaign-stats { display: grid; grid-template-columns: repeat(3, 1fr); margin: -10px 0 22px; padding: 17px 22px; border: 1px solid #e7edf7; border-radius: 18px; background: rgba(255,255,255,.96); box-shadow: 0 14px 38px rgba(21,55,101,.08); animation: campaign-rise .65s .1s both; }
+.campaign-stat { display: flex; align-items: center; gap: 14px; padding: 0 22px; border-right: 1px solid #e7edf7; }
+.campaign-stat:first-child { padding-left: 0; }
+.campaign-stat:last-child { border: 0; }
+.campaign-stat__icon { width: 50px; height: 50px; display: grid; place-items: center; flex: 0 0 auto; border-radius: 50%; color: #fff; box-shadow: 0 8px 20px rgba(12,100,240,.22); }
+.campaign-stat__icon--blue { background: linear-gradient(145deg,#2584ff,#075bdc); }
+.campaign-stat__icon--orange { background: linear-gradient(145deg,#ff9c22,#ff7200); }
+.campaign-stat span:last-child { display: grid; }
+.campaign-stat small { color: #73809a; font-size: .75rem; }
+.campaign-stat strong { color: #09245c; font-size: 1.25rem; }
+
+.campaign-toolbar { display: flex; align-items: center; gap: 12px; padding: 14px; margin-bottom: 30px; border: 1px solid #e7edf7; border-radius: 16px; background: #fff; box-shadow: 0 8px 26px rgba(21,55,101,.05); }
+.campaign-toolbar__search { flex: 1 1 auto; }
+.campaign-results__heading { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin-bottom: 17px; }
+.campaign-results__heading h2 { margin: 4px 0 0; color: #09245c; font-size: clamp(1.45rem,2vw,2rem); }
+.campaign-results__heading p { color: #73809a; font-size: .84rem; }
+.campaign-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 22px; }
+.campaign-pagination { display: flex; justify-content: center; margin-top: 38px; }
+
+@keyframes campaign-rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes orbit-pulse { 50% { transform: scale(1.22); box-shadow: 0 0 0 12px rgba(37,131,255,0); } }
+
+@media (max-width: 1100px) { .campaign-grid { grid-template-columns: 1fr; } }
+@media (max-width: 780px) {
+    .campaign-hero { min-height: 0; padding: 12px 0 32px; }
+    .campaign-hero__orbit { opacity: .18; right: -300px; }
+    .campaign-stats { grid-template-columns: 1fr; gap: 14px; }
+    .campaign-stat { padding: 0 0 14px; border-right: 0; border-bottom: 1px solid #e7edf7; }
+    .campaign-stat:last-child { padding-bottom: 0; }
+}
+@media (max-width: 540px) {
+    .campaign-toolbar { align-items: stretch; flex-direction: column; }
+    .campaign-results__heading { align-items: flex-start; flex-direction: column; gap: 4px; }
+}
+@media (prefers-reduced-motion: reduce) { .campaign-hero, .campaign-stats, .campaign-hero__orbit i { animation: none; } }

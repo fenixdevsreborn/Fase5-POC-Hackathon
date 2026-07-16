@@ -20,6 +20,18 @@ data:
         metrics_path: /metrics
         static_configs:
           - targets: ["donations-worker:8080"]
+      # Gateway (YARP): ponto de entrada das APIs; expoe /metrics via prometheus-net.
+      - job_name: gateway
+        metrics_path: /metrics
+        static_configs:
+          - targets: ["gateway:80"]
+      # RabbitMQ: metricas nativas do plugin rabbitmq_prometheus (fila ready/unacked,
+      # consumidores, conexoes). Requer o plugin habilitado (ver rabbitmq.yaml) e a
+      # NetworkPolicy allow-to-rabbitmq liberando o Prometheus na porta 15692.
+      - job_name: rabbitmq
+        metrics_path: /metrics
+        static_configs:
+          - targets: ["rabbitmq:15692"]
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -104,56 +116,6 @@ data:
         editable: true
         options:
           path: /var/lib/grafana/dashboards
-  dashboard.json: |
-    {
-      "uid": "conexao-solidaria-k8s",
-      "title": "Conexao Solidaria - Kubernetes",
-      "schemaVersion": 39,
-      "refresh": "5s",
-      "time": { "from": "now-15m", "to": "now" },
-      "panels": [
-        {
-          "id": 1,
-          "type": "timeseries",
-          "title": "Requisicoes HTTP por segundo",
-          "gridPos": { "h": 8, "w": 16, "x": 0, "y": 0 },
-          "datasource": { "type": "prometheus", "uid": "Prometheus" },
-          "targets": [
-            {
-              "refId": "A",
-              "expr": "sum(rate(http_requests_received_total[1m])) by (job)",
-              "legendFormat": "{{job}}"
-            }
-          ]
-        },
-        {
-          "id": 2,
-          "type": "stat",
-          "title": "Doacoes processadas",
-          "gridPos": { "h": 8, "w": 4, "x": 16, "y": 0 },
-          "datasource": { "type": "prometheus", "uid": "Prometheus" },
-          "targets": [
-            {
-              "refId": "A",
-              "expr": "sum(conexao_donations_processed_total)"
-            }
-          ]
-        },
-        {
-          "id": 3,
-          "type": "stat",
-          "title": "Rejeitadas por campanha",
-          "gridPos": { "h": 8, "w": 4, "x": 20, "y": 0 },
-          "datasource": { "type": "prometheus", "uid": "Prometheus" },
-          "targets": [
-            {
-              "refId": "A",
-              "expr": "sum(conexao_donations_rejected_total)"
-            }
-          ]
-        }
-      ]
-    }
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -196,9 +158,11 @@ spec:
             - name: grafana-provisioning
               mountPath: /etc/grafana/provisioning/dashboards/dashboards.yml
               subPath: dashboards.yml
-            - name: grafana-provisioning
-              mountPath: /var/lib/grafana/dashboards/dashboard.json
-              subPath: dashboard.json
+            # Dashboards ricos (Aplicacao, Negocio, Mensageria, Saude) montados como
+            # diretorio. Cada chave do ConfigMap grafana-dashboards vira um arquivo .json
+            # que o provider do Grafana carrega automaticamente.
+            - name: grafana-dashboards
+              mountPath: /var/lib/grafana/dashboards
           resources:
             requests:
               cpu: 100m
@@ -210,6 +174,9 @@ spec:
         - name: grafana-provisioning
           configMap:
             name: grafana-provisioning
+        - name: grafana-dashboards
+          configMap:
+            name: grafana-dashboards
 ---
 apiVersion: v1
 kind: Service

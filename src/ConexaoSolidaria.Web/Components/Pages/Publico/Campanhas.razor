@@ -3,96 +3,108 @@
 @using ConexaoSolidaria.Web.Components.Campaigns
 @inject ApiClient Api
 
-<PageTitle>Campanhas - Conexao Solidaria</PageTitle>
+<PageTitle>Campanhas - Conexão Solidária</PageTitle>
 
-<MudText Typo="Typo.h4" GutterBottom="true" Style="font-weight:700;">Campanhas</MudText>
-<MudText Typo="Typo.body1" Color="Color.Secondary" Class="mb-6">
-    Encontre uma causa para apoiar e acompanhe a arrecadacao de cada campanha.
-</MudText>
+<section class="campaign-page">
+    <header class="campaign-hero">
+        <span class="campaign-hero__eyebrow">Faça parte dessa conexão</span>
+        <h1>Campanhas que <span>transformam vidas</span></h1>
+        <p>Explore campanhas ativas e escolha onde você quer fazer a diferença. Sua contribuição pode mudar o amanhã de alguém.</p>
+        <div class="campaign-hero__orbit" aria-hidden="true"><i></i><i></i><i></i></div>
+    </header>
 
-@* ---------------- Busca ---------------- *@
-<MudPaper Elevation="1" Class="pa-4 mb-6" Style="border-radius:var(--radius-md);">
-    <div class="d-flex flex-wrap align-center" style="gap:12px;">
+    @if (!_loading && !_error && _campanhas.Count > 0)
+    {
+        <div class="campaign-stats" aria-label="Resumo das campanhas exibidas">
+            <div class="campaign-stat">
+                <span class="campaign-stat__icon campaign-stat__icon--blue"><MudIcon Icon="@Icons.Material.Filled.Campaign" /></span>
+                <span><small>Campanhas encontradas</small><strong>@_total</strong></span>
+            </div>
+            <div class="campaign-stat">
+                <span class="campaign-stat__icon campaign-stat__icon--orange"><MudIcon Icon="@Icons.Material.Filled.Paid" /></span>
+                <span><small>Arrecadado nesta página</small><strong>@Money(TotalArrecadado)</strong></span>
+            </div>
+            <div class="campaign-stat">
+                <span class="campaign-stat__icon campaign-stat__icon--blue"><MudIcon Icon="@Icons.Material.Filled.Groups" /></span>
+                <span><small>Doadores nesta página</small><strong>@TotalDoadores.ToString("N0", Ptbr)</strong></span>
+            </div>
+        </div>
+    }
+
+    <div class="campaign-toolbar">
         <MudTextField T="string"
                       @bind-Value="_query"
                       Immediate="true"
                       DebounceInterval="400"
                       OnDebounceIntervalElapsed="OnDebouncedSearch"
-                      Placeholder="Buscar por titulo ou descricao..."
+                      Placeholder="Buscar campanhas..."
                       Variant="Variant.Outlined"
                       Margin="Margin.Dense"
                       Adornment="Adornment.Start"
                       AdornmentIcon="@Icons.Material.Filled.Search"
                       Clearable="true"
                       OnClearButtonClick="OnClear"
-                      Class="flex-grow-1"
-                      Style="min-width:220px;" />
+                      Class="campaign-toolbar__search" />
         <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                   StartIcon="@Icons.Material.Filled.Search"
-                   OnClick="OnSearchClick">
+                   StartIcon="@Icons.Material.Filled.Search" OnClick="OnSearchClick">
             Buscar
         </MudButton>
     </div>
-</MudPaper>
 
-@* ---------------- Resultados ---------------- *@
-@if (_loading)
-{
-    <LoadingSkeleton Count="6" />
-}
-else if (_error)
-{
-    <EmptyState Icon="@Icons.Material.Filled.CloudOff"
-                Title="Nao foi possivel carregar as campanhas"
-                Description="Ocorreu um erro ao falar com o servidor. Tente novamente em instantes.">
-        <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                   StartIcon="@Icons.Material.Filled.Refresh" OnClick="Recarregar">
-            Tentar novamente
-        </MudButton>
-    </EmptyState>
-}
-else if (_campanhas.Count == 0)
-{
-    <EmptyState Icon="@Icons.Material.Filled.SearchOff"
-                Title="Nenhuma campanha encontrada"
-                Description="@(string.IsNullOrWhiteSpace(_query)
-                    ? "Ainda nao ha campanhas cadastradas."
-                    : $"Nao encontramos resultados para \"{_query}\". Tente outros termos.")" />
-}
-else
-{
-    <div class="d-flex justify-space-between align-center mb-3">
-        <MudText Typo="Typo.body2" Color="Color.Secondary">
-            @_total campanha(s) encontrada(s)
-        </MudText>
-    </div>
-
-    <MudGrid>
-        @foreach (var campanha in _campanhas)
-        {
-            <MudItem @key="campanha.Id" xs="12" sm="6" md="4">
-                <CampaignCard Campanha="campanha" />
-            </MudItem>
-        }
-    </MudGrid>
-
-    @if (_totalPages > 1)
+    @if (_loading)
     {
-        <div class="d-flex justify-center mt-8">
-            <MudPagination Color="Color.Primary"
-                           Count="_totalPages"
-                           Selected="_page"
-                           SelectedChanged="OnPageChanged"
-                           Rectangular="true"
-                           ShowFirstButton="true"
-                           ShowLastButton="true" />
-        </div>
+        <LoadingSkeleton Count="6" />
     }
-}
+    else if (_error)
+    {
+        <EmptyState Icon="@Icons.Material.Filled.CloudOff"
+                    Title="Não foi possível carregar as campanhas"
+                    Description="Ocorreu um erro ao falar com o servidor. Tente novamente em instantes.">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Refresh" OnClick="Recarregar">
+                Tentar novamente
+            </MudButton>
+        </EmptyState>
+    }
+    else if (_campanhas.Count == 0)
+    {
+        <EmptyState Icon="@Icons.Material.Filled.SearchOff"
+                    Title="Nenhuma campanha encontrada"
+                    Description="@(string.IsNullOrWhiteSpace(_query)
+                        ? "Ainda não há campanhas cadastradas."
+                        : $"Não encontramos resultados para \"{_query}\". Tente outros termos.")" />
+    }
+    else
+    {
+        <div class="campaign-results__heading">
+            <div>
+                <span>CAUSAS EM DESTAQUE</span>
+                <h2>Escolha como transformar</h2>
+            </div>
+            <p>@_total campanha(s) encontrada(s)</p>
+        </div>
+
+        <div class="campaign-grid">
+            @foreach (var campanha in _campanhas)
+            {
+                <CampaignCard @key="campanha.Id" Campanha="campanha" Horizontal="true" />
+            }
+        </div>
+
+        @if (_totalPages > 1)
+        {
+            <div class="campaign-pagination">
+                <MudPagination Color="Color.Primary" Count="_totalPages" Selected="_page"
+                               SelectedChanged="OnPageChanged" Rectangular="true"
+                               ShowFirstButton="true" ShowLastButton="true" />
+            </div>
+        }
+    }
+</section>
 
 @code {
-    private const int PageSize = 9;
-
+    private const int PageSize = 8;
+    private static readonly System.Globalization.CultureInfo Ptbr = System.Globalization.CultureInfo.GetCultureInfo("pt-BR");
     private string _query = string.Empty;
     private int _page = 1;
     private int _total;
@@ -100,67 +112,28 @@ else
     private bool _loading = true;
     private bool _error;
     private IReadOnlyList<CampanhaDto> _campanhas = Array.Empty<CampanhaDto>();
+    private decimal TotalArrecadado => _campanhas.Sum(x => x.ValorTotalArrecadado);
+    private int TotalDoadores => _campanhas.Sum(x => x.TotalDoadores);
 
     protected override Task OnInitializedAsync() => LoadAsync();
 
     private async Task LoadAsync()
     {
-        _loading = true;
-        _error = false;
-        StateHasChanged();
-
+        _loading = true; _error = false; StateHasChanged();
         try
         {
             var result = await Api.BuscarCampanhasAsync(_query, _page, PageSize);
-            _campanhas = result.Items;
-            _total = result.Total;
-            _totalPages = result.TotalPages;
-
-            // Ajuste defensivo caso a pagina atual fique fora do intervalo.
-            if (_page > _totalPages && _totalPages > 0)
-            {
-                _page = _totalPages;
-                await LoadAsync();
-                return;
-            }
+            _campanhas = result.Items; _total = result.Total; _totalPages = result.TotalPages;
+            if (_page > _totalPages && _totalPages > 0) { _page = _totalPages; await LoadAsync(); return; }
         }
-        catch
-        {
-            _error = true;
-            _campanhas = Array.Empty<CampanhaDto>();
-        }
-        finally
-        {
-            _loading = false;
-            StateHasChanged();
-        }
+        catch { _error = true; _campanhas = Array.Empty<CampanhaDto>(); }
+        finally { _loading = false; StateHasChanged(); }
     }
 
-    private Task OnDebouncedSearch(string value)
-    {
-        _query = value;
-        _page = 1;
-        return LoadAsync();
-    }
-
-    private Task OnSearchClick()
-    {
-        _page = 1;
-        return LoadAsync();
-    }
-
-    private Task OnClear()
-    {
-        _query = string.Empty;
-        _page = 1;
-        return LoadAsync();
-    }
-
-    private Task OnPageChanged(int page)
-    {
-        _page = page;
-        return LoadAsync();
-    }
-
+    private Task OnDebouncedSearch(string value) { _query = value; _page = 1; return LoadAsync(); }
+    private Task OnSearchClick() { _page = 1; return LoadAsync(); }
+    private Task OnClear() { _query = string.Empty; _page = 1; return LoadAsync(); }
+    private Task OnPageChanged(int page) { _page = page; return LoadAsync(); }
     private Task Recarregar() => LoadAsync();
+    private static string Money(decimal value) => value.ToString("C0", Ptbr);
 }

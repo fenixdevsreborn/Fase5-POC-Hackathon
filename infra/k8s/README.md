@@ -33,7 +33,24 @@ infra/k8s/
   smoke.ps1                  # Aplica + aguarda rollout + checa pods
 ```
 
-## Passo a passo (Docker Desktop)
+## Subir tudo com 1 comando (recomendado)
+
+O script `up.ps1` executa o fluxo completo **incluindo o Secret** (gerado a partir do
+`.env` da raiz do repo): contexto -> build das 5 imagens (na raiz) -> import no node kind
+-> namespace + Secret -> `apply -k` -> espera migracoes -> reinicia as APIs -> reporta pods/URLs.
+
+```powershell
+pwsh infra/k8s/up.ps1              # build + deploy completo
+pwsh infra/k8s/up.ps1 -SkipBuild   # redeploy sem reconstruir as imagens
+
+pwsh infra/k8s/down.ps1            # derruba (preserva PVCs)
+pwsh infra/k8s/down.ps1 -PurgeData # derruba e apaga PVCs + namespace
+```
+
+Pre-requisitos: Kubernetes habilitado no Docker Desktop, `kubectl` no PATH, `.env`
+preenchido na raiz (ver `.env.example`) e Docker Compose parado (`docker compose down`).
+
+## Passo a passo manual (Docker Desktop)
 
 ```powershell
 kubectl config use-context docker-desktop

@@ -1,0 +1,44 @@
+.cs-auth-layout {
+    position: relative;
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    padding: 24px;
+    background:
+        radial-gradient(circle at 15% 5%, rgba(25, 124, 247, .06), transparent 28%),
+        radial-gradient(circle at 88% 92%, rgba(255, 120, 15, .06), transparent 28%),
+        #f8faff;
+}
+
+.cs-auth-layout__glow {
+    position: absolute;
+    width: 320px;
+    height: 320px;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: .18;
+    pointer-events: none;
+}
+
+.cs-auth-layout__glow--blue {
+    top: -190px;
+    left: -140px;
+    background: #0875fa;
+}
+
+.cs-auth-layout__glow--orange {
+    right: -160px;
+    bottom: -190px;
+    background: #ff7411;
+}
+
+@media (max-width: 520px) {
+    .cs-auth-layout {
+        align-items: stretch;
+        padding: 0;
+        background: #fff;
+    }
+}

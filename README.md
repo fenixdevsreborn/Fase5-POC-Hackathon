@@ -36,7 +36,7 @@ Infraestrutura:
 
 - **PostgreSQL**: `identitydb` (tabela `users`) e `campaignsdb` (tabelas `campaigns`, `donations`, `outbox_messages`, `processed_messages`, `donation_idempotency_keys`, `campaign_stats`). No compose/k8s ha ainda `zabbixdb`.
 - **RabbitMQ**: exchanges `conexao-solidaria` (direct), `conexao-solidaria.retry`, `conexao-solidaria.dlx` e `conexao-solidaria.notifications` (fanout); filas `doacoes-recebidas`, `doacoes.retry.10s`, `doacoes.retry.60s`, `doacoes.dead-letter`.
-- **Elasticsearch**: indice `campanhas` para busca fuzzy por titulo e descricao (com fallback para Postgres se indisponivel).
+- **Elasticsearch**: indice `campanhas` com **analisador pt-BR** (ignora acento, stemming, stopwords) e busca **fuzzy multi-campo** em titulo/descricao/categoria — tolera erro de digitacao e autocompleta por prefixo. O indice e criado no startup da API e populado com **backfill** do Postgres; com o ES indisponivel, a busca cai para o Postgres (ver `AD-35`/`AD-12`).
 - **Grafana / Prometheus / Tempo / Zabbix / OpenTelemetry Collector**: observabilidade (ver secao dedicada).
 
 ### Fluxo assincrono da doacao
@@ -240,7 +240,7 @@ Detalhes e trade-offs em [docs/decisoes-arquiteturais.md](docs/decisoes-arquitet
 | Idempotencia / exactly-once | `Idempotency-Key` + dedup por `EventId` (`processed_messages`) |
 | Autenticacao e RBAC | JWT na `Identity.Api`; policies no Gateway/APIs |
 | API Gateway / ponto unico | `Gateway` (YARP) + Ingress nginx |
-| Busca de campanhas | Elasticsearch (`indice campanhas`) com fallback Postgres |
+| Busca de campanhas | Elasticsearch (`indice campanhas`, analisador pt-BR + fuzzy multi-campo) com fallback Postgres |
 | Transparencia publica | `GET /api/campanhas/transparencia` + `stats` (read model) + pagina `/transparencia` |
 | Notificacao em tempo real | fanout `conexao-solidaria.notifications` + `NotificationConsumer` (SignalR) |
 | Interface web (doador + gestor) | `ConexaoSolidaria.Web` (Blazor + MudBlazor) |
@@ -271,6 +271,7 @@ Complementos: **Dependabot** (nuget/actions/docker), PR template Spec-Driven e b
 ## Documentacao
 
 - Arquitetura e modelo de dados: [docs/arquitetura.md](docs/arquitetura.md)
+- Observabilidade (metricas, dashboards, alertas): [docs/observabilidade.md](docs/observabilidade.md)
 - Funcionalidades por persona: [docs/funcionalidades.md](docs/funcionalidades.md)
 - Decisoes arquiteturais: [docs/decisoes-arquiteturais.md](docs/decisoes-arquiteturais.md)
 - Runbook operacional: [docs/runbook.md](docs/runbook.md)

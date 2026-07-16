@@ -11,14 +11,18 @@ resources:
 images:
   - name: conexao-solidaria/identity-api
     newTag: local
+  # campaigns-api e web usam a tag catv1: com imagePullPolicy=IfNotPresent e imagem local
+  # (sem registry), reusar a MESMA tag apos um rebuild faz o kubelet manter a imagem antiga
+  # ja presente no node. Uma tag nova forca o node a importar o build atual. Ao alterar essas
+  # imagens novamente, gere uma tag nova (ex.: catv2) e atualize aqui.
   - name: conexao-solidaria/campaigns-api
-    newTag: local
+    newTag: catv1
   - name: conexao-solidaria/donations-worker
     newTag: local
   - name: conexao-solidaria/gateway
     newTag: local
   - name: conexao-solidaria/web
-    newTag: local
+    newTag: catv3
 
 # Ajustes especificos do ambiente local (Docker Desktop):
 #  - expoe Gateway e Web via NodePort (fallback sem nginx ingress controller);

@@ -3,7 +3,7 @@
 > Documento-síntese da entrega. Reúne, num único lugar, **o que foi construído, por que, e como se verifica**.
 > Público-alvo: avaliadores do desafio e novos integrantes do time.
 > Fonte da verdade cruzada: código-fonte do repositório, `docs/arquitetura.md`,
-> `docs/decisoes-arquiteturais.md` (`AD-01..AD-34`), `docs/funcionalidades.md`,
+> `docs/decisoes-arquiteturais.md` (`AD-01..AD-35`), `docs/funcionalidades.md`,
 > `docs/api-reference.md`, `docs/runbook.md` e os READMEs de Kubernetes/Observabilidade.
 
 ---
@@ -53,7 +53,7 @@ A **tese de arquitetura** tem três pilares:
 | Build | **0 erros** (Release) |
 | Imagens Docker | **5** (Identity, Campaigns, Worker, Gateway, Web) — todas buildam |
 | Deploy Kubernetes | **Validado ao vivo** — 12 pods `Running 1/1`, fluxo E2E de doação processado |
-| Decisões arquiteturais registradas | **AD-01..AD-34** |
+| Decisões arquiteturais registradas | **AD-01..AD-35** |
 | Requisitos do desafio | **100% dos obrigatórios + os 2 bônus** cobertos |
 
 Todas as fases do plano foram concluídas (Fase 0 a 6), seguidas de 14 melhorias de
@@ -78,7 +78,7 @@ O diagrama de componentes está em [`docs/arquitetura.md`](arquitetura.md).
 | **Gateway** (YARP) | Ponto único de entrada de `/api/*`. Roteia por service discovery; injeta `X-Correlation-Id`; aplica **rate limiting** (auth 10/min, doação 30/min, global 100/min por IP); **security headers** + HSTS; expõe `/metrics`. |
 | **Web** (Blazor Server + MudBlazor) | UI pública, área do doador e painel do gestor. Fala só com o Gateway. Auth JWT em `ProtectedLocalStorage`; Data Protection keys persistidas. Consome o fanout de notificações e empurra atualizações em tempo real. |
 | **Identity.Api** | Cadastro de doadores, login e emissão de JWT (roles `GestorONG`/`Doador`); policies nomeadas; ProblemDetails; API versioning. Referencia **só `Contracts`**. |
-| **Campaigns.Api** | CRUD + ciclo de vida de campanhas; busca com fallback ES→Postgres (circuit breaker); transparência (output-cached); intenção de doação (`202` + Outbox + Idempotency-Key); status enriquecido; "minhas doações"; `/stats` (read model). Dona do `campaignsdb`. |
+| **Campaigns.Api** | CRUD + ciclo de vida de campanhas; busca **fuzzy multi-campo** no ES (índice com analisador pt-BR criado no startup + backfill do Postgres) com fallback ES→Postgres (circuit breaker); transparência (output-cached); intenção de doação (`202` + Outbox + Idempotency-Key); status enriquecido; "minhas doações"; `/stats` (read model). Dona do `campaignsdb`. |
 | **Donations.Worker** | Consumidor **idempotente** (dedup por `EventId`), **retry 10s/60s + DLQ**, **incremento atômico**, **upsert do read model** na mesma transação, publica a notificação de conclusão. |
 
 ### 2.2 Fluxo assíncrono completo
@@ -234,6 +234,24 @@ decisão (`AD-25..AD-34`, além de itens já cobertos por ADRs anteriores). B3 (
 | B6 | **Tracing distribuído** com OTel Collector + **Grafana Tempo** (fora do Aspire) | Trace ponta a ponta (incl. salto assíncrono pela fila) em Compose/k8s | `AD-29` |
 | B7 | **Data Protection keys persistidas** + sticky cookie no Ingress (preparação multi-réplica do Web) | Caminho para escalar o Blazor Server horizontalmente | `AD-03` |
 | **B8** | **Migração como Job dedicado** (um migrador por banco); deployments com `RunOnStartup=false` | Schema aplicado uma vez, sem corrida entre réplicas; readiness desacoplada do Migrate | `AD-28` |
+
+### Frente C — Qualidade da busca (posterior às frentes A/B)
+
+O ES estava subaproveitado: o índice nascia por **mapeamento dinâmico** (analisador `standard`),
+então a busca era acento-sensível e restrita a título/descrição. Reconfigurado para entregar o que
+o Elasticsearch tem de melhor:
+
+| # | O que mudou | Valor | Ref. |
+| --- | --- | --- | --- |
+| **C1** | **Índice explícito com analisador pt-BR** criado no startup (`asciifolding`, stemmer `light_portuguese`, stopwords), no lugar do mapeamento dinâmico | Busca deixa de ser acento-sensível e passa a tratar plural/derivação: `sao paulo` acha "São Paulo"; `metrica` acha "Metricas" | `AD-35` |
+| C2 | **Query fuzzy multi-campo** (`bool/should`: `best_fields`+`fuzziness AUTO`, `phrase_prefix`, `edge_ngram`, `match_phrase` com boost) sobre **título + descrição + categoria** | Corrige digitação (`cadera gamer` → "Cadeira Gamer"), autocompleta por prefixo (`comput`) e busca por categoria; frase exata rankeia no topo | `AD-35` |
+| C3 | **Backfill automático** do Postgres quando o índice é criado | Fecha o gap "só campanhas criadas após a integração são indexadas" (`AD-12`); índice vira **reconstruível** a partir da fonte da verdade | `AD-35` |
+| C4 | **Remoção da query `Count` duplicada** (`TrackTotalHits` + `response.Total`) | Metade das idas ao ES por busca | `AD-35` |
+
+Validado contra um **Elasticsearch 8.15.3 real** (typo, acento, stemming, prefixo e categoria) e
+no cluster k8s, com o índice recriado e backfill das campanhas existentes. Ressalva honesta: os
+testes de integração usam `FakeCampaignSearchRepository`, então mapeamento e query **não têm
+cobertura automatizada** — a verificação foi manual contra o ES real.
 
 ---
 
@@ -455,5 +473,5 @@ Do backlog do plano e das ideias de produto:
 ---
 
 _Documento gerado como síntese técnica da entrega. Para o "porquê" detalhado de cada decisão, ver
-`docs/decisoes-arquiteturais.md` (`AD-01..AD-34`); para o contrato HTTP, `docs/api-reference.md`;
+`docs/decisoes-arquiteturais.md` (`AD-01..AD-35`); para o contrato HTTP, `docs/api-reference.md`;
 para o catálogo por persona, `docs/funcionalidades.md`._

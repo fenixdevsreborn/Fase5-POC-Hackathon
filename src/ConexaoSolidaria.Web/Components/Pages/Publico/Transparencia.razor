@@ -3,90 +3,295 @@
 @using ConexaoSolidaria.Web.Components.Common
 @using ConexaoSolidaria.Web.Components.Campaigns
 @inject ApiClient Api
+@inject NavigationManager Navigation
 
-<PageTitle>Transparencia - Conexao Solidaria</PageTitle>
+<PageTitle>Portal de Transparencia - Conexao Solidaria</PageTitle>
 
-<MudText Typo="Typo.h4" GutterBottom="true" Style="font-weight:700;">Transparencia</MudText>
-<MudText Typo="Typo.body1" Color="Color.Secondary" Class="mb-4">
-    Prestacao de contas publica das campanhas ativas: meta, valor arrecadado e progresso.
-</MudText>
+@* ---------------- Cabecalho ---------------- *@
+<header class="cs-tp-head">
+    <div>
+        <h1 class="cs-tp-head__title">Portal de Transparência</h1>
+        <p class="cs-tp-head__subtitle">
+            Acompanhe em tempo real nossas campanhas ativas
+            e o valor que já foi arrecadado com a sua ajuda.
+        </p>
+    </div>
+    <div class="cs-tp-head__wave" aria-hidden="true">
+        <span class="cs-tp-head__line"></span>
+        <span class="cs-tp-node cs-tp-node--a"></span>
+        <span class="cs-tp-node cs-tp-node--b"></span>
+        <span class="cs-tp-node cs-tp-node--c"></span>
+        <span class="cs-tp-node cs-tp-node--d"></span>
+    </div>
+</header>
 
-<MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-6">
-    Os dados de negocio (metas e valores arrecadados) vem diretamente da API da plataforma.
-</MudAlert>
+@* ---------------- Cartoes de indicadores ---------------- *@
+<div class="cs-tp-stats">
+    <div class="cs-tp-stat">
+        <span class="cs-tp-stat__icon cs-tp-stat__icon--blue">
+            <MudIcon Icon="@Icons.Material.Filled.Campaign" />
+        </span>
+        <div class="cs-tp-stat__body">
+            <span class="cs-tp-stat__label">Campanhas Ativas</span>
+            <span class="cs-tp-stat__value">@(_loading ? "—" : _totalAtivas.ToString("N0", Ptbr))</span>
+            <span class="cs-tp-stat__hint">ativas agora</span>
+        </div>
+    </div>
 
-@if (_loading)
-{
-    <MudPaper Elevation="1" Class="pa-6 mb-6" Style="border-radius:var(--radius-md);">
-        <MudSkeleton SkeletonType="SkeletonType.Text" Width="40%" Height="48px" />
-        <MudSkeleton SkeletonType="SkeletonType.Text" Width="25%" />
-    </MudPaper>
-    <LoadingSkeleton Count="3" />
-}
-else if (_error)
-{
-    <EmptyState Icon="@Icons.Material.Filled.CloudOff"
-                Title="Nao foi possivel carregar os dados"
-                Description="Ocorreu um erro ao consultar a API. Tente novamente em instantes.">
-        <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                   StartIcon="@Icons.Material.Filled.Refresh" OnClick="Recarregar">
-            Tentar novamente
-        </MudButton>
-    </EmptyState>
-}
-else if (_itens.Count == 0)
-{
-    <EmptyState Icon="@Icons.Material.Filled.QueryStats"
-                Title="Sem campanhas ativas para exibir"
-                Description="Quando houver campanhas ativas, o resumo de arrecadacao aparecera aqui." />
-}
-else
-{
-    @* ---------------- Resumo geral ---------------- *@
-    <MudPaper Elevation="2" Class="pa-6 mb-6"
-              Style="border-radius:var(--radius-md);background:linear-gradient(135deg,#0b3b60 0%,#0f7594 100%);color:#fff;">
-        <MudGrid>
-            <MudItem xs="12" sm="4">
-                <MudText Typo="Typo.overline" Style="color:rgba(255,255,255,.75);">Total arrecadado</MudText>
-                <MudText Typo="Typo.h4" Style="color:#fff;font-weight:800;">
-                    <AnimatedCounter Value="_totalArrecadado" Prefix="R$ " Format="N2" />
-                </MudText>
-            </MudItem>
-            <MudItem xs="6" sm="4">
-                <MudText Typo="Typo.overline" Style="color:rgba(255,255,255,.75);">Meta somada</MudText>
-                <MudText Typo="Typo.h5" Style="color:#fff;font-weight:700;">@Money(_totalMeta)</MudText>
-            </MudItem>
-            <MudItem xs="6" sm="4">
-                <MudText Typo="Typo.overline" Style="color:rgba(255,255,255,.75);">Campanhas ativas</MudText>
-                <MudText Typo="Typo.h5" Style="color:#fff;font-weight:700;">@_itens.Count</MudText>
-            </MudItem>
-        </MudGrid>
-    </MudPaper>
+    <div class="cs-tp-stat">
+        <span class="cs-tp-stat__icon cs-tp-stat__icon--orange">
+            <MudIcon Icon="@Icons.Material.Filled.AttachMoney" />
+        </span>
+        <div class="cs-tp-stat__body">
+            <span class="cs-tp-stat__label">Total Arrecadado</span>
+            <span class="cs-tp-stat__value">@(_loading ? "—" : Money(_totalArrecadado))</span>
+            <span class="cs-tp-stat__hint">com a sua ajuda</span>
+        </div>
+    </div>
 
-    @* ---------------- Lista detalhada ---------------- *@
-    <MudGrid>
-        @foreach (var item in _itens)
+    <div class="cs-tp-stat">
+        <span class="cs-tp-stat__icon cs-tp-stat__icon--blue">
+            <MudIcon Icon="@Icons.Material.Filled.Groups" />
+        </span>
+        <div class="cs-tp-stat__body">
+            <span class="cs-tp-stat__label">Doadores</span>
+            <span class="cs-tp-stat__value">@(_loading ? "—" : _totalDoadores.ToString("N0", Ptbr))</span>
+            <span class="cs-tp-stat__hint">pessoas engajadas</span>
+        </div>
+    </div>
+
+    <div class="cs-tp-stat">
+        <span class="cs-tp-stat__icon cs-tp-stat__icon--green">
+            <MudIcon Icon="@Icons.Material.Filled.AccountBalance" />
+        </span>
+        <div class="cs-tp-stat__body">
+            <span class="cs-tp-stat__label">Campanhas no Total</span>
+            <span class="cs-tp-stat__value">@(_loading ? "—" : _totalCampanhas.ToString("N0", Ptbr))</span>
+            <span class="cs-tp-stat__hint">na plataforma</span>
+        </div>
+    </div>
+</div>
+
+@* ---------------- Corpo: tabela + barra lateral ---------------- *@
+<div class="cs-tp-grid">
+    <section class="cs-tp-main" aria-label="Campanhas ativas">
+        @* -------- Barra de filtros (route-driven) -------- *@
+        <form class="cs-tp-toolbar" @onsubmit="AplicarBusca" @onsubmit:preventDefault>
+            <div class="cs-tp-search-row">
+                <label class="cs-tp-search">
+                    <span class="cs-tp-search__icon"><MudIcon Icon="@Icons.Material.Filled.Search" /></span>
+                    <span class="cs-tp-search__field">
+                        <span>Pesquisar campanha</span>
+                        <input type="search"
+                               placeholder="Digite um título ou palavra-chave"
+                               value="@_q"
+                               @oninput="@(e => _q = e.Value?.ToString() ?? string.Empty)"
+                               aria-label="Buscar campanhas" />
+                    </span>
+                    <button type="submit" class="cs-tp-search__submit">Buscar</button>
+                </label>
+            </div>
+
+            <div class="cs-tp-filter-row">
+                <span class="cs-tp-filter-row__label">
+                    <MudIcon Icon="@Icons.Material.Filled.Tune" Size="Size.Small" />
+                    Refinar resultados
+                </span>
+
+                <label class="cs-tp-select">
+                    <span class="cs-tp-select__prefix">Categoria</span>
+                    <select @onchange="OnCategoriaChanged" aria-label="Filtrar por categoria">
+                        <option value="Todas" selected="@(_categoria == "Todas")">Todas as categorias</option>
+                        @foreach (var (value, label) in CampaignVisuals.Categorias)
+                        {
+                            <option value="@value" selected="@(string.Equals(_categoria, value, StringComparison.OrdinalIgnoreCase))">@label</option>
+                        }
+                    </select>
+                    <MudIcon Icon="@Icons.Material.Filled.ExpandMore" Size="Size.Small" />
+                </label>
+
+                <label class="cs-tp-select">
+                    <span class="cs-tp-select__prefix">Ordenação</span>
+                    <select @onchange="OnOrdenarChanged" aria-label="Ordenar campanhas">
+                        @foreach (var (value, label) in Ordenacoes)
+                        {
+                            <option value="@value" selected="@(string.Equals(_ordenar, value, StringComparison.OrdinalIgnoreCase))">@label</option>
+                        }
+                    </select>
+                    <MudIcon Icon="@Icons.Material.Filled.ExpandMore" Size="Size.Small" />
+                </label>
+
+                @if (TemFiltroAtivo)
+                {
+                    <button type="button" class="cs-tp-filtros" @onclick="LimparFiltros">
+                        <MudIcon Icon="@Icons.Material.Filled.Close" Size="Size.Small" />
+                        Limpar filtros
+                    </button>
+                }
+            </div>
+        </form>
+
+        @* -------- Estados -------- *@
+        @if (_loading)
         {
-            <MudItem @key="item.Titulo" xs="12">
-                <MudPaper Elevation="1" Class="pa-4" Style="border-radius:var(--radius-md);">
-                    <MudText Typo="Typo.h6" Style="font-weight:700;" Class="mb-2">@item.Titulo</MudText>
-                    <CampaignProgress Meta="item.MetaFinanceira" Arrecadado="item.ValorTotalArrecadado" />
-                </MudPaper>
-            </MudItem>
+            <LoadingSkeleton Count="4" />
         }
-    </MudGrid>
-}
+        else if (_error)
+        {
+            <EmptyState Icon="@Icons.Material.Filled.CloudOff"
+                        Title="Nao foi possivel carregar os dados"
+                        Description="Ocorreu um erro ao consultar a API. Tente novamente em instantes.">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Refresh" OnClick="Recarregar">
+                    Tentar novamente
+                </MudButton>
+            </EmptyState>
+        }
+        else if (_view.Count == 0)
+        {
+            <EmptyState Icon="@Icons.Material.Filled.SearchOff"
+                        Title="Nenhuma campanha encontrada"
+                        Description="@(TemFiltroAtivo
+                            ? "Ajuste os filtros para ver mais campanhas ativas."
+                            : "Quando houver campanhas ativas, elas aparecerao aqui.")" />
+        }
+        else
+        {
+            <div class="cs-tp-results-head">
+                <div>
+                    <span class="cs-tp-results-head__eyebrow">Prestação de contas</span>
+                    <h2>Campanhas ativas</h2>
+                </div>
+                <span class="cs-tp-results-head__count">@_view.Count resultado@(_view.Count == 1 ? "" : "s")</span>
+            </div>
+
+            <div class="cs-tp-campaign-grid">
+                @foreach (var c in _view)
+                {
+                    <a class="cs-tp-campaign" href="@($"/campanhas/{c.Id}")" @key="c.Id">
+                        <span class="cs-tp-campaign__top">
+                            <img class="cs-tp-thumb" src="@CampaignVisuals.ImagemDe(c.Id)" alt="" loading="lazy" />
+                            <span class="cs-tp-campaign__identity">
+                                <span class="cs-tp-chip cs-tp-chip--@CategoriaCor(c.Categoria)">@CampaignVisuals.RotuloCategoria(c.Categoria)</span>
+                                <strong>@c.Titulo</strong>
+                            </span>
+                        </span>
+
+                        <span class="cs-tp-campaign__values">
+                            <span><small>Arrecadado</small><strong>@Money(c.ValorTotalArrecadado)</strong></span>
+                            <span><small>Meta</small><strong>@Money(c.MetaFinanceira)</strong></span>
+                        </span>
+
+                        <span class="cs-tp-progress">
+                            <span class="cs-tp-progress__track">
+                                <span class="cs-tp-progress__fill" style="width:@PercentCss(c);"></span>
+                            </span>
+                            <span class="cs-tp-progress__pct">@PercentLabel(c)</span>
+                        </span>
+                    </a>
+                }
+            </div>
+
+            <p class="cs-tp-count">
+                Mostrando @_view.Count de @_totalAtivas campanha@(_totalAtivas == 1 ? "" : "s") ativa@(_totalAtivas == 1 ? "" : "s")
+            </p>
+        }
+    </section>
+
+    @* -------- Barra lateral de confianca -------- *@
+    <aside class="cs-tp-side" aria-label="Nosso compromisso">
+        <div class="cs-tp-side__head">
+            <span class="cs-tp-side__badge">
+                <MudIcon Icon="@Icons.Material.Filled.VerifiedUser" />
+            </span>
+            <h2 class="cs-tp-side__title">Transparência que gera confiança</h2>
+        </div>
+        <p class="cs-tp-side__lead">
+            Nosso compromisso é com a verdade, a clareza e o impacto positivo na vida das pessoas.
+        </p>
+
+        <ul class="cs-tp-side__list">
+            <li>
+                <span class="cs-tp-side__ico"><MudIcon Icon="@Icons.Material.Filled.TrendingUp" Size="Size.Small" /></span>
+                <div>
+                    <strong>Atualizações em tempo real</strong>
+                    <span>Os valores arrecadados são atualizados continuamente.</span>
+                </div>
+            </li>
+            <li>
+                <span class="cs-tp-side__ico"><MudIcon Icon="@Icons.Material.Filled.Favorite" Size="Size.Small" /></span>
+                <div>
+                    <strong>Recursos com propósito</strong>
+                    <span>Cada doação é destinada a campanhas ativas e verificadas.</span>
+                </div>
+            </li>
+            <li>
+                <span class="cs-tp-side__ico"><MudIcon Icon="@Icons.Material.Filled.Groups" Size="Size.Small" /></span>
+                <div>
+                    <strong>Impacto que transforma</strong>
+                    <span>Acompanhe resultados que mostram o poder da solidariedade.</span>
+                </div>
+            </li>
+        </ul>
+
+        <blockquote class="cs-tp-side__quote">
+            <MudIcon Icon="@Icons.Material.Filled.FormatQuote" Size="Size.Small" />
+            A transparência não é apenas um valor, é o que nos conecta a você.
+        </blockquote>
+    </aside>
+</div>
 
 @code {
     private static readonly CultureInfo Ptbr = CultureInfo.GetCultureInfo("pt-BR");
 
+    // Opcoes de ordenacao: (valor na rota, rotulo exibido).
+    private static readonly (string Value, string Label)[] Ordenacoes =
+    {
+        ("recentes", "Mais recentes"),
+        ("arrecadado", "Maior arrecadação"),
+        ("progresso", "Maior progresso"),
+        ("meta", "Maior meta"),
+    };
+
+    // ----- Filtros vindos da rota (query string). Fonte da verdade = URL. -----
+    [SupplyParameterFromQuery(Name = "q")] public string? QParam { get; set; }
+    [SupplyParameterFromQuery(Name = "categoria")] public string? CategoriaParam { get; set; }
+    [SupplyParameterFromQuery(Name = "ordenar")] public string? OrdenarParam { get; set; }
+
+    // Estado dos controles (sincronizado a partir da rota em OnParametersSet).
+    private string _q = string.Empty;
+    private string _categoria = "Todas";
+    private string _ordenar = "recentes";
+
     private bool _loading = true;
     private bool _error;
+
+    private IReadOnlyList<CampanhaDto> _ativas = Array.Empty<CampanhaDto>();
+    private IReadOnlyList<CampanhaDto> _view = Array.Empty<CampanhaDto>();
+
+    private int _totalAtivas;
+    private int _totalCampanhas;
     private decimal _totalArrecadado;
-    private decimal _totalMeta;
-    private IReadOnlyList<TransparenciaDto> _itens = Array.Empty<TransparenciaDto>();
+    private int _totalDoadores;
+
+    private bool TemFiltroAtivo =>
+        !string.IsNullOrWhiteSpace(_q) || _categoria != "Todas" || _ordenar != "recentes";
 
     protected override Task OnInitializedAsync() => LoadAsync();
+
+    // Roda no primeiro render e sempre que a query string muda: re-sincroniza os controles
+    // com a rota e recalcula a lista exibida. A busca no servidor so ocorre no LoadAsync.
+    protected override void OnParametersSet()
+    {
+        _q = QParam ?? string.Empty;
+        _categoria = string.IsNullOrWhiteSpace(CategoriaParam) ? "Todas" : CategoriaParam;
+        _ordenar = string.IsNullOrWhiteSpace(OrdenarParam) ? "recentes" : OrdenarParam;
+
+        if (!_loading && !_error)
+        {
+            AplicarFiltrosLocais();
+        }
+    }
 
     private async Task LoadAsync()
     {
@@ -96,15 +301,23 @@ else
 
         try
         {
-            var dados = await Api.TransparenciaAsync();
-            _itens = dados;
-            _totalArrecadado = dados.Sum(d => d.ValorTotalArrecadado);
-            _totalMeta = dados.Sum(d => d.MetaFinanceira);
+            // Uma unica leitura (sem termo) traz todas as campanhas do Postgres; filtramos as ativas
+            // e aplicamos busca/categoria/ordenacao no cliente — barato para o volume da vitrine.
+            var pagina = await Api.BuscarCampanhasAsync(null, 1, 100);
+            _totalCampanhas = pagina.Total;
+
+            _ativas = pagina.Items.Where(c => c.Status == "Ativa").ToList();
+            _totalAtivas = _ativas.Count;
+            _totalArrecadado = _ativas.Sum(c => c.ValorTotalArrecadado);
+            _totalDoadores = _ativas.Sum(c => c.TotalDoadores);
+
+            AplicarFiltrosLocais();
         }
         catch
         {
             _error = true;
-            _itens = Array.Empty<TransparenciaDto>();
+            _ativas = Array.Empty<CampanhaDto>();
+            _view = Array.Empty<CampanhaDto>();
         }
         finally
         {
@@ -113,7 +326,93 @@ else
         }
     }
 
+    // Filtra e ordena a lista de ativas conforme os controles (que refletem a rota).
+    private void AplicarFiltrosLocais()
+    {
+        IEnumerable<CampanhaDto> query = _ativas;
+
+        if (!string.IsNullOrWhiteSpace(_q))
+        {
+            var termo = _q.Trim();
+            query = query.Where(c =>
+                c.Titulo.Contains(termo, StringComparison.OrdinalIgnoreCase) ||
+                c.Descricao.Contains(termo, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (!string.Equals(_categoria, "Todas", StringComparison.OrdinalIgnoreCase))
+        {
+            query = query.Where(c => string.Equals(c.Categoria, _categoria, StringComparison.OrdinalIgnoreCase));
+        }
+
+        query = _ordenar switch
+        {
+            "arrecadado" => query.OrderByDescending(c => c.ValorTotalArrecadado),
+            "progresso" => query.OrderByDescending(Percent),
+            "meta" => query.OrderByDescending(c => c.MetaFinanceira),
+            _ => query.OrderByDescending(c => c.DataInicio),
+        };
+
+        _view = query.ToList();
+    }
+
+    // ----- Handlers: cada mudanca reescreve a query string; OnParametersSet re-aplica. -----
+    private void AplicarBusca() => NavegarComFiltros();
+
+    private void OnCategoriaChanged(ChangeEventArgs e)
+    {
+        _categoria = e.Value?.ToString() ?? "Todas";
+        NavegarComFiltros();
+    }
+
+    private void OnOrdenarChanged(ChangeEventArgs e)
+    {
+        _ordenar = e.Value?.ToString() ?? "recentes";
+        NavegarComFiltros();
+    }
+
+    private void LimparFiltros()
+    {
+        _q = string.Empty;
+        _categoria = "Todas";
+        _ordenar = "recentes";
+        Navigation.NavigateTo("/transparencia");
+    }
+
+    private void NavegarComFiltros()
+    {
+        var uri = Navigation.GetUriWithQueryParameters(new Dictionary<string, object?>
+        {
+            ["q"] = string.IsNullOrWhiteSpace(_q) ? null : _q.Trim(),
+            ["categoria"] = _categoria == "Todas" ? null : _categoria,
+            ["ordenar"] = _ordenar == "recentes" ? null : _ordenar,
+        });
+
+        Navigation.NavigateTo(uri);
+    }
+
     private Task Recarregar() => LoadAsync();
 
-    private static string Money(decimal value) => value.ToString("C2", Ptbr);
+    // ----- Helpers de apresentacao -----
+    private static double Percent(CampanhaDto c) => c.MetaFinanceira <= 0m
+        ? 0d
+        : Math.Clamp((double)(c.ValorTotalArrecadado / c.MetaFinanceira) * 100d, 0d, 100d);
+
+    private static string PercentCss(CampanhaDto c) => Percent(c).ToString("0.#", CultureInfo.InvariantCulture) + "%";
+    private static string PercentLabel(CampanhaDto c) => $"{Percent(c).ToString("0", Ptbr)}%";
+
+    private static string Money(decimal value) => value.ToString("C0", Ptbr);
+
+    // Cor do chip por categoria (classe CSS).
+    private static string CategoriaCor(string? categoria) => (categoria ?? "Outros").ToLowerInvariant() switch
+    {
+        "saude" => "purple",
+        "educacao" => "indigo",
+        "alimentacao" => "blue",
+        "moradia" => "teal",
+        "meioambiente" => "green",
+        "assistencia" => "orange",
+        "animais" => "green",
+        "cultura" => "pink",
+        _ => "gray",
+    };
 }

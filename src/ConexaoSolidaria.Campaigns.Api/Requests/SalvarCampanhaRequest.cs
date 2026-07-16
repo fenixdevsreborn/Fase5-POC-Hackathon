@@ -8,4 +8,5 @@ public sealed record SalvarCampanhaRequest(
     DateTimeOffset DataInicio,
     DateTimeOffset DataFim,
     decimal MetaFinanceira,
-    CampaignStatus Status);
+    CampaignStatus Status,
+    CampaignCategory Categoria = CampaignCategory.Outros);

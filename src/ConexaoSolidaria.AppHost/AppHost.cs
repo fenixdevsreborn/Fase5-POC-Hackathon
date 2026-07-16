@@ -15,7 +15,10 @@ var seedManagerPassword = builder.AddParameter("seed-manager-password", secret: 
 // Infraestrutura (containers gerenciados pelo Aspire; senhas auto-geradas).
 // WithDataVolume() persiste os dados entre execucoes.
 // ---------------------------------------------------------------------------
+// Pin explicito da tag: evita que uma mudanca de versao do pacote Aspire troque a imagem
+// (ex.: debian 18.3 <-> alpine 18.4) e quebre o layout do PGDATA persistido em WithDataVolume().
 var postgres = builder.AddPostgres("postgres")
+    .WithImageTag("18.3")
     .WithDataVolume();
 
 // Os nomes das databases ("identitydb"/"campaignsdb") casam com GetConnectionString("IdentityDb"/"CampaignsDb")

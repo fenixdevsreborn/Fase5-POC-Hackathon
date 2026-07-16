@@ -77,6 +77,19 @@
                 <MudSelectItem T="string" Value="@("Cancelada")">Cancelada</MudSelectItem>
             </MudSelect>
         </MudItem>
+
+        <MudItem xs="12" sm="6">
+            <MudSelect T="string"
+                       @bind-Value="_categoria"
+                       Label="Categoria"
+                       Required="true"
+                       RequiredError="Selecione a categoria.">
+                @foreach (var (value, label) in CampaignVisuals.Categorias)
+                {
+                    <MudSelectItem T="string" Value="@value">@label</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
     </MudGrid>
 
     <div class="d-flex justify-end mt-6" style="gap:8px">
@@ -115,6 +128,7 @@
     private DateTime? _dataFim = DateTime.Today.AddDays(30);
     private decimal _meta;
     private string _status = "Ativa";
+    private string _categoria = "Saude";
 
     // Inicializa os campos apenas quando o Model (referência) muda, para não
     // sobrescrever a digitação do usuário quando o pai atualizar o ErrorMessage.
@@ -137,6 +151,7 @@
             _dataFim = Model.DataFim.DateTime.Date;
             _meta = Model.MetaFinanceira;
             _status = string.IsNullOrWhiteSpace(Model.Status) ? "Ativa" : Model.Status;
+            _categoria = string.IsNullOrWhiteSpace(Model.Categoria) ? "Saude" : Model.Categoria;
         }
     }
 
@@ -197,7 +212,8 @@
             DataInicio: new DateTimeOffset(DateTime.SpecifyKind(_dataInicio!.Value, DateTimeKind.Unspecified), TimeSpan.Zero),
             DataFim: new DateTimeOffset(DateTime.SpecifyKind(_dataFim!.Value, DateTimeKind.Unspecified), TimeSpan.Zero),
             MetaFinanceira: _meta,
-            Status: _status);
+            Status: _status,
+            Categoria: _categoria);
 
         _enviando = true;
         try
