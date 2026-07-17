@@ -1,0 +1,141 @@
+/* Painel flutuante e botao (FAB) do Assistente Solidario. */
+
+.cs-assistant-panel {
+    position: fixed;
+    bottom: 96px;
+    right: 24px;
+    width: min(390px, calc(100vw - 32px));
+    height: min(560px, calc(100vh - 150px));
+    z-index: 1400;
+    display: flex;
+    flex-direction: column;
+    border-radius: 20px;
+    overflow: hidden;
+    background: #fff;
+    box-shadow: 0 24px 70px rgba(9, 30, 66, 0.28);
+    border: 1px solid rgba(12, 37, 75, 0.06);
+    transform-origin: bottom right;
+    animation: cs-assistant-pop .28s cubic-bezier(.22, 1, .36, 1) both;
+}
+
+.cs-assistant-panel__header {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 13px 14px;
+    color: #fff;
+    background: linear-gradient(120deg, #0b5fd6, #2584ff 55%, #17a1c9);
+}
+
+.cs-assistant-panel__avatar {
+    position: relative;
+    width: 38px;
+    height: 38px;
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.18);
+}
+
+.cs-assistant-panel__pulse {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.55);
+    animation: cs-assistant-ring 2.4s ease-out infinite;
+}
+
+.cs-assistant-panel__title {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    line-height: 1.2;
+}
+
+.cs-assistant-panel__title strong { font-size: 0.95rem; font-weight: 700; }
+
+.cs-assistant-panel__title small {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    opacity: 0.9;
+}
+
+.cs-assistant-panel__dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #6fe6a6;
+    box-shadow: 0 0 0 0 rgba(111, 230, 166, 0.7);
+    animation: cs-assistant-blink 1.8s ease-in-out infinite;
+}
+
+/* Botao flutuante */
+.cs-assistant-fab {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 1400;
+    width: 60px;
+    height: 60px;
+    border: 0;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    color: #fff;
+    cursor: pointer;
+    background: linear-gradient(145deg, #2584ff, #075bdc);
+    box-shadow: 0 14px 32px rgba(12, 100, 240, 0.42);
+    transition: transform .2s cubic-bezier(.34, 1.56, .64, 1), box-shadow .2s ease;
+}
+
+.cs-assistant-fab ::deep .mud-icon-root { font-size: 1.6rem; }
+
+.cs-assistant-fab:hover { transform: translateY(-3px) scale(1.05); }
+
+.cs-assistant-fab--open {
+    background: linear-gradient(145deg, #64748b, #475569);
+    box-shadow: 0 10px 24px rgba(30, 41, 59, 0.35);
+}
+
+.cs-assistant-fab:not(.cs-assistant-fab--open)::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 2px solid rgba(37, 132, 255, 0.5);
+    animation: cs-assistant-ring 2.6s ease-out infinite;
+}
+
+@keyframes cs-assistant-pop {
+    from { opacity: 0; transform: translateY(16px) scale(.94); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes cs-assistant-ring {
+    0% { transform: scale(1); opacity: .7; }
+    100% { transform: scale(1.7); opacity: 0; }
+}
+
+@keyframes cs-assistant-blink {
+    50% { opacity: .45; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cs-assistant-panel,
+    .cs-assistant-panel__pulse,
+    .cs-assistant-fab::after,
+    .cs-assistant-panel__dot { animation: none; }
+}
+
+@media (max-width: 480px) {
+    .cs-assistant-panel {
+        right: 12px;
+        left: 12px;
+        width: auto;
+        bottom: 88px;
+        height: min(72vh, 560px);
+    }
+}

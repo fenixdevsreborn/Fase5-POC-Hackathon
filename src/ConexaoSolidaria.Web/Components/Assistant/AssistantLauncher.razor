@@ -7,13 +7,16 @@
 {
     @if (_aberto)
     {
-        <MudPaper Elevation="12"
-                  Class="d-flex flex-column"
-                  Style="position:fixed; bottom:92px; right:24px; width:min(380px, calc(100vw - 32px)); height:min(540px, calc(100vh - 140px)); z-index:1400; border-radius:16px; overflow:hidden">
-            <div class="d-flex align-center px-3 py-2"
-                 style="background:var(--mud-palette-primary); color:var(--mud-palette-primary-text); gap:8px">
-                <MudIcon Icon="@Icons.Material.Filled.SmartToy" Size="Size.Small" />
-                <MudText Typo="Typo.subtitle2" Style="color:inherit; flex:1">Assistente Solidario</MudText>
+        <div class="cs-assistant-panel">
+            <div class="cs-assistant-panel__header">
+                <div class="cs-assistant-panel__avatar">
+                    <MudIcon Icon="@Icons.Material.Filled.SmartToy" Size="Size.Small" />
+                    <span class="cs-assistant-panel__pulse"></span>
+                </div>
+                <div class="cs-assistant-panel__title">
+                    <strong>Assistente Solidario</strong>
+                    <small><span class="cs-assistant-panel__dot"></span> Online agora</small>
+                </div>
                 <MudIconButton Icon="@Icons.Material.Filled.Close"
                                Size="Size.Small"
                                Style="color:inherit"
@@ -21,15 +24,15 @@
                                aria-label="Fechar assistente" />
             </div>
             <AssistantChat />
-        </MudPaper>
+        </div>
     }
 
-    <div style="position:fixed; bottom:24px; right:24px; z-index:1400">
-        <MudFab Color="Color.Primary"
-                StartIcon="@(_aberto ? Icons.Material.Filled.Close : Icons.Material.Filled.SmartToy)"
-                OnClick="Alternar"
-                aria-label="@(_aberto ? "Fechar Assistente Solidario" : "Abrir Assistente Solidario")" />
-    </div>
+    <button type="button"
+            class="cs-assistant-fab @(_aberto ? "cs-assistant-fab--open" : string.Empty)"
+            @onclick="Alternar"
+            aria-label="@(_aberto ? "Fechar Assistente Solidario" : "Abrir Assistente Solidario")">
+        <MudIcon Icon="@(_aberto ? Icons.Material.Filled.Close : Icons.Material.Filled.SmartToy)" />
+    </button>
 }
 
 @code {

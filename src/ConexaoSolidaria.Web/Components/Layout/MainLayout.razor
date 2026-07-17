@@ -75,7 +75,10 @@
 
     <main class="cs-main-content">
         <div class="cs-page-container">
-            @Body
+            @* @key muda a cada navegacao: recria a subarvore e reexecuta a animacao de entrada. *@
+            <div class="cs-page-transition" @key="_navKey">
+                @Body
+            </div>
         </div>
     </main>
 
@@ -92,6 +95,7 @@
 
 @code {
     private bool _mobileMenuOpen;
+    private int _navKey;
 
     private void ToggleMobileMenu() => _mobileMenuOpen = !_mobileMenuOpen;
 
@@ -100,6 +104,15 @@
     protected override void OnInitialized()
     {
         Notifications.Received += OnNotificacaoRecebida;
+        Navigation.LocationChanged += OnLocationChanged;
+    }
+
+    // Cada navegacao troca a @key da area de conteudo, disparando a transicao de tela.
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        _navKey++;
+        _mobileMenuOpen = false;
+        InvokeAsync(StateHasChanged);
     }
 
     private void OnNotificacaoRecebida(DoacaoProcessadaNotification n)
@@ -130,5 +143,6 @@
     public void Dispose()
     {
         Notifications.Received -= OnNotificacaoRecebida;
+        Navigation.LocationChanged -= OnLocationChanged;
     }
 }

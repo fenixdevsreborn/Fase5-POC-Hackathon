@@ -2,6 +2,7 @@
 @using ConexaoSolidaria.Web.Components.Common
 @using ConexaoSolidaria.Web.Components.Campaigns
 @inject ApiClient Api
+@inject NavigationManager Nav
 
 <PageTitle>Campanhas - Conexão Solidária</PageTitle>
 
@@ -35,24 +36,47 @@
         </div>
     }
 
-    <div class="campaign-toolbar">
-        <MudTextField T="string"
-                      @bind-Value="_query"
-                      Immediate="true"
-                      DebounceInterval="400"
-                      OnDebounceIntervalElapsed="OnDebouncedSearch"
-                      Placeholder="Buscar campanhas..."
-                      Variant="Variant.Outlined"
-                      Margin="Margin.Dense"
-                      Adornment="Adornment.Start"
-                      AdornmentIcon="@Icons.Material.Filled.Search"
-                      Clearable="true"
-                      OnClearButtonClick="OnClear"
-                      Class="campaign-toolbar__search" />
-        <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                   StartIcon="@Icons.Material.Filled.Search" OnClick="OnSearchClick">
-            Buscar
-        </MudButton>
+    <div class="campaign-search">
+        <MudAutocomplete T="CampanhaDto"
+                         Value="_selecionada"
+                         ValueChanged="OnSugestaoSelecionada"
+                         SearchFunc="BuscarSugestoesAsync"
+                         ToStringFunc="@(c => c?.Titulo ?? string.Empty)"
+                         DebounceInterval="350"
+                         MinCharacters="0"
+                         ResetValueOnEmptyText="true"
+                         CoerceText="false"
+                         Clearable="true"
+                         OnClearButtonClick="OnClear"
+                         MaxItems="6"
+                         Placeholder="Busque por titulo, causa ou categoria..."
+                         Variant="Variant.Outlined"
+                         Margin="Margin.Dense"
+                         Adornment="Adornment.Start"
+                         AdornmentIcon="@Icons.Material.Filled.Search"
+                         Class="campaign-search__field">
+            <ItemTemplate Context="sugestao">
+                <div class="campaign-suggestion">
+                    <img class="campaign-suggestion__thumb"
+                         src="@CampaignVisuals.ImagemDe(sugestao.Id)" alt="" loading="lazy" />
+                    <span class="campaign-suggestion__text">
+                        <strong>@sugestao.Titulo</strong>
+                        <small>@CampaignVisuals.RotuloCategoria(sugestao.Categoria) · @Money(sugestao.ValorTotalArrecadado) arrecadados</small>
+                    </span>
+                    <MudIcon Icon="@Icons.Material.Filled.NorthEast" Size="Size.Small" Class="campaign-suggestion__go" />
+                </div>
+            </ItemTemplate>
+            <NoItemsTemplate>
+                <div class="campaign-suggestion campaign-suggestion--empty">
+                    <MudIcon Icon="@Icons.Material.Filled.SearchOff" Size="Size.Small" />
+                    <span>Nenhuma sugestao — veja os resultados abaixo.</span>
+                </div>
+            </NoItemsTemplate>
+        </MudAutocomplete>
+        <span class="campaign-search__hint">
+            <MudIcon Icon="@Icons.Material.Filled.AutoAwesome" Size="Size.Small" />
+            Busca inteligente: tolera erros de digitacao e sugere enquanto voce escreve.
+        </span>
     </div>
 
     @if (_loading)
@@ -110,6 +134,7 @@
     private const int PageSize = 8;
     private static readonly System.Globalization.CultureInfo Ptbr = System.Globalization.CultureInfo.GetCultureInfo("pt-BR");
     private string _query = string.Empty;
+    private CampanhaDto? _selecionada;
     private int _page = 1;
     private int _total;
     private int _totalPages;
@@ -134,9 +159,34 @@
         finally { _loading = false; StateHasChanged(); }
     }
 
-    private Task OnDebouncedSearch(string value) { _query = value; _page = 1; return LoadAsync(); }
-    private Task OnSearchClick() { _page = 1; return LoadAsync(); }
-    private Task OnClear() { _query = string.Empty; _page = 1; return LoadAsync(); }
+    // Chamado pelo MudAutocomplete a cada digitacao (com debounce). Filtra a grade E devolve
+    // as melhores sugestoes (predicao) para o dropdown — a busca fuzzy roda no backend.
+    private async Task<IEnumerable<CampanhaDto>> BuscarSugestoesAsync(string? value, CancellationToken ct)
+    {
+        var termo = value ?? string.Empty;
+        if (!string.Equals(termo, _query, StringComparison.Ordinal))
+        {
+            _query = termo;
+            _page = 1;
+            await LoadAsync();
+        }
+
+        return string.IsNullOrWhiteSpace(termo)
+            ? Array.Empty<CampanhaDto>()
+            : _campanhas.Take(6);
+    }
+
+    // Selecionar uma sugestao (predicao) leva direto para a campanha.
+    private void OnSugestaoSelecionada(CampanhaDto? campanha)
+    {
+        _selecionada = campanha;
+        if (campanha is not null)
+        {
+            Nav.NavigateTo($"/campanhas/{campanha.Id}");
+        }
+    }
+
+    private Task OnClear() { _query = string.Empty; _selecionada = null; _page = 1; return LoadAsync(); }
     private Task OnPageChanged(int page) { _page = page; return LoadAsync(); }
     private Task Recarregar() => LoadAsync();
     private static string Money(decimal value) => value.ToString("C0", Ptbr);

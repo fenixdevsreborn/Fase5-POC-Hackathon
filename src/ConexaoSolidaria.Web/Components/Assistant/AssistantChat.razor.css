@@ -1,0 +1,243 @@
+/* Chat do Assistente Solidario — visual estilo ChatGPT (bolhas, avatares, digitando). */
+
+.cs-chat {
+    height: 100%;
+    min-height: 0;
+    background:
+        radial-gradient(circle at 15% 0%, rgba(37, 99, 235, 0.05), transparent 42%),
+        radial-gradient(circle at 100% 100%, rgba(249, 115, 22, 0.04), transparent 40%),
+        var(--surface, #fff);
+}
+
+.cs-chat__scroll {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    min-height: 0;
+    scrollbar-width: thin;
+    scroll-behavior: smooth;
+}
+
+.cs-chat__thread {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    padding: 20px 16px 8px;
+}
+
+/* Estado inicial: saudacao + sugestoes */
+.cs-chat__welcome {
+    text-align: center;
+    padding: 14px 6px 4px;
+    animation: cs-chat-fade .5s ease both;
+}
+
+.cs-chat__welcome-avatar {
+    width: 54px;
+    height: 54px;
+    margin: 0 auto 12px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    color: #fff;
+    background: linear-gradient(145deg, #2584ff, #075bdc);
+    box-shadow: 0 10px 26px rgba(12, 100, 240, 0.32);
+    animation: cs-chat-bob 3.4s ease-in-out infinite;
+}
+
+.cs-chat__welcome h3 {
+    margin: 0 0 4px;
+    font-size: 1.06rem;
+    font-weight: 800;
+    color: #0b2350;
+    letter-spacing: -0.02em;
+}
+
+.cs-chat__welcome p {
+    margin: 0 auto;
+    max-width: 300px;
+    font-size: 0.83rem;
+    line-height: 1.5;
+    color: #6a7891;
+}
+
+.cs-chat__suggestions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 18px;
+}
+
+.cs-chat__suggestion {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 11px 14px;
+    border: 1px solid #e6ecf6;
+    border-radius: 13px;
+    background: #fff;
+    color: #24344f;
+    font-size: 0.84rem;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+    transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+}
+
+.cs-chat__suggestion:hover {
+    transform: translateY(-2px);
+    border-color: #b9d2ff;
+    box-shadow: 0 10px 24px rgba(21, 55, 101, 0.10);
+}
+
+.cs-chat__suggestion ::deep .mud-icon-root {
+    color: var(--cs-blue, #2563eb);
+    font-size: 1.15rem;
+}
+
+/* Linha de mensagem: avatar + bolha */
+.cs-msg {
+    display: flex;
+    align-items: flex-end;
+    gap: 9px;
+    max-width: 100%;
+    animation: cs-msg-in .32s cubic-bezier(.22, 1, .36, 1) both;
+}
+
+.cs-msg--user {
+    flex-direction: row-reverse;
+}
+
+.cs-msg__avatar {
+    flex: 0 0 auto;
+    width: 30px;
+    height: 30px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    color: #fff;
+    font-size: 0.95rem;
+    box-shadow: 0 4px 12px rgba(12, 40, 90, 0.18);
+}
+
+.cs-msg--bot .cs-msg__avatar {
+    background: linear-gradient(145deg, #2584ff, #075bdc);
+}
+
+.cs-msg--user .cs-msg__avatar {
+    background: linear-gradient(145deg, #ff9c22, #ff7200);
+}
+
+.cs-msg__bubble {
+    max-width: 78%;
+    padding: 10px 14px;
+    border-radius: 16px;
+    font-size: 0.88rem;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    box-shadow: 0 4px 16px rgba(21, 55, 101, 0.06);
+}
+
+.cs-msg--bot .cs-msg__bubble {
+    background: #fff;
+    color: #1a2740;
+    border: 1px solid #e9eef7;
+    border-bottom-left-radius: 5px;
+}
+
+.cs-msg--user .cs-msg__bubble {
+    background: linear-gradient(145deg, #2584ff, #0b5fd6);
+    color: #fff;
+    border-bottom-right-radius: 5px;
+}
+
+.cs-msg__bubble--error {
+    background: #fff4f4 !important;
+    border-color: #f5c6c6 !important;
+    color: #b3261e !important;
+}
+
+/* Indicador "digitando" (tres pontos) */
+.cs-typing {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 13px 15px;
+}
+
+.cs-typing span {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #9db3d6;
+    animation: cs-typing-bounce 1.2s infinite ease-in-out;
+}
+
+.cs-typing span:nth-child(2) { animation-delay: .18s; }
+.cs-typing span:nth-child(3) { animation-delay: .36s; }
+
+/* Barra de composicao */
+.cs-chat__composer {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    padding: 12px;
+    border-top: 1px solid #e9eef7;
+    background: rgba(255, 255, 255, 0.86);
+    backdrop-filter: blur(6px);
+}
+
+.cs-chat__composer ::deep .mud-input-slot { font-size: 0.88rem; }
+
+.cs-chat__composer ::deep .mud-input-control {
+    background: #f4f7fc;
+    border-radius: 14px;
+}
+
+.cs-chat__send {
+    flex: 0 0 auto;
+    width: 42px;
+    height: 42px;
+    border: 0;
+    border-radius: 13px;
+    display: grid;
+    place-items: center;
+    color: #fff;
+    cursor: pointer;
+    background: linear-gradient(145deg, #2584ff, #075bdc);
+    box-shadow: 0 8px 18px rgba(12, 100, 240, 0.30);
+    transition: transform .15s ease, opacity .15s ease, box-shadow .15s ease;
+}
+
+.cs-chat__send:hover:not(:disabled) { transform: translateY(-1px) scale(1.03); }
+
+.cs-chat__send:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+@keyframes cs-msg-in {
+    from { opacity: 0; transform: translateY(8px) scale(.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes cs-typing-bounce {
+    0%, 60%, 100% { transform: translateY(0); opacity: .5; }
+    30% { transform: translateY(-5px); opacity: 1; }
+}
+
+@keyframes cs-chat-fade {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes cs-chat-bob {
+    50% { transform: translateY(-6px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cs-msg, .cs-chat__welcome, .cs-chat__welcome-avatar, .cs-typing span { animation: none; }
+    .cs-chat__scroll { scroll-behavior: auto; }
+}

@@ -23,55 +23,80 @@
             </div>
         </header>
 
-        @if (Rascunho.Enabled)
-        {
-            <MudPaper Class="pa-4 mb-4" Elevation="1" Style="max-width:820px">
-                <div class="d-flex align-center mb-2" style="gap:8px">
-                    <MudIcon Icon="@Icons.Material.Filled.AutoAwesome" Color="Color.Primary" Size="Size.Small" />
-                    <MudText Typo="Typo.subtitle1">Criar com IA</MudText>
+        <div class="nova-campanha">
+            <section class="nova-campanha__main">
+                <div class="nova-campanha__card">
+                    <div class="nova-campanha__card-head">
+                        <span class="nova-campanha__step">1</span>
+                        <div>
+                            <h2>Dados da campanha</h2>
+                            <p>Capriche no titulo e na descricao — sao eles que conectam sua causa aos doadores.</p>
+                        </div>
+                    </div>
+                    <CampaignForm Model="_model"
+                                  SubmitLabel="Criar campanha"
+                                  OnSubmit="CriarAsync"
+                                  ErrorMessage="@_erro" />
                 </div>
-                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
-                    Descreva a ideia da campanha e a IA sugere título, descrição, categoria e meta.
-                    Revise e ajuste tudo antes de criar.
-                </MudText>
-                <MudTextField T="string"
-                              @bind-Value="_ideia"
-                              Placeholder="Ex.: arrecadar ração e vacinas para um abrigo com 40 cães resgatados"
-                              Lines="2"
-                              Variant="Variant.Outlined"
-                              Disabled="_gerando" />
-                <div class="d-flex justify-end mt-2">
-                    <MudButton Variant="Variant.Outlined"
-                               Color="Color.Primary"
-                               StartIcon="@Icons.Material.Filled.AutoAwesome"
-                               OnClick="GerarRascunhoAsync"
-                               Disabled="@(_gerando || string.IsNullOrWhiteSpace(_ideia))">
-                        @if (_gerando)
-                        {
-                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
-                            <span>Gerando...</span>
-                        }
-                        else
-                        {
-                            <span>Gerar rascunho</span>
-                        }
-                    </MudButton>
-                </div>
-                @if (!string.IsNullOrWhiteSpace(_justificativaMeta))
-                {
-                    <MudAlert Severity="Severity.Info" Dense="true" Class="mt-3">
-                        Meta sugerida: @_justificativaMeta
-                    </MudAlert>
-                }
-            </MudPaper>
-        }
+            </section>
 
-        <MudPaper Class="pa-6" Elevation="1" Style="max-width:820px">
-            <CampaignForm Model="_model"
-                          SubmitLabel="Criar campanha"
-                          OnSubmit="CriarAsync"
-                          ErrorMessage="@_erro" />
-        </MudPaper>
+            <aside class="nova-campanha__side">
+                @if (Rascunho.Enabled)
+                {
+                    <div class="nova-campanha__ai">
+                        <div class="nova-campanha__ai-head">
+                            <MudIcon Icon="@Icons.Material.Filled.AutoAwesome" />
+                            <div>
+                                <strong>Criar com IA</strong>
+                                <small>Descreva a ideia e recebe um rascunho pronto</small>
+                            </div>
+                        </div>
+                        <div class="nova-campanha__ai-body">
+                            <MudTextField T="string"
+                                          @bind-Value="_ideia"
+                                          Placeholder="Ex.: arrecadar racao e vacinas para um abrigo com 40 caes resgatados"
+                                          Lines="3"
+                                          Variant="Variant.Outlined"
+                                          Margin="Margin.Dense"
+                                          Disabled="_gerando" />
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       FullWidth="true"
+                                       StartIcon="@Icons.Material.Filled.AutoAwesome"
+                                       Class="mt-3"
+                                       OnClick="GerarRascunhoAsync"
+                                       Disabled="@(_gerando || string.IsNullOrWhiteSpace(_ideia))">
+                                @if (_gerando)
+                                {
+                                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                                    <span>Gerando...</span>
+                                }
+                                else
+                                {
+                                    <span>Gerar rascunho</span>
+                                }
+                            </MudButton>
+                            @if (!string.IsNullOrWhiteSpace(_justificativaMeta))
+                            {
+                                <MudAlert Severity="Severity.Info" Dense="true" Class="mt-3">
+                                    Meta sugerida: @_justificativaMeta
+                                </MudAlert>
+                            }
+                        </div>
+                    </div>
+                }
+
+                <div class="nova-campanha__tips">
+                    <h3>Dicas para uma boa campanha</h3>
+                    <ul>
+                        <li><MudIcon Icon="@Icons.Material.Filled.Title" Size="Size.Small" /><span>Titulo claro e especifico sobre quem sera ajudado.</span></li>
+                        <li><MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Small" /><span>Conte a historia: o problema, a solucao e o impacto.</span></li>
+                        <li><MudIcon Icon="@Icons.Material.Filled.Savings" Size="Size.Small" /><span>Defina uma meta realista e transparente.</span></li>
+                        <li><MudIcon Icon="@Icons.Material.Filled.Event" Size="Size.Small" /><span>Prazo compativel com o objetivo da arrecadacao.</span></li>
+                    </ul>
+                </div>
+            </aside>
+        </div>
     </Authorized>
     <NotAuthorized>
         <MudAlert Severity="Severity.Warning" Class="my-4">

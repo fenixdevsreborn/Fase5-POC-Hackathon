@@ -6,25 +6,22 @@
    ao componente pai via OnDonationAccepted para acompanhamento assincrono. *@
 
 <MudForm @ref="_form" Class="cs-donation-form">
-    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mb-1">Valores rapidos</MudText>
-    <div class="d-flex flex-wrap gap-2 mb-3">
+    <span class="cs-donation-form__label">Escolha um valor</span>
+    <div class="cs-donation-form__quick">
         @foreach (var valor in ValoresRapidos)
         {
-            <MudChip T="decimal"
-                     Value="valor"
-                     Variant="@(_valor == valor ? Variant.Filled : Variant.Outlined)"
-                     Color="Color.Primary"
-                     Size="Size.Medium"
-                     Disabled="_enviando"
-                     OnClick="@(() => DefinirValor(valor))">
+            <button type="button"
+                    class="cs-donation-chip @(_valor == valor ? "cs-donation-chip--on" : string.Empty)"
+                    disabled="@_enviando"
+                    @onclick="@(() => DefinirValor(valor))">
                 @FormatMoeda(valor)
-            </MudChip>
+            </button>
         }
     </div>
 
     <MudNumericField T="decimal"
                      @bind-Value="_valor"
-                     Label="Valor da doacao"
+                     Label="Ou informe outro valor"
                      Variant="Variant.Outlined"
                      Adornment="Adornment.Start"
                      AdornmentText="R$"
@@ -36,31 +33,41 @@
                      Required="true"
                      RequiredError="Informe um valor."
                      Validation="@(new Func<decimal, string?>(ValidarValor))"
-                     Disabled="_enviando" />
+                     Disabled="_enviando"
+                     Class="mt-3" />
 
-    <div class="d-flex align-center gap-2 mt-3">
-        <MudButton Variant="Variant.Filled"
-                   Color="Color.Primary"
-                   StartIcon="@Icons.Material.Filled.VolunteerActivism"
-                   OnClick="ConfirmarAsync"
-                   Disabled="_enviando">
-            @if (_enviando)
-            {
-                <MudProgressCircular Class="mr-2" Size="Size.Small" Indeterminate="true" />
-                <span>Enviando...</span>
-            }
-            else
-            {
-                <span>Confirmar doacao</span>
-            }
-        </MudButton>
-        @if (OnCancel.HasDelegate)
+    <div class="cs-donation-form__impact">
+        <MudIcon Icon="@Icons.Material.Filled.Favorite" Size="Size.Small" />
+        <span>Sua doacao de <strong>@FormatMoeda(_valor)</strong> vai direto para esta causa.</span>
+    </div>
+
+    <MudButton Variant="Variant.Filled"
+               Color="Color.Primary"
+               FullWidth="true"
+               Size="Size.Large"
+               StartIcon="@Icons.Material.Filled.VolunteerActivism"
+               OnClick="ConfirmarAsync"
+               Disabled="_enviando"
+               Class="cs-donation-form__confirm">
+        @if (_enviando)
         {
+            <MudProgressCircular Class="mr-2" Size="Size.Small" Indeterminate="true" />
+            <span>Enviando...</span>
+        }
+        else
+        {
+            <span>Doar @FormatMoeda(_valor)</span>
+        }
+    </MudButton>
+
+    @if (OnCancel.HasDelegate)
+    {
+        <div class="cs-donation-form__cancel">
             <MudButton Variant="Variant.Text" Color="Color.Default" OnClick="OnCancel" Disabled="_enviando">
                 Cancelar
             </MudButton>
-        }
-    </div>
+        </div>
+    }
 
     @if (_erro is not null)
     {

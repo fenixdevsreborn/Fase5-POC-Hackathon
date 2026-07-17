@@ -1,0 +1,81 @@
+/* Formulario de doacao — valores rapidos, resumo de impacto e CTA. */
+
+.cs-donation-form { animation: cs-donation-in .35s cubic-bezier(.22, 1, .36, 1) both; }
+
+.cs-donation-form__label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #7b889d;
+}
+
+.cs-donation-form__quick {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+}
+
+.cs-donation-chip {
+    padding: 12px 6px;
+    border: 1.5px solid #e3e9f3;
+    border-radius: 13px;
+    background: #fff;
+    color: #22334f;
+    font-size: 0.92rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform .14s ease, border-color .14s ease, background .14s ease, box-shadow .14s ease;
+}
+
+.cs-donation-chip:hover:not(:disabled) {
+    transform: translateY(-2px);
+    border-color: #b9d2ff;
+    box-shadow: 0 8px 18px rgba(21, 55, 101, 0.10);
+}
+
+.cs-donation-chip--on {
+    color: #fff;
+    border-color: transparent;
+    background: linear-gradient(145deg, #2584ff, #075bdc);
+    box-shadow: 0 10px 22px rgba(12, 100, 240, 0.30);
+}
+
+.cs-donation-chip:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.cs-donation-form__impact {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin: 14px 0 4px;
+    padding: 11px 13px;
+    border-radius: 12px;
+    background: #fff4ec;
+    border: 1px solid #ffe0c9;
+    color: #8a4b16;
+    font-size: 0.82rem;
+    line-height: 1.4;
+}
+
+.cs-donation-form__impact ::deep .mud-icon-root { color: #f97316; flex: 0 0 auto; }
+.cs-donation-form__impact strong { color: #6d3a10; }
+
+.cs-donation-form__confirm { margin-top: 14px; border-radius: 13px; font-weight: 700; }
+
+.cs-donation-form__cancel { display: flex; justify-content: center; margin-top: 6px; }
+
+@keyframes cs-donation-in {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 400px) {
+    .cs-donation-form__quick { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cs-donation-form { animation: none; }
+    .cs-donation-chip:hover:not(:disabled) { transform: none; }
+}

@@ -1,0 +1,120 @@
+/* Nova campanha — layout limpo em duas colunas (form + IA/dicas). */
+
+.nova-campanha {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: 28px;
+    align-items: start;
+    animation: nova-rise .55s cubic-bezier(.22, 1, .36, 1) both;
+}
+
+/* Coluna principal: cartao do formulario */
+.nova-campanha__card {
+    background: #fff;
+    border: 1px solid #e9eef7;
+    border-radius: 22px;
+    padding: 30px 32px 34px;
+    box-shadow: 0 16px 46px rgba(18, 50, 91, 0.06);
+}
+
+.nova-campanha__card-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 22px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #eef2f8;
+}
+
+.nova-campanha__step {
+    flex: 0 0 auto;
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    color: #fff;
+    font-weight: 800;
+    font-size: 0.95rem;
+    background: linear-gradient(145deg, #2584ff, #075bdc);
+    box-shadow: 0 8px 18px rgba(12, 100, 240, 0.28);
+}
+
+.nova-campanha__card-head h2 { margin: 2px 0 4px; font-size: 1.2rem; font-weight: 800; color: #0b2350; }
+.nova-campanha__card-head p { margin: 0; font-size: 0.86rem; color: #6a7891; line-height: 1.5; }
+
+/* Coluna lateral */
+.nova-campanha__side {
+    position: sticky;
+    top: 92px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.nova-campanha__ai {
+    border-radius: 20px;
+    overflow: hidden;
+    background: #fff;
+    border: 1px solid #e9eef7;
+    box-shadow: 0 14px 40px rgba(18, 50, 91, 0.07);
+}
+
+.nova-campanha__ai-head {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 16px 18px;
+    color: #fff;
+    background: linear-gradient(120deg, #7b2ff7, #2584ff);
+}
+
+.nova-campanha__ai-head ::deep .mud-icon-root { font-size: 1.5rem; }
+.nova-campanha__ai-head strong { display: block; font-size: 0.98rem; font-weight: 700; }
+.nova-campanha__ai-head small { font-size: 0.74rem; opacity: 0.9; }
+
+.nova-campanha__ai-body { padding: 16px 18px 18px; }
+
+.nova-campanha__tips {
+    border-radius: 20px;
+    padding: 20px 20px 8px;
+    background:
+        radial-gradient(circle at 100% 0%, rgba(249, 115, 22, 0.06), transparent 45%),
+        #f7f9fd;
+    border: 1px solid #e9eef7;
+}
+
+.nova-campanha__tips h3 { margin: 0 0 14px; font-size: 0.98rem; font-weight: 800; color: #0b2350; }
+.nova-campanha__tips ul { list-style: none; margin: 0; padding: 0; }
+
+.nova-campanha__tips li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 14px;
+    font-size: 0.83rem;
+    line-height: 1.45;
+    color: #48566d;
+}
+
+.nova-campanha__tips li ::deep .mud-icon-root {
+    flex: 0 0 auto;
+    color: var(--cs-blue, #2563eb);
+    font-size: 1.15rem;
+    margin-top: 1px;
+}
+
+@keyframes nova-rise {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 960px) {
+    .nova-campanha { grid-template-columns: 1fr; }
+    .nova-campanha__side { position: static; }
+    .nova-campanha__card { padding: 24px 20px 28px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .nova-campanha { animation: none; }
+}

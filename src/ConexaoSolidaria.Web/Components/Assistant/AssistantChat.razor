@@ -1,58 +1,77 @@
-@* Chat do Assistente Solidario (IA). O estado da conversa vive no AssistantChatService
-   (scoped por circuito); este componente so renderiza e faz o throttle do streaming. *@
+@* Chat do Assistente Solidario (IA), estilo ChatGPT. O estado da conversa vive no
+   AssistantChatService (scoped por circuito); este componente so renderiza e faz o
+   throttle do streaming. *@
 @using ConexaoSolidaria.Web.Services.Ai
+@using Microsoft.AspNetCore.Components.Web
 @implements IDisposable
 @inject AssistantChatService Chat
 
-<div class="d-flex flex-column" style="height:100%; min-height:0">
+<div class="cs-chat d-flex flex-column">
     @* column-reverse mantem o scroll ancorado no fim durante o streaming (sem JS). *@
-    <div style="flex:1 1 auto; overflow-y:auto; display:flex; flex-direction:column-reverse; min-height:0">
-        <div class="d-flex flex-column pa-3" style="gap:10px">
+    <div class="cs-chat__scroll" style="display:flex; flex-direction:column-reverse">
+        <div class="cs-chat__thread">
             @if (Chat.Mensagens.Count == 0)
             {
-                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="pa-2" Style="text-align:center">
-                    Ola! Sou o Assistente Solidario. Posso buscar campanhas, mostrar quanto
-                    cada uma arrecadou e consultar suas doacoes. Como posso ajudar?
-                </MudText>
+                <div class="cs-chat__welcome">
+                    <div class="cs-chat__welcome-avatar">
+                        <MudIcon Icon="@Icons.Material.Filled.SmartToy" />
+                    </div>
+                    <h3>Ola! Sou o Assistente Solidario</h3>
+                    <p>Posso buscar campanhas, mostrar quanto cada uma arrecadou e consultar suas doacoes.</p>
+
+                    <div class="cs-chat__suggestions">
+                        @foreach (var s in Sugestoes)
+                        {
+                            <button type="button" class="cs-chat__suggestion"
+                                    disabled="@Chat.Ocupado"
+                                    @onclick="@(() => EnviarTextoAsync(s.Texto))">
+                                <MudIcon Icon="@s.Icone" Size="Size.Small" />
+                                <span>@s.Texto</span>
+                            </button>
+                        }
+                    </div>
+                </div>
             }
 
             @foreach (var msg in Chat.Mensagens)
             {
                 var doUsuario = msg.Role == "user";
-                <MudPaper Elevation="0"
-                          Class="pa-3"
-                          Style="@($"max-width:85%; border-radius:14px; white-space:pre-wrap; overflow-wrap:anywhere; {(doUsuario ? "align-self:flex-end; background:var(--mud-palette-primary); color:var(--mud-palette-primary-text);" : $"align-self:flex-start; background:var(--mud-palette-background-gray); {(msg.IsError ? "color:var(--mud-palette-error);" : string.Empty)}")}")">
-                    <MudText Typo="Typo.body2" Style="color:inherit">@msg.Text</MudText>
-                </MudPaper>
-            }
-
-            @if (Chat.Ocupado && Chat.Mensagens.Count > 0 && string.IsNullOrEmpty(Chat.Mensagens[^1].Text))
-            {
-                <div class="d-flex align-center" style="gap:8px; align-self:flex-start">
-                    <MudProgressCircular Size="Size.Small" Indeterminate="true" />
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">pensando...</MudText>
+                <div class="cs-msg @(doUsuario ? "cs-msg--user" : "cs-msg--bot")">
+                    <div class="cs-msg__avatar">
+                        <MudIcon Icon="@(doUsuario ? Icons.Material.Filled.Person : Icons.Material.Filled.SmartToy)" Size="Size.Small" />
+                    </div>
+                    @if (!doUsuario && string.IsNullOrEmpty(msg.Text) && Chat.Ocupado)
+                    {
+                        <div class="cs-msg__bubble cs-typing">
+                            <span></span><span></span><span></span>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="cs-msg__bubble @(msg.IsError ? "cs-msg__bubble--error" : string.Empty)">@msg.Text</div>
+                    }
                 </div>
             }
         </div>
     </div>
 
-    <MudDivider />
-
-    <div class="d-flex align-center pa-2" style="gap:6px">
+    <div class="cs-chat__composer">
         <MudTextField T="string"
                       @bind-Value="_texto"
                       Placeholder="Pergunte sobre campanhas ou doacoes..."
-                      Variant="Variant.Outlined"
+                      Variant="Variant.Text"
                       Margin="Margin.Dense"
                       Immediate="true"
+                      Underline="false"
                       Disabled="@Chat.Ocupado"
                       OnKeyDown="OnKeyDown"
                       Style="flex:1" />
-        <MudIconButton Icon="@Icons.Material.Filled.Send"
-                       Color="Color.Primary"
-                       Disabled="@(Chat.Ocupado || string.IsNullOrWhiteSpace(_texto))"
-                       OnClick="EnviarAsync"
-                       aria-label="Enviar mensagem" />
+        <button type="button" class="cs-chat__send"
+                disabled="@(Chat.Ocupado || string.IsNullOrWhiteSpace(_texto))"
+                @onclick="EnviarAsync"
+                aria-label="Enviar mensagem">
+            <MudIcon Icon="@Icons.Material.Filled.Send" Size="Size.Small" />
+        </button>
     </div>
 </div>
 
@@ -60,6 +79,14 @@
     private readonly CancellationTokenSource _cts = new();
     private string _texto = string.Empty;
     private long _ultimoRender;
+
+    private static readonly (string Texto, string Icone)[] Sugestoes =
+    {
+        ("Quais campanhas estao ativas?", Icons.Material.Filled.Campaign),
+        ("Campanhas de saude e educacao", Icons.Material.Filled.Favorite),
+        ("Quais ja bateram a meta?", Icons.Material.Filled.EmojiEvents),
+        ("Ver minhas doacoes", Icons.Material.Filled.VolunteerActivism),
+    };
 
     private async Task OnKeyDown(KeyboardEventArgs e)
     {
@@ -69,9 +96,10 @@
         }
     }
 
-    private async Task EnviarAsync()
+    private Task EnviarAsync() => EnviarTextoAsync(_texto);
+
+    private async Task EnviarTextoAsync(string texto)
     {
-        var texto = _texto;
         if (string.IsNullOrWhiteSpace(texto) || Chat.Ocupado)
         {
             return;
