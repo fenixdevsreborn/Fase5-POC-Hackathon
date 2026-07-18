@@ -16,35 +16,36 @@ Deixe estes itens prontos antes de iniciar a gravacao:
 kubectl config use-context docker-desktop
 ```
 
-4. Imagens locais criadas:
+4. As 5 imagens publicadas no Docker Hub (`junonn5/conexao-solidaria-<svc>:latest`, repositorios publicos):
 
 ```powershell
-docker build -f src/ConexaoSolidaria.Identity.Api/Dockerfile -t conexao-solidaria/identity-api:local .
-docker build -f src/ConexaoSolidaria.Campaigns.Api/Dockerfile -t conexao-solidaria/campaigns-api:local .
-docker build -f src/ConexaoSolidaria.Donations.Worker/Dockerfile -t conexao-solidaria/donations-worker:local .
+$env:DOCKERHUB_TOKEN = "<seu_PAT_do_docker_hub>"   # nunca versionar
+pwsh infra/k8s/push-dockerhub.ps1                  # identity-api, campaigns-api, donations-worker, gateway, web
 ```
 
-5. Aplicacao subida (Kustomize; imagens das 5 apps ja buildadas/carregadas — ver ReadmeKubernetes.md):
+5. Aplicacao subida com **um comando** (gera o Secret a partir do `.env`, instala o Keel, aplica o Kustomize e ja libera os port-forwards):
 
 ```powershell
-# Secret a partir do template + deploy do overlay local
-Copy-Item infra/k8s/secret.example.yaml infra/k8s/secret.yaml   # preencher os placeholders
-kubectl create namespace conexao-solidaria
-kubectl apply -f infra/k8s/secret.yaml
-kubectl apply -k infra/k8s/overlays/local
-kubectl wait --for=condition=Ready pod --all -n conexao-solidaria --timeout=300s
+pwsh infra/k8s/up.ps1
 ```
+
+> O `up.ps1` substitui o passo a passo manual (namespace + Secret + `apply -k` + espera das migracoes + port-forwards). O passo a passo equivalente esta em `ReadmeKubernetes.md`, caso queira mostra-lo no video.
 
 6. Abas sugeridas abertas:
    - GitHub Actions do repositorio.
    - `docs/arquitetura.md`.
    - Terminal.
-   - Identity Swagger: http://localhost:30081/swagger
-   - Campaigns Swagger: http://localhost:30082/swagger
-   - RabbitMQ: http://localhost:31672
-   - Grafana: http://localhost:30300
-   - Prometheus: http://localhost:30090
-   - Zabbix: http://localhost:30085
+   - Docker Hub: https://hub.docker.com/u/junonn5 (as 5 imagens publicadas)
+   - App (Blazor): http://localhost:18088
+   - Gateway (API): http://localhost:18080/api/...
+   - Identity Swagger: http://localhost:18081/swagger
+   - Campaigns Swagger: http://localhost:18082/swagger
+   - RabbitMQ: http://localhost:15672
+   - Grafana: http://localhost:3000
+   - Prometheus: http://localhost:9090
+   - Zabbix: http://localhost:8085 (requer port-forward manual: `kubectl port-forward -n conexao-solidaria svc/zabbix-web 8085:8080`)
+
+> Todos os enderecos acima (exceto Zabbix) ja sobem prontos com o `up.ps1` — nao e preciso abrir `port-forward` na mao durante a gravacao.
 
 Credenciais uteis (os valores reais vem do `.env`; veja `.env.example` e `SECURITY.md`. Nunca commite credenciais reais):
 
@@ -118,28 +119,31 @@ Mostrar: GitHub Actions do repositorio e arquivo `.github/workflows/ci.yml`.
 
 Fala sugerida:
 
-> O desafio exige uma esteira acionada a cada push na branch principal. Aqui temos o workflow de CI configurado no GitHub Actions. Ele executa restore, build, testes e tambem gera as imagens Docker das tres aplicacoes: Identity API, Campaigns API e Donations Worker.
+> O desafio exige uma esteira acionada a cada push na branch principal. Aqui temos o workflow de CI configurado no GitHub Actions. Ele roda em jobs encadeados: qualidade (restore, build, lint e scan de vulnerabilidades), testes (unitarios e de integracao com Testcontainers), build das cinco imagens Docker e validacao dos manifestos Kubernetes. Na branch `main`, um job de publish envia as cinco imagens para o registry.
 
 Mostrar no arquivo:
 
 ```text
 dotnet restore ConexaoSolidaria.slnx
 dotnet build ConexaoSolidaria.slnx --configuration Release --no-restore
-dotnet test ConexaoSolidaria.slnx --configuration Release --no-build --logger trx
-docker build -f src/ConexaoSolidaria.Identity.Api/Dockerfile
-docker build -f src/ConexaoSolidaria.Campaigns.Api/Dockerfile
-docker build -f src/ConexaoSolidaria.Donations.Worker/Dockerfile
+dotnet test ConexaoSolidaria.slnx --configuration Release --collect:"XPlat Code Coverage"
+# matrix das 5 imagens: identity-api, campaigns-api, donations-worker, gateway, web
+docker/build-push-action  ->  build (PR)  |  build + push GHCR (main)
+kustomize build infra/k8s/overlays/local  |  kubeconform
 ```
 
 Fala sugerida:
 
-> Aqui no historico do GitHub Actions podemos ver a execucao concluida com sucesso, comprovando que o projeto compila, executa os testes e gera as imagens Docker automaticamente.
+> Aqui no historico do GitHub Actions podemos ver a execucao concluida com sucesso, comprovando que o projeto compila, executa os testes, gera as cinco imagens Docker e valida os manifestos do Kubernetes automaticamente.
+
+> Vale destacar a estrategia de imagens: o **CI publica no GHCR** a cada merge na `main`, enquanto o **ambiente local consome o Docker Hub** (`junonn5/conexao-solidaria-*`), que e de onde o cluster baixa as imagens na demo. Sao dois destinos do mesmo build.
 
 Requisitos comprovados neste bloco:
 
 - Pipeline automatizado.
 - Build .NET.
-- Docker build no CI.
+- Docker build das 5 imagens no CI + push para registry.
+- Validacao de manifestos Kubernetes no CI.
 - Testes no CI como requisito opcional implementado.
 
 ## 4. Kubernetes
@@ -152,30 +156,49 @@ Executar:
 kubectl config current-context
 kubectl get pods -n conexao-solidaria
 kubectl get svc -n conexao-solidaria
+kubectl get pods -n keel                      # o operador de auto-update
 ```
 
 Fala sugerida:
 
 > Agora vamos demonstrar a aplicacao rodando no Kubernetes local do Docker Desktop. O contexto atual e `docker-desktop`, e todos os recursos foram criados no namespace `conexao-solidaria`.
 
-> No comando `kubectl get pods`, vemos os pods da Identity API, Campaigns API, Donations Worker, PostgreSQL, RabbitMQ, Prometheus, Grafana e Zabbix. Isso comprova que a solucao esta orquestrada no Kubernetes.
+> No comando `kubectl get pods`, vemos os doze pods rodando: as cinco aplicacoes — Identity API, Campaigns API, Donations Worker, Gateway e Web — mais PostgreSQL, RabbitMQ, Elasticsearch, Prometheus, Grafana e Zabbix. Isso comprova que a solucao esta orquestrada no Kubernetes.
 
-> No comando `kubectl get svc`, vemos os services e os NodePorts usados para acesso local aos recursos.
+> No comando `kubectl get svc`, vemos os services. Todos sao ClusterIP, porque ha uma NetworkPolicy de `default-deny` — o acesso na demo e feito por port-forward, que o script `up.ps1` ja deixa liberado automaticamente.
 
-URLs para mencionar:
+> Repare tambem no namespace `keel`: e um operador que observa o Docker Hub. Quando eu publico uma imagem nova, ele detecta a mudanca e atualiza os pods sozinho, sem nenhum comando manual.
 
-- Identity Swagger: http://localhost:30081/swagger
-- Campaigns Swagger: http://localhost:30082/swagger
-- RabbitMQ: http://localhost:31672
-- Prometheus: http://localhost:30090
-- Grafana: http://localhost:30300
-- Zabbix: http://localhost:30085
+Demonstracao opcional do auto-update (efeito visual forte, ~1 min):
+
+```powershell
+# terminal 1 - deixa rodando
+kubectl get pods -n conexao-solidaria -w
+kubectl logs -n keel deploy/keel -f
+
+# terminal 2 - republica uma imagem apos uma alteracao no codigo
+pwsh infra/k8s/push-dockerhub.ps1
+```
+
+> Assim que o push termina, o Keel percebe o novo digest da tag `latest` e recria o pod automaticamente — e o ciclo de entrega continua ate o cluster sem intervencao manual.
+
+URLs para mencionar (ja liberadas pelo `up.ps1`):
+
+- App (Blazor): http://localhost:18088
+- Gateway (API): http://localhost:18080/api/...
+- Identity Swagger: http://localhost:18081/swagger
+- Campaigns Swagger: http://localhost:18082/swagger
+- RabbitMQ: http://localhost:15672
+- Prometheus: http://localhost:9090
+- Grafana: http://localhost:3000
+- Zabbix: http://localhost:8085 (port-forward manual)
 
 Requisitos comprovados neste bloco:
 
 - Deployments e Services no Kubernetes.
 - Aplicacao rodando no cluster local.
 - Infraestrutura de apoio rodando no mesmo ambiente.
+- Entrega continua ate o cluster (registry + auto-update com Keel).
 
 ## 5. Observabilidade
 
@@ -183,7 +206,7 @@ Mostrar: Prometheus, Grafana e Zabbix.
 
 ### 5.1. Prometheus
 
-Abrir: http://localhost:30090
+Abrir: http://localhost:9090
 
 Executar query:
 
@@ -207,7 +230,7 @@ Fala sugerida:
 
 ### 5.2. Grafana
 
-Abrir: http://localhost:30300
+Abrir: http://localhost:3000
 
 Login:
 
@@ -231,7 +254,7 @@ Observacao:
 
 ### 5.3. Zabbix
 
-Abrir: http://localhost:30085
+Abrir: http://localhost:8085
 
 Login:
 
@@ -266,7 +289,7 @@ Este bloco e o mais importante. A demonstracao deve mostrar autenticacao, criaca
 
 ### 6.1. Login do gestor
 
-Mostrar: Identity Swagger em http://localhost:30081/swagger
+Mostrar: Identity Swagger em http://localhost:18081/swagger
 
 Endpoint:
 
@@ -298,7 +321,7 @@ Requisito comprovado:
 
 ### 6.2. Criacao de campanha
 
-Mostrar: Campaigns Swagger em http://localhost:30082/swagger
+Mostrar: Campaigns Swagger em http://localhost:18082/swagger
 
 Acao:
 
@@ -398,7 +421,7 @@ Fala sugerida:
 
 > Para deixar a passagem da mensagem visivel no RabbitMQ, vamos pausar temporariamente o worker. Assim, quando a API publicar o evento de doacao, a mensagem ficara na fila ate religarmos o consumer.
 
-Mostrar: RabbitMQ em http://localhost:31672
+Mostrar: RabbitMQ em http://localhost:15672
 
 Acao:
 
@@ -569,12 +592,12 @@ Mostrar:
 
 Fala sugerida:
 
-> O outro item opcional era o uso de API Gateway. Nesta versao do MVP, optamos por nao adicionar um gateway para manter a entrega mais direta e focada nos requisitos obrigatorios. As APIs estao acessiveis separadamente via seus services no Kubernetes.
+> O outro item opcional era o uso de API Gateway, e ele **esta implementado**: usamos o YARP como gateway de entrada das APIs. Todo o trafego externo passa por `/api`, e o gateway roteia para a Identity API e a Campaigns API por service discovery, sem expor as APIs diretamente. No Kubernetes ele e o unico ponto de entrada junto com o Web, via Ingress nginx.
 
 Requisitos opcionais:
 
 - Testes de unidade: implementado.
-- API Gateway: nao implementado nesta versao.
+- API Gateway (YARP): implementado — imagem propria, Deployment `gateway`, rota `/api/*`.
 
 ## 9. Encerramento
 
@@ -614,20 +637,35 @@ Use este checklist antes de finalizar a gravacao:
 | Grafana | Dashboard com metricas reais |
 | Zabbix | Tela web e checks de saude, se configurados |
 | CI/CD | GitHub Actions |
-| Docker build no CI | Steps de Docker build |
+| Docker build no CI | Matrix de build das 5 imagens + job publish |
+| Registry e entrega continua | Imagens no Docker Hub + auto-update com Keel |
 | Testes opcionais | `dotnet test` e workflow |
-| API Gateway opcional | Informar que nao foi implementado |
+| API Gateway opcional | YARP (`gateway`) roteando `/api/*` |
 
 ## Comandos uteis para a gravacao
 
 ```powershell
+# Subir / derrubar a stack inteira (o up.ps1 ja libera os port-forwards)
+pwsh infra/k8s/up.ps1
+pwsh infra/k8s/down.ps1
+
+# Publicar imagem nova (o Keel atualiza os pods em ~1 min)
+$env:DOCKERHUB_TOKEN = "<PAT>"
+pwsh infra/k8s/push-dockerhub.ps1
+
 kubectl config use-context docker-desktop
 kubectl get pods -n conexao-solidaria
 kubectl get svc -n conexao-solidaria
+kubectl get pods -n keel
+kubectl logs -n keel deploy/keel -f
 kubectl logs -f deployment/donations-worker -n conexao-solidaria
 kubectl scale deployment/donations-worker --replicas=0 -n conexao-solidaria
 kubectl scale deployment/donations-worker --replicas=1 -n conexao-solidaria
 kubectl rollout status deployment/donations-worker -n conexao-solidaria
+
+# Zabbix nao entra nos forwards automaticos
+kubectl port-forward -n conexao-solidaria svc/zabbix-web 8085:8080
+
 dotnet test ConexaoSolidaria.slnx
 ```
 

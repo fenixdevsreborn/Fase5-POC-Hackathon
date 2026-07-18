@@ -219,7 +219,9 @@ kubectl rollout restart deployment/grafana -n conexao-solidaria
 
 Compose: Grafana em `http://localhost:3000`, Prometheus em `http://localhost:9090`.
 
-Kubernetes (via `kubectl port-forward`, que nao passa pela NetworkPolicy):
+Kubernetes (via `kubectl port-forward`, que nao passa pela NetworkPolicy). O
+`pwsh infra/k8s/up.ps1` **ja sobe estes tres automaticamente** — as URLs ficam prontas sem
+comando extra. Equivalentes manuais (ex.: se usar `-NoForward`):
 
 ```bash
 kubectl port-forward -n conexao-solidaria svc/grafana    3000:3000

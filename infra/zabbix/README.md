@@ -10,7 +10,14 @@ Este diretorio adiciona o **template de monitoracao** que transforma o Zabbix de
 | Ambiente        | URL                          | Login padrao |
 |-----------------|------------------------------|--------------|
 | docker-compose  | http://localhost:8085        | `Admin` / `zabbix` |
-| kubernetes      | http://<node-ip>:30085       | `Admin` / `zabbix` |
+| kubernetes      | http://localhost:8085        | `Admin` / `zabbix` |
+
+No Kubernetes o `zabbix-web` e ClusterIP e **nao** entra nos port-forwards automaticos do
+`up.ps1` — abra o dele manualmente:
+
+```powershell
+kubectl port-forward -n conexao-solidaria svc/zabbix-web 8085:8080
+```
 
 ## O que o template monitora
 

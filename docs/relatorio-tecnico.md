@@ -196,7 +196,10 @@ Para cada fase: **o problema**, **o que foi feito** e a **evidência/verificaç�
   - **tests** — unit + integração (Testcontainers), coverage XPlat, artifact de resultados.
   - **containers** — matrix das **5 imagens** (Buildx + cache), sem push.
   - **kubernetes-validation** — `kustomize build` + `kubeconform`.
-  - **publish** — só em `main`: push das 5 imagens para o **GHCR**.
+  - **publish** — só em `main`: push das 5 imagens para o **GHCR** (tags `:sha` e `:latest`).
+  - **Registry do ambiente local:** o cluster consome o **Docker Hub**
+    (`junonn5/conexao-solidaria-*:latest`, via `infra/k8s/push-dockerhub.ps1`), observado pelo
+    **Keel** para auto-update. GHCR = rastreabilidade por commit; Docker Hub = consumo local.
   - **Dependabot** (nuget/actions/docker), PR template Spec-Driven, badge de CI no README.
 - **Evidência:** `.github/workflows/ci.yml` (jobs `quality`, `tests`, `containers`,
   `kubernetes-validation`, `publish`).
@@ -348,8 +351,15 @@ no start — ao vir de uma stack antiga criada com `EnsureCreated`, recriar os v
 
 ### 8.3 Kubernetes (Kustomize) — **deploy validado ao vivo**
 
-Fluxo: build das 5 imagens → carga no node → Secret → `kubectl apply -k infra/k8s/overlays/local`
-(`smoke.ps1` opcional).
+Fluxo: publicação das 5 imagens no **Docker Hub** (`push-dockerhub.ps1`) → Secret → **Keel** →
+`kubectl apply -k infra/k8s/overlays/local` (`smoke.ps1` opcional). Tudo isso em um comando:
+`pwsh infra/k8s/up.ps1`, que ainda deixa os port-forwards liberados ao final.
+
+As imagens vivem em `junonn5/conexao-solidaria-<svc>:latest` (repositórios públicos) e os
+Deployments usam `imagePullPolicy: Always` — o antigo passo de `docker save | ctr images import`
+no node kind foi **eliminado**. O **Keel** (`infra/k8s/keel/keel.yaml`) observa essas tags via
+poll (`keel.sh/pollSchedule: "@every 1m"`, política `force`) e recria os pods automaticamente
+quando o digest de `:latest` muda — entrega contínua até o cluster local.
 
 **Resultado do deploy validado** (Docker Desktop k8s v1.36.1):
 

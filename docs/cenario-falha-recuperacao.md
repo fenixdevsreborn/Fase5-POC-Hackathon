@@ -21,8 +21,9 @@ Outbox + filas com retry/DLQ + idempotencia garantem entrega e consistencia.
 
 ```bash
 export NS=conexao-solidaria
-export CAMPAIGNS=http://localhost:5002          # compose; k8s: http://<node>:30082
-export RMQ=http://localhost:15672               # compose; k8s: http://<node>:31672
+export CAMPAIGNS=http://localhost:5002          # compose; k8s: http://localhost:18082 (port-forward)
+export RMQ=http://localhost:15672               # compose; k8s: http://localhost:15672 (port-forward)
+# No k8s, o `up.ps1` ja deixa esses port-forwards ativos (campaigns-api 18082, rabbitmq 15672).
 ```
 
 Estado saudavel esperado no inicio: fila `doacoes-recebidas` com `consumers >= 1`

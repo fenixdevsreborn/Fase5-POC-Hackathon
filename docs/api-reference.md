@@ -10,8 +10,10 @@ Complementa `docs/funcionalidades.md` (o que cada endpoint entrega, por persona)
 `docs/decisoes-arquiteturais.md` (`AD-NN`). Os *shapes* abaixo refletem os DTOs reais
 (`Requests/*`, `Responses/*`) e as entidades de `ConexaoSolidaria.Shared.Domain`.
 
-> Base URL local (k8s overlay): Gateway em `http://localhost:30080`. Todas as rotas são relativas
-> a essa base.
+> Base URL local (k8s): Gateway em `http://localhost:18080` — port-forward que o
+> `infra/k8s/up.ps1` já deixa ativo. (Alternativa sem port-forward: NodePort do overlay local em
+> `http://localhost:30080`, que exige o nginx ingress controller por causa da NetworkPolicy.)
+> Todas as rotas são relativas a essa base.
 
 ---
 

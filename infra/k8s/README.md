@@ -27,47 +27,74 @@ infra/k8s/
     kustomization.yaml
   overlays/
     local/
-      kustomization.yaml     # namespace, images :local, patches
-      resource-patches.yaml  # NodePort (gateway/web) + ES enxuto p/ dev
+      kustomization.yaml     # namespace, images -> Docker Hub (junonn5/...:latest), patches
+      resource-patches.yaml  # NodePort (gateway/web) + ES enxuto + imagePullPolicy: Always
+  keel/
+    keel.yaml                # Keel: auto-update dos pods quando :latest muda no registry
   secret.example.yaml        # Template do Secret (NAO versionar o real)
+  up.ps1                     # Sobe tudo: (publish) + Secret + Keel + apply -k + port-forwards
+  down.ps1                   # Derruba a stack e encerra os port-forwards
+  push-dockerhub.ps1         # Build + push das 5 imagens para o Docker Hub
   smoke.ps1                  # Aplica + aguarda rollout + checa pods
+```
+
+## Imagens: Docker Hub + auto-update (Keel)
+
+As 5 imagens da aplicacao sao publicadas no **Docker Hub** como
+`junonn5/conexao-solidaria-<svc>:latest` (repositorios **publicos**). O node baixa direto
+do registry — **nao ha mais** `docker save | ctr images import`.
+
+```powershell
+$env:DOCKERHUB_TOKEN = "<PAT>"        # token via env; nunca versionado
+pwsh infra/k8s/push-dockerhub.ps1     # build + push das 5 imagens
+```
+
+O **Keel** (`keel/keel.yaml`, namespace `keel`) observa essas tags. Os 5 Deployments tem
+`keel.sh/policy: force`, `keel.sh/trigger: poll` e `keel.sh/pollSchedule: "@every 1m"`:
+ao republicar, o digest de `:latest` muda e o Keel recria os pods sozinho em ~1 min.
+Com `imagePullPolicy: Always`, o pull traz de fato a versao nova.
+
+```powershell
+kubectl logs -n keel deploy/keel -f   # acompanha as atualizacoes detectadas
 ```
 
 ## Subir tudo com 1 comando (recomendado)
 
 O script `up.ps1` executa o fluxo completo **incluindo o Secret** (gerado a partir do
-`.env` da raiz do repo): contexto -> build das 5 imagens (na raiz) -> import no node kind
--> namespace + Secret -> `apply -k` -> espera migracoes -> reinicia as APIs -> reporta pods/URLs.
+`.env` da raiz do repo): contexto -> (opcional) publish no Docker Hub -> namespace + Secret
+-> instala o Keel -> `apply -k` -> espera migracoes -> reinicia as APIs -> reporta pods/URLs
+-> **sobe os port-forwards em segundo plano**.
 
 ```powershell
-pwsh infra/k8s/up.ps1              # build + deploy completo
-pwsh infra/k8s/up.ps1 -SkipBuild   # redeploy sem reconstruir as imagens
+pwsh infra/k8s/up.ps1              # deploy puxando as imagens do Docker Hub
+pwsh infra/k8s/up.ps1 -Publish     # publica no Docker Hub antes de subir (usa DOCKERHUB_TOKEN)
+pwsh infra/k8s/up.ps1 -NoForward   # nao inicia os port-forwards automaticos
+                                   # (-SkipBuild ainda e aceito, mas virou no-op)
 
-pwsh infra/k8s/down.ps1            # derruba (preserva PVCs)
+pwsh infra/k8s/down.ps1            # derruba (preserva PVCs) e encerra os port-forwards
 pwsh infra/k8s/down.ps1 -PurgeData # derruba e apaga PVCs + namespace
 ```
 
 Pre-requisitos: Kubernetes habilitado no Docker Desktop, `kubectl` no PATH, `.env`
-preenchido na raiz (ver `.env.example`) e Docker Compose parado (`docker compose down`).
+preenchido na raiz (ver `.env.example`), imagens ja publicadas no Docker Hub (ou use
+`-Publish`) e Docker Compose parado (`docker compose down`).
 
 ## Passo a passo manual (Docker Desktop)
 
 ```powershell
 kubectl config use-context docker-desktop
 
-# 1) Build das imagens (contexto na raiz do repo)
-docker build -f src/ConexaoSolidaria.Identity.Api/Dockerfile   -t conexao-solidaria/identity-api:local .
-docker build -f src/ConexaoSolidaria.Campaigns.Api/Dockerfile  -t conexao-solidaria/campaigns-api:local .
-docker build -f src/ConexaoSolidaria.Donations.Worker/Dockerfile -t conexao-solidaria/donations-worker:local .
-docker build -f src/ConexaoSolidaria.Gateway/Dockerfile        -t conexao-solidaria/gateway:local .
-docker build -f src/ConexaoSolidaria.Web/Dockerfile            -t conexao-solidaria/web:local .
+# 1) Publicar as imagens no Docker Hub (contexto de build na raiz do repo)
+$env:DOCKERHUB_TOKEN = "<PAT>"
+pwsh infra/k8s/push-dockerhub.ps1
 
 # 2) Secret (fora do Git). Preencha os placeholders antes de aplicar.
 cp infra/k8s/secret.example.yaml infra/k8s/secret.yaml
 #   edite infra/k8s/secret.yaml
 kubectl apply -f infra/k8s/secret.yaml
 
-# 3) Deploy (Kustomize)
+# 3) Keel (auto-update) + Deploy (Kustomize)
+kubectl apply -f infra/k8s/keel/keel.yaml
 kubectl apply -k infra/k8s/overlays/local
 
 # 4) (Opcional) smoke test automatizado
@@ -97,7 +124,13 @@ Sem ingress controller, o overlay `local` tambem expoe **NodePort** como fallbac
 
 Os servicos internos ficam **ClusterIP** e sao acessados na demo via
 `kubectl port-forward` (o port-forward nao passa por NetworkPolicy, entao a demo
-funciona mesmo com o `default-deny-ingress`):
+funciona mesmo com o `default-deny-ingress`).
+
+> **O `up.ps1` ja sobe 7 destes forwards automaticamente** (web, gateway, identity-api,
+> campaigns-api, grafana, prometheus, rabbitmq) em segundo plano, e eles seguem ativos
+> apos o script terminar. PIDs em `%TEMP%\conexao-solidaria-portforward.pids`, logs em
+> `%TEMP%\conexao-solidaria-pf-logs\`. Desative com `-NoForward`; encerre com `down.ps1`.
+> **Zabbix e Elasticsearch nao entram na lista automatica** — rode-os manualmente.
 
 ```powershell
 # App e API (uso geral / Postman)

@@ -2,7 +2,11 @@
 
 Playbook para subir o **Conexão Solidária** no Kubernetes local do **Docker Desktop**.
 Este é o **processo real validado ao vivo** (Docker Desktop Kubernetes **v1.36.1**,
-baseado em `kind`): build das 5 imagens → carga no node → Secret → `kubectl apply -k`.
+baseado em `kind`): publicação das 5 imagens no **Docker Hub** → Secret → **Keel** →
+`kubectl apply -k` → port-forwards automáticos.
+
+> **Atalho:** `pwsh infra/k8s/up.ps1` faz tudo isso em **um comando**. As seções abaixo
+> detalham o passo a passo manual equivalente (útil para entender/depurar cada etapa).
 
 Os manifestos são **Kustomize** (base + overlay), com hardening de produção.
 
@@ -27,9 +31,14 @@ infra/k8s/
     hpa.yaml                 # gateway, identity-api, campaigns-api (por CPU)
     kustomization.yaml
   overlays/local/
-    kustomization.yaml       # namespace, images :local, patches
-    resource-patches.yaml    # NodePort (gateway 30080 / web 30088) + ES enxuto
+    kustomization.yaml       # namespace, images -> Docker Hub (junonn5/...:latest), patches
+    resource-patches.yaml    # NodePort (gateway 30080 / web 30088) + ES enxuto + imagePullPolicy: Always
+  keel/
+    keel.yaml                # Keel: auto-update dos pods quando :latest muda no registry
   secret.example.yaml        # Template do Secret (o secret.yaml real é gitignored)
+  up.ps1                     # sobe tudo: (publish) + Secret + Keel + apply -k + port-forwards
+  down.ps1                   # derruba a stack e encerra os port-forwards
+  push-dockerhub.ps1         # build + push das 5 imagens para o Docker Hub
   smoke.ps1                  # apply + rollout + get
 ```
 
@@ -70,61 +79,54 @@ docker compose down
 >
 > Nunca use `--insecure-skip-tls-verify` fora de um cluster de desenvolvimento local.
 
-## 2. Build das 5 imagens locais
+## 2. Publicar as 5 imagens no Docker Hub
 
-O overlay `local` referencia as imagens com tag `:local` (definidas em
-`overlays/local/kustomization.yaml`). Rode o build a partir da **raiz do repo**:
-
-```powershell
-docker build -f src/ConexaoSolidaria.Identity.Api/Dockerfile     -t conexao-solidaria/identity-api:local .
-docker build -f src/ConexaoSolidaria.Campaigns.Api/Dockerfile    -t conexao-solidaria/campaigns-api:local .
-docker build -f src/ConexaoSolidaria.Donations.Worker/Dockerfile -t conexao-solidaria/donations-worker:local .
-docker build -f src/ConexaoSolidaria.Gateway/Dockerfile          -t conexao-solidaria/gateway:local .
-docker build -f src/ConexaoSolidaria.Web/Dockerfile              -t conexao-solidaria/web:local .
-```
-
-Confira:
+O overlay `local` referencia as imagens publicadas no **Docker Hub**
+(`junonn5/conexao-solidaria-<svc>:latest`, repositórios **públicos**), definidas em
+`overlays/local/kustomization.yaml`. O script faz build + push das cinco de uma vez,
+a partir da **raiz do repo**:
 
 ```powershell
-docker images --filter=reference='conexao-solidaria/*:local'
+$env:DOCKERHUB_TOKEN = "<seu_PAT_do_docker_hub>"   # PAT; nunca versionar
+pwsh infra/k8s/push-dockerhub.ps1
 ```
 
-## 3. Carregar as imagens no cluster (passo crítico)
+O script faz `docker login -u junonn5 --password-stdin` (o token não é gravado em disco;
+o Docker guarda a credencial no credential store) e depois, para cada serviço:
+
+```powershell
+docker build -f src/ConexaoSolidaria.<Svc>/Dockerfile -t junonn5/conexao-solidaria-<svc>:latest .
+docker push junonn5/conexao-solidaria-<svc>:latest
+```
+
+Opções úteis: `-User <outro>` (troca a conta), `-ExtraTag v2025-07-17` (publica `:latest`
+**e** uma tag versionada), `-SkipLogin` (credencial já salva).
+
+Confira o que subiu:
+
+```powershell
+docker buildx imagetools inspect junonn5/conexao-solidaria-web:latest
+```
+
+## 3. Como as imagens chegam ao cluster (não há mais `ctr import`)
 
 O Kubernetes do Docker Desktop roda dentro do node `kind` `desktop-control-plane`, que tem
-seu **próprio** container runtime (`containerd`) - **separado** do daemon do Docker onde as
-imagens foram construídas. Uma imagem que aparece em `docker images` **não** está
-automaticamente visível para os pods; sem carregá-la, os pods ficam em `ErrImageNeverPull`
-/ `ImagePullBackOff` (as imagens usam `imagePullPolicy: IfNotPresent` e não existem em
-nenhum registry).
+seu **próprio** container runtime (`containerd`) — **separado** do daemon do Docker. Por isso,
+uma imagem que só existe em `docker images` **não** fica visível para os pods.
 
-Não usamos a CLI `kind` (não instalada). A carga é feita salvando cada imagem e
-importando-a no `containerd` do node via `ctr` (namespace `k8s.io`):
+Antes, a solução era exportar/importar manualmente (`docker save | ctr -n k8s.io images import`).
+**Isso não é mais necessário:** as imagens vivem num registry público, então o `kubelet`
+as baixa sozinho. Os Deployments do overlay usam `imagePullPolicy: Always`, garantindo que
+um novo push de `:latest` seja de fato baixado.
 
-```powershell
-foreach ($svc in @('identity-api','campaigns-api','donations-worker','gateway','web')) {
-  docker save "conexao-solidaria/$svc:local" | docker exec -i desktop-control-plane ctr -n k8s.io images import -
-}
-```
-
-Equivalente, imagem a imagem:
-
-```powershell
-docker save conexao-solidaria/identity-api:local     | docker exec -i desktop-control-plane ctr -n k8s.io images import -
-docker save conexao-solidaria/campaigns-api:local    | docker exec -i desktop-control-plane ctr -n k8s.io images import -
-docker save conexao-solidaria/donations-worker:local | docker exec -i desktop-control-plane ctr -n k8s.io images import -
-docker save conexao-solidaria/gateway:local          | docker exec -i desktop-control-plane ctr -n k8s.io images import -
-docker save conexao-solidaria/web:local              | docker exec -i desktop-control-plane ctr -n k8s.io images import -
-```
-
-Validar que o node enxerga as imagens:
+Para inspecionar o que o node tem em cache:
 
 ```powershell
 docker exec desktop-control-plane ctr -n k8s.io images ls | Select-String conexao-solidaria
 ```
 
-> Repita este passo **sempre** que reconstruir uma imagem (veja a seção *Rebuild*). Sem
-> reimportar, o cluster continua rodando a versão antiga.
+> **Auto-update:** com o **Keel** instalado (seção 5), você nem precisa reaplicar nada após
+> republicar uma imagem — ele detecta o novo digest e recria os pods. Veja a seção *Rebuild*.
 
 ## 4. Criar o Secret (fora do Git)
 
@@ -139,7 +141,7 @@ Copy-Item infra/k8s/secret.example.yaml infra/k8s/secret.yaml
 kubectl apply -f infra/k8s/secret.yaml
 ```
 
-## 5. Deploy (Kustomize)
+## 5. Deploy (Kustomize) + Keel
 
 Validar o YAML renderizado sem aplicar:
 
@@ -147,15 +149,36 @@ Validar o YAML renderizado sem aplicar:
 kubectl kustomize infra/k8s/overlays/local
 ```
 
-Aplicar a stack completa:
+Instalar o **Keel** (auto-update das imagens) e aplicar a stack completa:
 
 ```powershell
+kubectl apply -f infra/k8s/keel/keel.yaml       # idempotente
 kubectl apply -k infra/k8s/overlays/local
 ```
 
 Um único `apply -k` cria **tudo ao mesmo tempo** (o Kustomize não ordena a aplicação):
 os Jobs de migração `identity-migrations` / `campaigns-migrations` e os Deployments nascem
 juntos. A ordem correta é garantida em runtime pelo desenho de migrações abaixo.
+
+### Keel: auto-update quando sai imagem nova
+
+O Keel roda no namespace `keel` e observa (poll) o registry das imagens dos Deployments
+anotados. Os 5 Deployments de aplicação carregam, em `metadata.annotations`:
+
+```yaml
+keel.sh/policy: force          # tag mutável (:latest): atualiza quando o digest muda
+keel.sh/trigger: poll
+keel.sh/pollSchedule: "@every 1m"
+```
+
+Assim, ao rodar `push-dockerhub.ps1` de novo, o digest de `:latest` muda no Docker Hub, o
+Keel detecta em ~1 min e recria os pods **sozinho** — sem `apply`, sem `rollout restart`,
+sem `ctr import`. Como os repositórios são públicos, não é preciso `imagePullSecret`.
+
+```powershell
+kubectl get pods -n keel                 # keel Running
+kubectl logs  -n keel deploy/keel -f     # mostra as atualizações detectadas
+```
 
 ## 6. Migrações e ordem de subida
 
@@ -185,7 +208,7 @@ Os Jobs são **idempotentes** (EF só aplica migrations pendentes) e têm
 
 ### Resultado observado (deploy validado ao vivo)
 
-Após a carga das imagens + Secret + `apply -k` no Docker Desktop k8s v1.36.1:
+Após a publicação das imagens + Secret + Keel + `apply -k` no Docker Desktop k8s v1.36.1:
 
 - **12 pods Running 1/1**: `postgres`, `rabbitmq`, `elasticsearch`, `identity-api`,
   `campaigns-api`, `donations-worker`, `gateway`, `web`, `prometheus`, `grafana`,
@@ -286,16 +309,37 @@ O overlay `local` também expõe NodePort:
 
 Postgres, RabbitMQ, Elasticsearch, Prometheus, Grafana, Zabbix - e também Web/Gateway,
 quando não há ingress - ficam **ClusterIP**. Acesse via `port-forward` (que **não** passa
-pelas NetworkPolicies). Os Services expõem a porta **80**; os pods escutam 8080:
+pelas NetworkPolicies). Os Services expõem a porta **80**; os pods escutam 8080.
+
+> **O `up.ps1` já sobe 7 desses forwards automaticamente** em segundo plano ao final do
+> deploy, e eles continuam ativos depois que o script termina. Os PIDs ficam em
+> `%TEMP%\conexao-solidaria-portforward.pids` e os logs em `%TEMP%\conexao-solidaria-pf-logs\`.
+> Use `up.ps1 -NoForward` para não subi-los e `down.ps1` para encerrá-los.
+
+| Serviço | URL | Automático no `up.ps1` |
+|---|---|---|
+| Web (Blazor) | http://localhost:18088 | sim |
+| Gateway (API/YARP) | http://localhost:18080/api/... | sim |
+| Swagger Identity | http://localhost:18081/swagger | sim |
+| Swagger Campaigns | http://localhost:18082/swagger | sim |
+| Grafana | http://localhost:3000 | sim |
+| Prometheus | http://localhost:9090 | sim |
+| RabbitMQ Management | http://localhost:15672 | sim |
+| Zabbix Web | http://localhost:8085 | **não** (manual) |
+| Elasticsearch | http://localhost:9200 | **não** (manual) |
+
+Equivalentes manuais (ou para os dois não cobertos):
 
 ```powershell
-kubectl port-forward -n conexao-solidaria svc/web        8080:80      # App (Blazor)
-kubectl port-forward -n conexao-solidaria svc/gateway   18080:80      # API (YARP)
-kubectl port-forward -n conexao-solidaria svc/grafana    3000:3000    # Grafana
-kubectl port-forward -n conexao-solidaria svc/prometheus 9090:9090    # Prometheus
-kubectl port-forward -n conexao-solidaria svc/rabbitmq  15672:15672   # RabbitMQ Management
-kubectl port-forward -n conexao-solidaria svc/zabbix-web 8085:8080    # Zabbix Web
-kubectl port-forward -n conexao-solidaria svc/elasticsearch 9200:9200 # Elasticsearch
+kubectl port-forward -n conexao-solidaria svc/web           18088:80    # App (Blazor)
+kubectl port-forward -n conexao-solidaria svc/gateway       18080:80    # API (YARP)
+kubectl port-forward -n conexao-solidaria svc/identity-api  18081:80    # Swagger Identity
+kubectl port-forward -n conexao-solidaria svc/campaigns-api 18082:80    # Swagger Campaigns
+kubectl port-forward -n conexao-solidaria svc/grafana        3000:3000  # Grafana
+kubectl port-forward -n conexao-solidaria svc/prometheus     9090:9090  # Prometheus
+kubectl port-forward -n conexao-solidaria svc/rabbitmq      15672:15672 # RabbitMQ Management
+kubectl port-forward -n conexao-solidaria svc/zabbix-web     8085:8080  # Zabbix Web
+kubectl port-forward -n conexao-solidaria svc/elasticsearch  9200:9200  # Elasticsearch
 ```
 
 Credenciais vêm do Secret (`grafana-admin-user/password`, `rabbitmq-user/password`,
@@ -336,17 +380,31 @@ Resumo do que a base entrega (detalhes e IDs em `infra/k8s/README.md` e
 
 ## 10. Rebuild após alterar código
 
-Rebuild → **reimportar no node** (passo 3) → reiniciar o deployment:
+Republicar no Docker Hub — o **Keel** faz o resto:
 
 ```powershell
-docker build -f src/ConexaoSolidaria.Campaigns.Api/Dockerfile -t conexao-solidaria/campaigns-api:local .
-docker save conexao-solidaria/campaigns-api:local | docker exec -i desktop-control-plane ctr -n k8s.io images import -
+$env:DOCKERHUB_TOKEN = "<seu_PAT_do_docker_hub>"
+pwsh infra/k8s/push-dockerhub.ps1
+```
+
+Em até ~1 min (`keel.sh/pollSchedule`), o Keel detecta o novo digest de `:latest` e recria
+os pods. Acompanhe:
+
+```powershell
+kubectl get pods -n conexao-solidaria -w
+kubectl logs -n keel deploy/keel -f
+```
+
+Se quiser forçar na hora, sem esperar o poll:
+
+```powershell
 kubectl rollout restart deployment/campaigns-api -n conexao-solidaria
 kubectl rollout status  deployment/campaigns-api -n conexao-solidaria
 ```
 
-> Esquecer o `ctr images import` é a causa nº 1 de "meu fix não subiu": o pod reinicia com a
-> imagem antiga que ainda está no `containerd` do node.
+> Com `imagePullPolicy: Always` + imagem no registry, o `rollout restart` já puxa a versão
+> nova — não existe mais o risco de reiniciar com uma imagem velha presa no `containerd`
+> do node (a antiga causa nº 1 de "meu fix não subiu").
 
 ## 11. TODO / limitações conscientes
 
@@ -364,9 +422,14 @@ kubectl rollout status  deployment/campaigns-api -n conexao-solidaria
 ## 12. Troubleshooting geral
 
 - **Contexto errado:** `kubectl config use-context docker-desktop`.
-- **`ErrImageNeverPull` / `ImagePullBackOff`:** a imagem `:local` não foi importada no node -
-  refaça o passo 3 (`ctr images import`) e confirme com
-  `docker exec desktop-control-plane ctr -n k8s.io images ls`.
+- **`ImagePullBackOff` / `ErrImagePull`:** o node não conseguiu baixar a imagem do Docker Hub.
+  Confirme que ela existe e está pública
+  (`docker buildx imagetools inspect junonn5/conexao-solidaria-<svc>:latest`); se faltar,
+  rode `pwsh infra/k8s/push-dockerhub.ps1`. Cheque também conectividade e o nome/tag no
+  bloco `images:` de `overlays/local/kustomization.yaml`.
+- **Pods não atualizam após um push:** veja `kubectl logs -n keel deploy/keel`; confirme as
+  anotações `keel.sh/*` no Deployment (`kubectl describe deploy/<nome> -n conexao-solidaria`).
+  Para forçar: `kubectl rollout restart deployment/<nome> -n conexao-solidaria`.
 - **Pod em CrashLoopBackOff:** `kubectl logs deployment/<nome> -n conexao-solidaria` e
   `kubectl describe pod <pod> -n conexao-solidaria`. Se for API/Worker no boot, quase sempre
   é espera de schema (seção 7b) - confirme os Jobs de migração `Complete` e faça

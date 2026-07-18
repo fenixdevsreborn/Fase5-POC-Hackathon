@@ -253,14 +253,21 @@ do Zabbix pode demorar (inicializa as tabelas no Postgres). Os **traces** não s
 direto no Tempo: abra o **Grafana → Explore → datasource Tempo**.
 
 ### Kubernetes (Kustomize)
-No Kubernetes a stack de observabilidade fica **ClusterIP**; acesse via `port-forward`
-(deploy completo em `ReadmeKubernetes.md`):
+No Kubernetes a stack de observabilidade fica **ClusterIP**; o acesso é via `port-forward`
+(deploy completo em `ReadmeKubernetes.md`).
+
+> **O `pwsh infra/k8s/up.ps1` já deixa Grafana (`3000`), Prometheus (`9090`) e RabbitMQ
+> (`15672`) liberados automaticamente** em segundo plano — as URLs acima funcionam sem nenhum
+> comando extra. **O Zabbix não entra na lista automática** e precisa do forward manual.
 
 ```powershell
+# Zabbix: necessário (não é automático)
+kubectl port-forward -n conexao-solidaria svc/zabbix-web  8085:8080
+
+# Equivalentes manuais dos que o up.ps1 já sobe (use com -NoForward, por exemplo)
 kubectl port-forward -n conexao-solidaria svc/grafana     3000:3000
 kubectl port-forward -n conexao-solidaria svc/prometheus  9090:9090
 kubectl port-forward -n conexao-solidaria svc/rabbitmq   15672:15672
-kubectl port-forward -n conexao-solidaria svc/zabbix-web  8085:8080
 ```
 
 Credenciais vêm do Secret `conexao-solidaria-secret` (`grafana-admin-*`, `rabbitmq-*`,

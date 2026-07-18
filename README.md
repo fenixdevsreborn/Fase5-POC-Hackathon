@@ -116,7 +116,7 @@ dotnet user-secrets set "Parameters:seed-manager-password" "<senha-forte-do-gest
 
 Os manifestos foram reestruturados em **Kustomize** (`infra/k8s/base/` + `infra/k8s/overlays/local/`), com hardening de producao: StatefulSet + PVC (postgres, rabbitmq), PVC dedicado (elasticsearch), Services `ClusterIP`, **Ingress nginx** como entrada unica (`/api` -> gateway, `/` -> web), probes (startup `/alive`, readiness `/health`, liveness `/alive`), requests/limits, `securityContext` (non-root `runAsUser 10001`, `readOnlyRootFilesystem`, drop ALL), **NetworkPolicies** (default-deny + allow-list, incluindo `web -> rabbitmq` e `migrations -> postgres`), **Jobs de migracao** (`RunMigrationsOnly=true`; deployments com `Migrations__RunOnStartup=false`), **HPA** (gateway, identity-api, campaigns-api por CPU) e PDB.
 
-> **Deploy validado ao vivo** (Docker Desktop k8s v1.36.1): build das 5 imagens -> carga no node -> Secret -> `kubectl apply -k`. Resultado: 12 pods `Running 1/1`, Jobs de migracao `Complete`, E2E de doacao processada em ~3s, read model populado e consumer de notificacoes conectado. Achado operacional: a NetworkPolicy precisa liberar os Jobs de migracao (`app=*-migrations`) para o Postgres; sem isso o schema nao nasce.
+> **Deploy validado ao vivo** (Docker Desktop k8s v1.36.1): publicacao das 5 imagens no Docker Hub -> Secret -> Keel -> `kubectl apply -k`. Resultado: 12 pods `Running 1/1`, Jobs de migracao `Complete`, E2E de doacao processada em ~3s, read model populado e consumer de notificacoes conectado. Achado operacional: a NetworkPolicy precisa liberar os Jobs de migracao (`app=*-migrations`) para o Postgres; sem isso o schema nao nasce.
 
 > O caminho mais simples é `pwsh infra/k8s/up.ps1` (um comando: Secret a partir do `.env`, Keel e `kubectl apply -k`). As imagens vêm do Docker Hub — veja **[Publicar no Docker Hub + auto-update](#publicar-no-docker-hub--auto-update-keel)** logo abaixo. Passo a passo manual equivalente:
 
@@ -293,6 +293,8 @@ O workflow multi-job em `.github/workflows/ci.yml` executa a cada push/pull requ
 - **containers**: build das **5 imagens** (matrix, Buildx + cache) — Identity.Api, Campaigns.Api, Donations.Worker, Gateway e Web.
 - **kubernetes-validation**: `kustomize build` + `kubeconform`.
 - **publish** (so `main`): push das 5 imagens no GHCR.
+
+> **Dois registries, de proposito.** O CI publica no **GHCR** (rastreabilidade por commit: tags `:sha` e `:latest`), enquanto o **ambiente local consome o Docker Hub** (`junonn5/conexao-solidaria-*:latest`, publicado por `push-dockerhub.ps1`) — que e de onde o cluster baixa as imagens e o Keel observa para o auto-update. Para apontar o cluster ao GHCR, basta trocar o bloco `images:` em `infra/k8s/overlays/local/kustomization.yaml`.
 
 Complementos: **Dependabot** (nuget/actions/docker), PR template Spec-Driven e badge do pipeline no topo deste README.
 

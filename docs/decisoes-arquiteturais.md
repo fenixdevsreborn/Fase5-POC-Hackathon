@@ -567,3 +567,37 @@ persona) e `docs/api-reference.md` (contrato HTTP).
   - (−) os testes de integração usam `FakeCampaignSearchRepository`, então **mapeamento e query
     reais não têm cobertura automatizada**; a validação foi feita contra um Elasticsearch 8.15.3
     real (typo, sem acento, stemming, prefixo e categoria).
+
+### AD-36 — Imagens em registry público (Docker Hub) + auto-update no cluster com Keel
+- **Contexto:** o Kubernetes do Docker Desktop roda num node `kind` com **containerd próprio**,
+  separado do daemon do Docker. Como as imagens só existiam localmente (`conexao-solidaria/<svc>:local`,
+  sem registry), era preciso **exportá-las e importá-las manualmente** no node
+  (`docker save | ctr -n k8s.io images import`) a cada build. Isso tinha três problemas: (1) passo
+  manual esquecível — a causa nº 1 de "meu fix não subiu"; (2) com `imagePullPolicy: IfNotPresent`,
+  reusar a **mesma tag** fazia o kubelet manter a imagem antiga, forçando o hack de inventar tags
+  novas a cada alteração (`catv1`, `catv8`); (3) nenhum caminho de entrega contínua até o cluster.
+- **Decisão:** publicar as 5 imagens da aplicação num **registry público** —
+  **Docker Hub** `junonn5/conexao-solidaria-<svc>:latest` — via `infra/k8s/push-dockerhub.ps1`
+  (login com PAT por `--password-stdin`, token nunca versionado), e apontar o overlay local para
+  lá (`newName` + `newTag` no bloco `images:`) com **`imagePullPolicy: Always`**. Para fechar o
+  ciclo, instalar o **Keel** (`infra/k8s/keel/keel.yaml`, namespace `keel`) como operador de
+  auto-update: os 5 Deployments recebem `keel.sh/policy: force`, `keel.sh/trigger: poll` e
+  `keel.sh/pollSchedule: "@every 1m"`. Repositórios **públicos**, então o Keel puxa sem
+  `imagePullSecret`. O `up.ps1` instala o Keel e o passo de `ctr import` foi **removido**.
+  Coexistência de registries proposital: o **CI publica no GHCR** (tags `:sha` + `:latest`,
+  rastreabilidade por commit) e o **ambiente local consome o Docker Hub**.
+- **Consequências:**
+  - (+) elimina o passo manual de import no node e a classe inteira de bug "pod rodando imagem antiga".
+  - (+) **entrega contínua até o cluster local**: republicar a imagem basta — o Keel detecta a
+    mudança de digest de `:latest` em ~1 min e recria os pods, sem `apply` nem `rollout restart`.
+  - (+) some a gambiarra de tags incrementais (`catv1`/`catv8`): `:latest` mutável + digest resolve.
+  - (+) as imagens ficam reproduzíveis fora da máquina do dev (qualquer cluster com internet sobe a stack).
+  - (−) passa a exigir **rede** e um registry disponível; sem internet o cluster não sobe do zero
+    (o cache do containerd cobre reinícios, não um deploy limpo).
+  - (−) repositórios **públicos** expõem os artefatos da POC; para código privado seria preciso
+    repos privados + `imagePullSecret` no namespace e credenciais para o Keel.
+  - (−) `:latest` é uma tag **mutável** — bom para dev/demo, inadequado para produção, onde o certo
+    é tag imutável por commit (`:sha`) com política `keel.sh/policy: minor|patch` sobre semver.
+  - (−) mais um componente no cluster (Keel) com RBAC de `update` em Deployments do cluster inteiro.
+  - Cross-ref: AD-19 (hardening do k8s), AD-28 (Jobs de migração). Detalhes operacionais em
+    `ReadmeKubernetes.md` (seções 2, 3, 5 e 10) e `infra/k8s/README.md`.

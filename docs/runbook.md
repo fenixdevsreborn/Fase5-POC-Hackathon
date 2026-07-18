@@ -39,12 +39,17 @@ do projeto.
 
 ### Acessos rapidos
 
-| Ferramenta          | compose                     | k8s (NodePort) |
-|---------------------|-----------------------------|----------------|
-| RabbitMQ Management | http://localhost:15672      | http://<node>:31672 |
-| Prometheus          | http://localhost:9090       | http://<node>:30090 |
-| Grafana             | http://localhost:3000       | http://<node>:30300 |
-| Zabbix              | http://localhost:8085       | http://<node>:30085 |
+No k8s tudo e ClusterIP (NetworkPolicy `default-deny`); o acesso e por port-forward, que o
+`pwsh infra/k8s/up.ps1` ja deixa ativo — exceto Zabbix, que exige o comando manual.
+
+| Ferramenta          | compose                     | k8s (port-forward)  | automatico no `up.ps1` |
+|---------------------|-----------------------------|---------------------|------------------------|
+| RabbitMQ Management | http://localhost:15672      | http://localhost:15672 | sim |
+| Prometheus          | http://localhost:9090       | http://localhost:9090  | sim |
+| Grafana             | http://localhost:3000       | http://localhost:3000  | sim |
+| Zabbix              | http://localhost:8085       | http://localhost:8085  | **nao** (`kubectl port-forward -n conexao-solidaria svc/zabbix-web 8085:8080`) |
+| App (Blazor)        | http://localhost:5000       | http://localhost:18088 | sim |
+| Gateway (API)       | -                           | http://localhost:18080 | sim |
 
 Credenciais: RabbitMQ = `RABBITMQ_USER`/`RABBITMQ_PASSWORD`; Grafana =
 `GRAFANA_ADMIN_USER`/`GRAFANA_ADMIN_PASSWORD` (do `.env` / Secret).
@@ -462,11 +467,13 @@ degradada por alguns segundos.
   sozinho (half-open, AD-34). Nenhuma acao no indice e necessaria.
 - **Deploy que muda mapeamento/analisador:** exige o mesmo drop + restart acima - `EnsureIndexAsync`
   nao migra indice existente (AD-35).
-- **Atencao ao rebuildar a imagem:** o deployment `campaigns-api` usa a tag **`catv1`** (ver
-  `overlays/local/kustomization.yaml`), nao `local`. Buildar/importar so a `:local` reinicia o pod
-  com a imagem **antiga** e o codigo novo nao entra.
+- **Ao rebuildar a imagem:** publique com `pwsh infra/k8s/push-dockerhub.ps1`. O deployment
+  `campaigns-api` usa `junonn5/conexao-solidaria-campaigns-api:latest` (ver
+  `overlays/local/kustomization.yaml`) com `imagePullPolicy: Always`, e o **Keel** recria o pod
+  em ~1 min ao detectar o novo digest. Para forcar na hora:
+  `kubectl rollout restart deployment/campaigns-api -n $NS`.
 
-**Verificacao (com `kubectl port-forward -n $NS svc/gateway 18080:80`):**
+**Verificacao (o `up.ps1` ja deixa o forward `svc/gateway 18080:80` ativo):**
 ```bash
 # sem acento e com typo devem retornar resultado
 curl -s "http://localhost:18080/api/campanhas/search?q=sao%20paulo&pageSize=3"
