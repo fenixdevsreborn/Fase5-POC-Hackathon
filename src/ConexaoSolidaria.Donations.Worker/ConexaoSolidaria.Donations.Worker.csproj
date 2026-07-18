@@ -13,7 +13,7 @@
          ref, o publish do Worker leva o Relational numa versao menor (trazida pelo Npgsql) e
          o Shared.dll falha em runtime com FileNotFoundException ao montar o CampaignsDbContext.
          Relational e um pacote separado do core, por isso a ref explicita a ele. -->
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.9" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.10" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
     <PackageReference Include="prometheus-net.AspNetCore" Version="8.2.1" />
     <PackageReference Include="RabbitMQ.Client" Version="7.2.1" />
