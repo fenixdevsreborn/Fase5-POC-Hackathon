@@ -1,0 +1,10 @@
+.cs-campaign-form__grid ::deep .mud-input-control { margin-top: 2px; }
+.cs-campaign-form__grid ::deep .mud-input-outlined-border { border-radius: 11px; border-color: #d7e0ed; }
+.cs-campaign-form__grid ::deep .mud-input-root:focus-within .mud-input-outlined-border { border-color: #1971ea; box-shadow: 0 0 0 3px rgba(25, 113, 234, .08); }
+.cs-campaign-form__actions { display: flex; align-items: center; justify-content: flex-end; gap: 9px; margin-top: 28px; padding-top: 20px; border-top: 1px solid #edf1f6; }
+.cs-campaign-form__actions ::deep .mud-button-root { min-height: 44px; border-radius: 11px; font-weight: 700; }
+
+@media (max-width: 520px) {
+    .cs-campaign-form__actions { align-items: stretch; flex-direction: column-reverse; }
+    .cs-campaign-form__actions ::deep .mud-button-root { width: 100%; }
+}

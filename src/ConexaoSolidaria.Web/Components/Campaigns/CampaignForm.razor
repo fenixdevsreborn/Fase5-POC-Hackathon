@@ -8,11 +8,13 @@
         <MudAlert Severity="Severity.Error" Class="mb-4" Variant="Variant.Filled">@ErrorMessage</MudAlert>
     }
 
-    <MudGrid>
+    <MudGrid Class="cs-campaign-form__grid">
         <MudItem xs="12">
             <MudTextField T="string"
                           @bind-Value="_titulo"
                           Label="Título"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
                           Required="true"
                           RequiredError="Informe o título."
                           Immediate="true"
@@ -25,6 +27,8 @@
             <MudTextField T="string"
                           @bind-Value="_descricao"
                           Label="Descrição"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
                           Required="true"
                           RequiredError="Informe a descrição."
                           Lines="4"
@@ -37,6 +41,8 @@
         <MudItem xs="12" sm="6">
             <MudDatePicker @bind-Date="_dataInicio"
                            Label="Data de início"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense"
                            Required="true"
                            RequiredError="Informe a data de início."
                            DateFormat="dd/MM/yyyy"
@@ -46,6 +52,8 @@
         <MudItem xs="12" sm="6">
             <MudDatePicker @bind-Date="_dataFim"
                            Label="Data de término"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense"
                            Required="true"
                            RequiredError="Informe a data de término."
                            DateFormat="dd/MM/yyyy"
@@ -57,6 +65,8 @@
             <MudNumericField T="decimal"
                              @bind-Value="_meta"
                              Label="Meta financeira"
+                             Variant="Variant.Outlined"
+                             Margin="Margin.Dense"
                              Required="true"
                              RequiredError="Informe a meta."
                              Adornment="Adornment.Start"
@@ -70,6 +80,8 @@
             <MudSelect T="string"
                        @bind-Value="_status"
                        Label="Status"
+                       Variant="Variant.Outlined"
+                       Margin="Margin.Dense"
                        Required="true"
                        RequiredError="Selecione o status.">
                 <MudSelectItem T="string" Value="@("Ativa")">Ativa</MudSelectItem>
@@ -82,6 +94,8 @@
             <MudSelect T="string"
                        @bind-Value="_categoria"
                        Label="Categoria"
+                       Variant="Variant.Outlined"
+                       Margin="Margin.Dense"
                        Required="true"
                        RequiredError="Selecione a categoria.">
                 @foreach (var (value, label) in CampaignVisuals.Categorias)
@@ -92,7 +106,7 @@
         </MudItem>
     </MudGrid>
 
-    <div class="d-flex justify-end mt-6" style="gap:8px">
+    <div class="cs-campaign-form__actions">
         <MudButton Variant="Variant.Text" Color="Color.Default" Href="/gestor" Disabled="_enviando">
             Cancelar
         </MudButton>
@@ -200,7 +214,7 @@
 
     private async Task SubmeterAsync()
     {
-        await _form.Validate();
+        await _form.ValidateAsync();
         if (!_form.IsValid)
         {
             return;

@@ -33,9 +33,7 @@
 
         @if (_carregando)
         {
-            <div class="d-flex align-center justify-center pa-8">
-                <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
-            </div>
+            <div class="cs-loading-state"><MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Large" /></div>
         }
         else if (_erro)
         {
@@ -46,21 +44,21 @@
         }
         else if (_campanhas.Count == 0)
         {
-            <MudPaper Class="pa-8 my-4 d-flex flex-column align-center" Elevation="1">
-                <MudIcon Icon="@Icons.Material.Filled.Campaign" Size="Size.Large" Color="Color.Secondary" />
-                <MudText Typo="Typo.h6" Class="mt-2">Nenhuma campanha ainda</MudText>
-                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
-                    Crie a primeira campanha para começar a arrecadar.
-                </MudText>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                           StartIcon="@Icons.Material.Filled.AddCircle" Href="/gestor/campanhas/nova">
-                    Criar campanha
-                </MudButton>
-            </MudPaper>
+            <section class="cs-empty-state"><div>
+                <span class="cs-empty-state__icon"><MudIcon Icon="@Icons.Material.Filled.Campaign" Size="Size.Large" /></span>
+                <h2>Sua primeira campanha começa aqui</h2>
+                <p>Crie uma causa, defina uma meta transparente e comece a mobilizar sua comunidade.</p>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.AddCircle" Href="/gestor/campanhas/nova">Criar campanha</MudButton>
+            </div></section>
         }
         else
         {
-            <MudGrid Class="mb-2">
+            <div class="cs-section-heading gestor-section-heading" data-reveal>
+                <div><span class="cs-kicker">Visão geral</span><h2>Desempenho da sua organização</h2></div>
+                <span class="gestor-live"><i></i> Dados atualizados</span>
+            </div>
+
+            <MudGrid Class="cs-dashboard-kpis mb-3">
                 <MudItem xs="12" sm="6" md="4" lg="2">
                     <KpiCard Titulo="Campanhas ativas" Valor="@_ativas.ToString(Br)"
                              Icone="@Icons.Material.Filled.PlayCircle" Cor="Color.Success" />
@@ -83,22 +81,32 @@
                 </MudItem>
             </MudGrid>
 
-            <MudGrid Class="mb-2">
+            <div class="cs-section-heading" data-reveal>
+                <div><span class="cs-kicker">Leitura visual</span><h2>Arrecadação e metas</h2></div>
+                <p>Compare a distribuição dos recursos e a evolução das campanhas com maior alcance.</p>
+            </div>
+
+            <MudGrid Class="cs-dashboard-charts mb-3">
                 <MudItem xs="12" md="5">
-                    <MudPaper Class="pa-4" Elevation="1" Style="height:100%">
-                        <MudText Typo="Typo.subtitle1" GutterBottom="true">Distribuição do arrecadado</MudText>
+                    <MudPaper Class="cs-chart-panel pa-5" Elevation="0" data-reveal>
+                        <MudText Typo="Typo.subtitle1" GutterBottom="true"><b>Distribuição do arrecadado</b></MudText>
                         <CampaignDistributionChart Campanhas="_campanhas" />
                     </MudPaper>
                 </MudItem>
                 <MudItem xs="12" md="7">
-                    <MudPaper Class="pa-4" Elevation="1" Style="height:100%">
-                        <MudText Typo="Typo.subtitle1" GutterBottom="true">Arrecadado x meta (top campanhas)</MudText>
+                    <MudPaper Class="cs-chart-panel pa-5" Elevation="0" data-reveal>
+                        <MudText Typo="Typo.subtitle1" GutterBottom="true"><b>Arrecadado x meta</b></MudText>
                         <GoalProgressChart Campanhas="_campanhas" />
                     </MudPaper>
                 </MudItem>
             </MudGrid>
 
-            <MudPaper Class="pa-2" Elevation="1">
+            <div class="cs-section-heading" data-reveal>
+                <div><span class="cs-kicker">Gestão diária</span><h2>Campanhas</h2></div>
+                <p>Edite informações, altere o status e acompanhe o progresso individual.</p>
+            </div>
+
+            <div class="cs-data-shell" data-reveal>
                 <MudTable Items="_campanhas" Hover="true" Dense="false" Breakpoint="Breakpoint.Sm" Class="pa-2">
                     <ToolBarContent>
                         <MudText Typo="Typo.subtitle1">Campanhas</MudText>
@@ -165,7 +173,7 @@
                         <MudTablePager />
                     </PagerContent>
                 </MudTable>
-            </MudPaper>
+            </div>
 
             <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mt-3">
                 Métricas de negócio (via API).@(_totalTransparencia > 0
@@ -175,10 +183,12 @@
         }
     </Authorized>
     <NotAuthorized>
-        <MudAlert Severity="Severity.Warning" Class="my-4">
-            Área restrita a gestores de ONG.
-            <MudLink Href="/entrar">Entrar</MudLink>
-        </MudAlert>
+        <section class="cs-access-state"><div>
+            <span class="cs-access-state__icon"><MudIcon Icon="@Icons.Material.Filled.AdminPanelSettings" Size="Size.Large" /></span>
+            <h1>Área de gestão protegida</h1>
+            <p>Entre com o perfil de gestor da ONG para administrar campanhas e visualizar indicadores.</p>
+            <MudButton Href="/entrar?returnUrl=%2Fgestor" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Login">Entrar</MudButton>
+        </div></section>
     </NotAuthorized>
 </AuthorizeView>
 

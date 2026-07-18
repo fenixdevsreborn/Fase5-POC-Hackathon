@@ -3,11 +3,11 @@
 @using ConexaoSolidaria.Web.Components.Common
 @inject ApiClient Api
 
-<PageTitle>Minhas doacoes</PageTitle>
+<PageTitle>Minhas doações</PageTitle>
 
 <AuthorizeView Roles="Doador">
     <Authorized>
-        <MudBreadcrumbs Items="_breadcrumbs" Class="px-0" />
+        <MudBreadcrumbs Items="_breadcrumbs" Class="cs-breadcrumbs px-0" />
         <header class="cs-page-header">
             <div class="cs-page-header__content">
                 <span class="cs-page-header__badge">
@@ -32,9 +32,7 @@
 
         @if (_carregando)
         {
-            <div class="d-flex align-center justify-center pa-8">
-                <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
-            </div>
+            <div class="cs-loading-state"><MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Large" /></div>
         }
         else if (_erro)
         {
@@ -56,7 +54,18 @@
         }
         else
         {
-            <MudPaper Class="pa-2" Elevation="1">
+            <section class="donations-summary" aria-label="Resumo das doações" data-reveal>
+                <article><span class="donations-summary__icon"><MudIcon Icon="@Icons.Material.Filled.Savings" /></span><div><small>Total contribuído</small><strong>@FormatMoeda(TotalDoado)</strong></div></article>
+                <article><span class="donations-summary__icon donations-summary__icon--green"><MudIcon Icon="@Icons.Material.Filled.CheckCircle" /></span><div><small>Processadas</small><strong>@TotalProcessadas</strong></div></article>
+                <article><span class="donations-summary__icon donations-summary__icon--orange"><MudIcon Icon="@Icons.Material.Filled.Schedule" /></span><div><small>Em acompanhamento</small><strong>@TotalPendentes</strong></div></article>
+            </section>
+
+            <div class="cs-section-heading" data-reveal>
+                <div><span class="cs-kicker">Histórico completo</span><h2>Suas contribuições</h2></div>
+                <p>Selecione uma doação para acompanhar cada etapa e acessar o comprovante após o processamento.</p>
+            </div>
+
+            <div class="cs-data-shell" data-reveal>
                 <MudTable Items="_doacoes" Hover="true" Breakpoint="Breakpoint.Sm" Class="pa-2">
                     <HeaderContent>
                         <MudTh>Campanha</MudTh>
@@ -89,21 +98,16 @@
                         <MudTablePager />
                     </PagerContent>
                 </MudTable>
-            </MudPaper>
+            </div>
         }
     </Authorized>
     <NotAuthorized>
-        <MudPaper Elevation="0" Class="pa-8 my-4 d-flex flex-column align-center" Style="border:1px dashed var(--mud-palette-lines-default);border-radius:16px;">
-            <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Large" Color="Color.Secondary" />
-            <MudText Typo="Typo.h6" Class="mt-2">Acesso restrito</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
-                Faca login como doador para ver suas doacoes.
-            </MudText>
-            <MudButton Href="/entrar?returnUrl=%2Fdoador%2Fdoacoes" Variant="Variant.Filled" Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.Login">
-                Entrar
-            </MudButton>
-        </MudPaper>
+        <section class="cs-access-state"><div>
+            <span class="cs-access-state__icon"><MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Large" /></span>
+            <h1>Histórico protegido</h1>
+            <p>Entre com sua conta de doador para consultar suas contribuições.</p>
+            <MudButton Href="/entrar?returnUrl=%2Fdoador%2Fdoacoes" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Login">Entrar</MudButton>
+        </div></section>
     </NotAuthorized>
 </AuthorizeView>
 
@@ -113,11 +117,14 @@
     private bool _carregando = true;
     private bool _erro;
     private IReadOnlyList<MinhaDoacaoDto> _doacoes = Array.Empty<MinhaDoacaoDto>();
+    private decimal TotalDoado => _doacoes.Where(d => d.Status == "Processada").Sum(d => d.ValorDoacao);
+    private int TotalProcessadas => _doacoes.Count(d => d.Status == "Processada");
+    private int TotalPendentes => _doacoes.Count(d => d.Status == "Pendente");
 
     private readonly List<BreadcrumbItem> _breadcrumbs = new()
     {
         new BreadcrumbItem("Meu painel", "/doador"),
-        new BreadcrumbItem("Minhas doacoes", null, disabled: true),
+        new BreadcrumbItem("Minhas doações", null, disabled: true),
     };
 
     protected override async Task OnInitializedAsync() => await CarregarAsync();

@@ -1,0 +1,10 @@
+.cs-empty-state__actions {
+    display: flex;
+    justify-content: center;
+}
+
+.cs-empty-state__actions ::deep .mud-button-root {
+    min-height: 44px;
+    border-radius: 12px;
+    font-weight: 700;
+}

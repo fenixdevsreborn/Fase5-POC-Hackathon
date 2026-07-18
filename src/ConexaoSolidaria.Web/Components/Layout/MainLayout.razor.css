@@ -2,7 +2,10 @@
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-    background: #fff;
+    background:
+        radial-gradient(circle at 8% 20%, rgba(37, 99, 235, .035), transparent 24%),
+        radial-gradient(circle at 92% 62%, rgba(255, 116, 17, .028), transparent 23%),
+        #fff;
 }
 
 .cs-site-header {
@@ -27,7 +30,7 @@
 
 .cs-site-header__inner {
     width: min(100% - 48px, 1500px);
-    min-height: 76px;
+    min-height: 78px;
     margin: 0 auto;
     display: grid;
     grid-template-columns: minmax(180px, 1fr) auto minmax(210px, 1fr);
@@ -51,7 +54,10 @@
     height: 100%;
     object-fit: contain;
     object-position: left center;
+    transition: transform .25s ease;
 }
+
+.cs-brand:hover img { transform: scale(1.025); }
 
 .cs-site-header__desktop-nav {
     display: flex;
@@ -189,7 +195,7 @@
 .cs-page-container {
     width: min(100% - 48px, 1500px);
     margin: 0 auto;
-    padding: 38px 0 72px;
+    padding: 42px 0 80px;
 }
 
 /* Transicao de tela: cada navegacao remonta este wrapper (via @key) e reexecuta a animacao. */

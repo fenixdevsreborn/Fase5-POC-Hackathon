@@ -1,7 +1,111 @@
 @page "/status"
-@* TODO: implementado por outro agente (status/health dos servicos) *@
+@inject IJSRuntime JS
 
-<PageTitle>Status</PageTitle>
+<PageTitle>Status da plataforma</PageTitle>
 
-<MudText Typo="Typo.h4" GutterBottom="true">Status</MudText>
-<MudText Typo="Typo.body1" Color="Color.Secondary">Saude dos servicos (placeholder).</MudText>
+<header class="status-hero" data-reveal>
+    <div class="status-hero__content">
+        <span class="status-hero__eyebrow"><i class="@(_saudavel == true ? "is-online" : string.Empty)"></i> Central de disponibilidade</span>
+        <h1>Conexão que inspira.<br /><span>Infraestrutura que responde.</span></h1>
+        <p>Acompanhe a disponibilidade da experiência web e conheça as camadas que mantêm a plataforma segura e resiliente.</p>
+        <button type="button" class="status-refresh" @onclick="AtualizarAsync" disabled="@_verificando">
+            <MudIcon Icon="@Icons.Material.Filled.Refresh" Size="Size.Small" />
+            @(_verificando ? "Verificando..." : "Verificar novamente")
+        </button>
+    </div>
+    <div class="status-hero__signal" aria-hidden="true">
+        <span class="status-hero__ring status-hero__ring--one"></span>
+        <span class="status-hero__ring status-hero__ring--two"></span>
+        <span class="status-hero__ring status-hero__ring--three"></span>
+        <span class="status-hero__core"><MudIcon Icon="@Icons.Material.Filled.Favorite" /></span>
+    </div>
+</header>
+
+<section class="status-overview cs-panel" data-reveal aria-live="polite">
+    <div class="status-overview__icon @(_saudavel == false ? "status-overview__icon--warning" : string.Empty)">
+        <MudIcon Icon="@StatusIcon" Size="Size.Large" />
+    </div>
+    <div class="status-overview__copy">
+        <span>Status geral</span>
+        <h2>@StatusTitulo</h2>
+        <p>@StatusDescricao</p>
+    </div>
+    <div class="status-overview__time">
+        <small>Última verificação</small>
+        <strong>@(_ultimaVerificacao?.ToString("dd/MM/yyyy · HH:mm:ss") ?? "Aguardando")</strong>
+    </div>
+</section>
+
+<div class="cs-section-heading" data-reveal>
+    <div><span class="cs-kicker">Arquitetura resiliente</span><h2>Como a plataforma se mantém disponível</h2></div>
+    <p>Camadas independentes reduzem impactos e preservam os fluxos essenciais mesmo diante de falhas temporárias.</p>
+</div>
+
+<section class="status-services" aria-label="Camadas da plataforma">
+    <article class="cs-feature-card" data-reveal>
+        <span class="cs-icon-orb"><MudIcon Icon="@Icons.Material.Filled.Language" /></span>
+        <span class="status-services__state"><i></i> Monitoramento ativo</span>
+        <h3>Experiência web</h3>
+        <p>Interface Blazor responsiva, navegação acessível e atualização de estado em tempo real.</p>
+    </article>
+    <article class="cs-feature-card" data-reveal>
+        <span class="cs-icon-orb cs-icon-orb--green"><MudIcon Icon="@Icons.Material.Filled.Hub" /></span>
+        <span class="status-services__state"><i></i> Resiliência configurada</span>
+        <h3>Gateway e APIs</h3>
+        <p>Descoberta de serviços, retentativas controladas e circuit breaker protegem as integrações.</p>
+    </article>
+    <article class="cs-feature-card" data-reveal>
+        <span class="cs-icon-orb cs-icon-orb--orange"><MudIcon Icon="@Icons.Material.Filled.SyncAlt" /></span>
+        <span class="status-services__state"><i></i> Processamento desacoplado</span>
+        <h3>Fila de doações</h3>
+        <p>As contribuições seguem por mensageria e podem ser acompanhadas por notificação ou consulta periódica.</p>
+    </article>
+</section>
+
+<section class="status-note" data-reveal>
+    <MudIcon Icon="@Icons.Material.Filled.Info" />
+    <div><strong>Está percebendo alguma instabilidade?</strong><span>Tente atualizar a página. O processamento de uma doação já recebida continua em segundo plano.</span></div>
+    <a href="/">Voltar ao início <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small" /></a>
+</section>
+
+@code {
+    private bool? _saudavel;
+    private bool _verificando = true;
+    private DateTimeOffset? _ultimaVerificacao;
+
+    private string StatusTitulo => _verificando ? "Verificando disponibilidade" : _saudavel == true ? "Experiência web operacional" : "Não foi possível confirmar agora";
+    private string StatusDescricao => _verificando
+        ? "Estamos consultando o endpoint de integridade da aplicação."
+        : _saudavel == true
+            ? "A interface respondeu normalmente à verificação de integridade."
+            : "Sua conexão ou o serviço pode estar temporariamente indisponível. Tente novamente em instantes.";
+    private string StatusIcon => _verificando ? Icons.Material.Filled.Sync : _saudavel == true ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Warning;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await AtualizarAsync();
+        }
+    }
+
+    private async Task AtualizarAsync()
+    {
+        _verificando = true;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            _saudavel = await JS.InvokeAsync<bool>("conexaoSolidaria.checkHealth");
+        }
+        catch (JSException)
+        {
+            _saudavel = false;
+        }
+        finally
+        {
+            _ultimaVerificacao = DateTimeOffset.Now;
+            _verificando = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+}

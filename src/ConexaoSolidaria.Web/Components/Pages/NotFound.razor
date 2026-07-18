@@ -1,5 +1,22 @@
-﻿@page "/not-found"
+@page "/not-found"
 @layout MainLayout
 
-<h3>Not Found</h3>
-<p>Sorry, the content you are looking for does not exist.</p>
+<PageTitle>Página não encontrada</PageTitle>
+
+<section class="not-found" data-reveal>
+    <div class="not-found__visual" aria-hidden="true">
+        <span class="not-found__number">4</span>
+        <span class="not-found__compass"><MudIcon Icon="@Icons.Material.Filled.Explore" /></span>
+        <span class="not-found__number">4</span>
+        <i class="not-found__route"></i>
+    </div>
+    <div class="not-found__content">
+        <span class="cs-kicker">Caminho não encontrado</span>
+        <h1>Esta página saiu da rota.</h1>
+        <p>O endereço pode ter mudado ou não existe mais. Escolha um dos caminhos abaixo para continuar transformando.</p>
+        <div class="not-found__actions">
+            <a class="not-found__primary" href="/"><MudIcon Icon="@Icons.Material.Filled.Home" Size="Size.Small" />Ir para o início</a>
+            <a class="not-found__secondary" href="/campanhas">Explorar campanhas <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small" /></a>
+        </div>
+    </div>
+</section>

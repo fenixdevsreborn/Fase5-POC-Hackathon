@@ -1,6 +1,7 @@
 @page "/campanhas/{Id}"
 @using System.Globalization
 @using ConexaoSolidaria.Web.Components.Campaigns
+@using ConexaoSolidaria.Web.Components.Common
 @using ConexaoSolidaria.Web.Components.Donations
 @inject ApiClient Api
 @inject NavigationManager Nav
@@ -9,10 +10,7 @@
 
 @if (_carregando)
 {
-    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="my-4" />
-    <MudSkeleton Height="48px" Width="60%" />
-    <MudSkeleton Height="24px" Class="mt-2" />
-    <MudSkeleton Height="120px" Class="mt-4" />
+    <LoadingSkeleton Count="2" />
 }
 else if (_erroCarregar)
 {
@@ -23,71 +21,58 @@ else if (_erroCarregar)
 }
 else if (_campanha is null)
 {
-    <MudPaper Elevation="0" Class="pa-8 my-4 d-flex flex-column align-center" Style="border:1px dashed var(--mud-palette-lines-default);border-radius:16px;">
-        <MudIcon Icon="@Icons.Material.Filled.SearchOff" Size="Size.Large" Color="Color.Secondary" />
-        <MudText Typo="Typo.h6" Class="mt-2">Campanha nao encontrada</MudText>
-        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
-            Ela pode ter sido encerrada ou o endereco esta incorreto.
-        </MudText>
+    <EmptyState Icon="@Icons.Material.Filled.SearchOff" Title="Campanha não encontrada" Description="Ela pode ter sido encerrada ou o endereço informado está incorreto.">
         <MudButton Href="/campanhas" Variant="Variant.Filled" Color="Color.Primary">Ver campanhas</MudButton>
-    </MudPaper>
+    </EmptyState>
 }
 else
 {
-    <MudBreadcrumbs Items="_breadcrumbs" Class="px-0 pt-0 pb-3" />
+    <MudBreadcrumbs Items="_breadcrumbs" Class="cs-breadcrumbs px-0 pt-0 pb-3" />
 
-    <header class="cs-page-header">
-        <div class="cs-page-header__content">
-            <span class="cs-page-header__badge">
-                <MudIcon Icon="@Icons.Material.Filled.Campaign" Size="Size.Small" />
-                Campanha
-            </span>
-            <h1 class="cs-page-header__title">@_campanha.Titulo</h1>
-            <p class="cs-page-header__lead">
-                Categoria: <b>@CampaignVisuals.RotuloCategoria(_campanha.Categoria)</b> — Acompanhe os detalhes e apoie esta causa de forma transparente.
-            </p>
+    <header class="campaign-detail-hero" data-reveal>
+        <img class="campaign-detail-hero__image" src="@CampaignVisuals.ImagemDe(_campanha.Id)" alt="@_campanha.Titulo" />
+        <div class="campaign-detail-hero__shade"></div>
+        <div class="campaign-detail-hero__content">
+            <div class="campaign-detail-hero__tags">
+                <span><MudIcon Icon="@Icons.Material.Filled.Category" Size="Size.Small" />@CampaignVisuals.RotuloCategoria(_campanha.Categoria)</span>
+                <span class="campaign-detail-hero__status campaign-detail-hero__status--@_campanha.Status.ToLowerInvariant()">@StatusRotulo</span>
+            </div>
+            <h1>@_campanha.Titulo</h1>
+            <p>Uma campanha transparente, criada para transformar solidariedade em impacto real.</p>
+            <div class="campaign-detail-hero__facts">
+                <span><MudIcon Icon="@Icons.Material.Filled.Groups" /><strong>@DoadoresLabel</strong><small>participando</small></span>
+                <span><MudIcon Icon="@Icons.Material.Filled.Schedule" /><strong>@DiasLabel</strong><small>para contribuir</small></span>
+                <span><MudIcon Icon="@Icons.Material.Filled.VerifiedUser" /><strong>Verificada</strong><small>pela plataforma</small></span>
+            </div>
         </div>
     </header>
 
-    <MudGrid Spacing="4">
+    <MudGrid Spacing="4" Class="campaign-detail-content">
         <MudItem xs="12" md="7">
-            <div class="d-flex align-center flex-wrap gap-2 mb-4">
-                <MudText Typo="Typo.h5" Style="font-weight: 800; color: #071b3f;">Sobre esta campanha</MudText>
-                <MudChip T="string" Color="StatusCor" Variant="Variant.Filled" Size="Size.Small" Class="ml-2">@_campanha.Status</MudChip>
-            </div>
+            <section class="campaign-story cs-panel" data-reveal>
+                <span class="cs-kicker">Conheça a causa</span>
+                <h2>Sobre esta campanha</h2>
+                <p class="campaign-story__description">@_campanha.Descricao</p>
 
-            <div class="campaign-detail__media mb-4">
-                <img src="@CampaignVisuals.ImagemDe(_campanha.Id)" alt="@_campanha.Titulo" />
-            </div>
+                <div class="campaign-story__period">
+                    <span class="cs-icon-orb"><MudIcon Icon="@Icons.Material.Filled.CalendarMonth" /></span>
+                    <div><small>Período da campanha</small><strong>@_campanha.DataInicio.ToLocalTime().ToString("dd MMM yyyy", Br) — @_campanha.DataFim.ToLocalTime().ToString("dd MMM yyyy", Br)</strong></div>
+                </div>
+            </section>
 
-            <MudText Typo="Typo.body1" Style="white-space:pre-line;" Class="mt-2">
-                @_campanha.Descricao
-            </MudText>
-
-            <MudPaper Elevation="0" Class="pa-3 mt-4" Style="background:var(--surface-alt);border-radius:12px;">
-                <MudText Typo="Typo.caption" Color="Color.Secondary">Periodo</MudText>
-                <MudText Typo="Typo.body2">
-                    @_campanha.DataInicio.ToLocalTime().ToString("dd/MM/yyyy", Br)
-                    ate
-                    @_campanha.DataFim.ToLocalTime().ToString("dd/MM/yyyy", Br)
-                    @if (_diasRestantes > 0)
-                    {
-                        <span> — <b>@_diasRestantes</b> dia(s) restante(s)</span>
-                    }
-                    else
-                    {
-                        <span> — encerrada</span>
-                    }
-                </MudText>
-            </MudPaper>
+            <section class="campaign-trust" data-reveal aria-label="Compromissos da campanha">
+                <article><MudIcon Icon="@Icons.Material.Filled.Visibility" /><div><strong>Transparência</strong><span>Progresso público e atualizado.</span></div></article>
+                <article><MudIcon Icon="@Icons.Material.Filled.Security" /><div><strong>Segurança</strong><span>Processamento protegido.</span></div></article>
+                <article><MudIcon Icon="@Icons.Material.Filled.TrackChanges" /><div><strong>Rastreabilidade</strong><span>Acompanhamento por protocolo.</span></div></article>
+            </section>
         </MudItem>
 
         <MudItem xs="12" md="5">
-            <MudPaper Elevation="0" Class="pa-5" Style="border:1px solid var(--mud-palette-lines-default);border-radius:16px;position:sticky;top:88px;">
-                <MudText Typo="Typo.overline" Color="Color.Secondary">Arrecadado</MudText>
-                <MudText Typo="Typo.h4" Color="Color.Primary">@_campanha.ValorTotalArrecadado.ToString("C", Br)</MudText>
+            <MudPaper Elevation="0" Class="campaign-donation-card pa-5" data-reveal>
+                <span class="cs-kicker">Progresso da causa</span>
+                <MudText Typo="Typo.h4" Color="Color.Primary" Class="campaign-donation-card__value">@_campanha.ValorTotalArrecadado.ToString("C", Br)</MudText>
                 <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
-                    de @_campanha.MetaFinanceira.ToString("C", Br) (meta)
+                    arrecadados de @_campanha.MetaFinanceira.ToString("C", Br)
                 </MudText>
 
                 <MudProgressLinear Color="Color.Success"
@@ -105,7 +90,7 @@ else
                 @if (!_podeDoar)
                 {
                     <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
-                        Esta campanha nao esta aberta para doacoes no momento.
+                        Esta campanha não está aberta para doações no momento.
                     </MudAlert>
                 }
                 else if (_doacaoId is Guid doacao)
@@ -140,7 +125,7 @@ else
                             <AuthorizeView Context="anon">
                                 <Authorized>
                                     <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
-                                        Apenas contas de doador podem realizar doacoes.
+                                        Apenas contas de doador podem realizar doações.
                                     </MudAlert>
                                 </Authorized>
                                 <NotAuthorized>
@@ -183,6 +168,10 @@ else
         "Encerrada" => Color.Default,
         _ => Color.Warning,
     };
+
+    private string StatusRotulo => _campanha?.Status == "Concluida" ? "Concluída" : _campanha?.Status ?? string.Empty;
+    private string DoadoresLabel => (_campanha?.TotalDoadores ?? 0) switch { 0 => "Seja o primeiro", 1 => "1 doador", var total => $"{total:N0} doadores" };
+    private string DiasLabel => _diasRestantes switch { <= 0 => "Encerrada", 1 => "Último dia", var dias => $"{dias} dias" };
 
     private string EntrarParaDoarHref =>
         $"/entrar?returnUrl={Uri.EscapeDataString($"/campanhas/{Id}")}";

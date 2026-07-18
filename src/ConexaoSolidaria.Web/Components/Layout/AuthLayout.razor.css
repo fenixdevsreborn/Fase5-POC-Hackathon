@@ -5,12 +5,32 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
     padding: 24px;
+    isolation: isolate;
+    background: #f5f8fd;
+}
+
+.cs-auth-layout::before {
+    position: absolute;
+    z-index: -2;
+    inset: 0 50% 0 0;
     background:
-        radial-gradient(circle at 15% 5%, rgba(25, 124, 247, .06), transparent 28%),
-        radial-gradient(circle at 88% 92%, rgba(255, 120, 15, .06), transparent 28%),
-        #f8faff;
+        linear-gradient(125deg, rgba(5, 31, 68, .92), rgba(7, 91, 204, .55)),
+        url('/images/campanhas/web/medium-shot-volunteers-with-donations.jpg') center / cover no-repeat;
+    content: "";
+}
+
+.cs-auth-layout::after {
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    background:
+        radial-gradient(circle at 15% 5%, rgba(25, 124, 247, .09), transparent 28%),
+        radial-gradient(circle at 88% 92%, rgba(255, 120, 15, .08), transparent 28%);
+    content: "";
+    pointer-events: none;
 }
 
 .cs-auth-layout__glow {
@@ -29,6 +49,14 @@
     background: #0875fa;
 }
 
+@media (min-width: 900px) {
+    .cs-auth-layout { justify-content: flex-end; padding-right: clamp(44px, 8vw, 150px); }
+}
+
+@media (max-width: 899px) {
+    .cs-auth-layout::before { inset: 0; opacity: .12; }
+}
+
 .cs-auth-layout__glow--orange {
     right: -160px;
     bottom: -190px;
@@ -41,4 +69,6 @@
         padding: 0;
         background: #fff;
     }
+
+    .cs-auth-layout::before { display: none; }
 }

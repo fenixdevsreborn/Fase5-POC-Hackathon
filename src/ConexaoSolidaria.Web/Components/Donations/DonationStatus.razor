@@ -9,10 +9,10 @@
    Nunca declara "concluida" apenas por ter recebido o 202: so quando o
    backend retorna "Processada". *@
 
-<MudPaper Elevation="0" Class="cs-status pa-4" Style="border:1px solid var(--mud-palette-lines-default);border-radius:14px;position:relative;overflow:hidden;">
+<MudPaper Elevation="0" Class="cs-status pa-5">
     <div class="d-flex align-center mb-2">
         <MudIcon Icon="@Icons.Material.Filled.Receipt" Class="mr-2" Color="Color.Primary" />
-        <MudText Typo="Typo.subtitle1">Acompanhamento da doacao</MudText>
+        <MudText Typo="Typo.subtitle1"><b>Acompanhamento da doação</b></MudText>
     </div>
     <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mb-1">
         Protocolo: @DoacaoId
@@ -24,7 +24,7 @@
 
     <MudTimeline TimelinePosition="TimelinePosition.Start" Class="mt-2">
         <MudTimelineItem Color="EtapaCor(1)" Variant="Variant.Filled">
-            <MudText Typo="Typo.body2"><b>Recebida</b> — pedido de doacao registrado.</MudText>
+            <MudText Typo="Typo.body2"><b>Recebida</b> — pedido de doação registrado.</MudText>
         </MudTimelineItem>
         <MudTimelineItem Color="EtapaCor(2)" Variant="Variant.Filled">
             <div class="d-flex align-center">
@@ -42,7 +42,7 @@
             }
             else
             {
-                <MudText Typo="Typo.body2"><b>Concluida</b> — doacao processada com sucesso.</MudText>
+                <MudText Typo="Typo.body2"><b>Concluída</b> — doação processada com sucesso.</MudText>
             }
         </MudTimelineItem>
     </MudTimeline>
@@ -51,7 +51,7 @@
     {
         case Fase.Concluida:
             <MudAlert Severity="Severity.Success" Variant="Variant.Filled" Class="mt-3">
-                Obrigado! Sua doacao foi processada com sucesso.
+                Obrigado! Sua doação foi processada com sucesso.
             </MudAlert>
             <div class="cs-confetti" aria-hidden="true">
                 @for (var i = 0; i < 14; i++)
@@ -62,7 +62,7 @@
             break;
         case Fase.Rejeitada:
             <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="mt-3">
-                Sua doacao foi rejeitada. Nenhum valor foi cobrado.
+                Sua doação foi rejeitada. Nenhum valor foi cobrado.
             </MudAlert>
             break;
         case Fase.Erro:

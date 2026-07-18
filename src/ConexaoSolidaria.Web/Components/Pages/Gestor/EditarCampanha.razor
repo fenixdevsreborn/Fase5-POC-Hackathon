@@ -23,9 +23,7 @@
 
         @if (_carregando)
         {
-            <div class="d-flex align-center justify-center pa-8">
-                <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
-            </div>
+            <div class="cs-loading-state"><MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Large" /></div>
         }
         else if (_naoEncontrada)
         {
@@ -36,19 +34,35 @@
         }
         else
         {
-            <MudPaper Class="pa-6" Elevation="1" Style="max-width:820px">
-                <CampaignForm Model="_model"
-                              SubmitLabel="Salvar alterações"
-                              OnSubmit="SalvarAsync"
-                              ErrorMessage="@_erro" />
-            </MudPaper>
+            <div class="edit-campaign-layout">
+                <section class="edit-campaign-card" data-reveal>
+                    <div class="edit-campaign-card__head">
+                        <span class="edit-campaign-card__step"><MudIcon Icon="@Icons.Material.Filled.EditNote" /></span>
+                        <div><h2>Informações da campanha</h2><p>Revise os campos antes de salvar. As alterações aparecem na vitrine pública.</p></div>
+                    </div>
+                    <CampaignForm Model="_model" SubmitLabel="Salvar alterações" OnSubmit="SalvarAsync" ErrorMessage="@_erro" />
+                </section>
+                <aside class="edit-campaign-side cs-panel cs-panel--soft" data-reveal>
+                    <span class="cs-icon-orb cs-icon-orb--green"><MudIcon Icon="@Icons.Material.Filled.TipsAndUpdates" /></span>
+                    <h2>Antes de publicar</h2>
+                    <p>Dados claros aumentam a confiança e ajudam o doador a entender o impacto esperado.</p>
+                    <ul>
+                        <li><MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" />Título direto e específico</li>
+                        <li><MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" />Meta compatível com o objetivo</li>
+                        <li><MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" />Descrição transparente</li>
+                        <li><MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" />Prazo realista</li>
+                    </ul>
+                    <a class="cs-action-link" href="/gestor">Voltar ao painel</a>
+                </aside>
+            </div>
         }
     </Authorized>
     <NotAuthorized>
-        <MudAlert Severity="Severity.Warning" Class="my-4">
-            Área restrita a gestores de ONG.
-            <MudLink Href="/entrar">Entrar</MudLink>
-        </MudAlert>
+        <section class="cs-access-state"><div>
+            <span class="cs-access-state__icon"><MudIcon Icon="@Icons.Material.Filled.AdminPanelSettings" Size="Size.Large" /></span>
+            <h1>Área de gestão protegida</h1><p>Entre como gestor para editar esta campanha.</p>
+            <MudButton Href="/entrar" Variant="Variant.Filled" Color="Color.Primary">Entrar</MudButton>
+        </div></section>
     </NotAuthorized>
 </AuthorizeView>
 

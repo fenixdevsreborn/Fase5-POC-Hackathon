@@ -1,0 +1,36 @@
+.donations-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.donations-summary article {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 20px;
+    border: 1px solid #e7edf6;
+    border-radius: 18px;
+    background: #fff;
+    box-shadow: 0 10px 30px rgba(11, 59, 96, .06);
+}
+
+.donations-summary__icon {
+    width: 48px;
+    height: 48px;
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    border-radius: 14px;
+    background: linear-gradient(145deg, #2584ff, #075bdc);
+    color: #fff;
+    box-shadow: 0 9px 20px rgba(12, 100, 240, .2);
+}
+
+.donations-summary__icon--green { background: linear-gradient(145deg, #30c77f, #118a50); box-shadow: 0 9px 20px rgba(17, 138, 80, .18); }
+.donations-summary__icon--orange { background: linear-gradient(145deg, #ff9c22, #f36c09); box-shadow: 0 9px 20px rgba(243, 108, 9, .18); }
+.donations-summary article div { display: grid; min-width: 0; }
+.donations-summary small { color: #76849a; font-size: .73rem; font-weight: 700; }
+.donations-summary strong { overflow: hidden; color: #0b2855; font-size: clamp(1.2rem, 2vw, 1.55rem); text-overflow: ellipsis; white-space: nowrap; }
+
+@media (max-width: 760px) { .donations-summary { grid-template-columns: 1fr; } }

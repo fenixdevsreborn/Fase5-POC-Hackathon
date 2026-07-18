@@ -1,0 +1,10 @@
+.gestor-section-heading { margin-top: 0; }
+.gestor-live { display: inline-flex; align-items: center; gap: 8px; color: #5f718b; font-size: .77rem; font-weight: 700; }
+.gestor-live i { width: 9px; height: 9px; border-radius: 50%; background: #18a566; box-shadow: 0 0 0 6px rgba(24, 165, 102, .1); animation: gestor-pulse 2s ease-in-out infinite; }
+.cs-chart-panel { height: 100%; overflow: hidden; border: 1px solid #e7edf6; border-radius: 20px; background: #fff; box-shadow: 0 12px 34px rgba(11, 59, 96, .065); }
+.cs-chart-panel ::deep .mud-chart-legend { font-size: .75rem; }
+.cs-dashboard-kpis ::deep .mud-grid-item,
+.cs-dashboard-charts ::deep .mud-grid-item { min-width: 0; }
+
+@keyframes gestor-pulse { 50% { box-shadow: 0 0 0 10px rgba(24, 165, 102, 0); } }
+@media (prefers-reduced-motion: reduce) { .gestor-live i { animation: none; } }

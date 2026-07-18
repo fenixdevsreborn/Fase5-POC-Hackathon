@@ -1,13 +1,13 @@
 @* KPI de negócio reutilizável do painel do gestor. *@
 
-<MudPaper Elevation="1" Class="pa-4" Style="height:100%">
-    <div class="d-flex align-center" style="gap:16px">
-        <MudAvatar Color="Cor" Variant="Variant.Filled" Rounded="true" Size="Size.Large">
+<MudPaper Elevation="0" Class="cs-kpi-card" data-reveal>
+    <div class="cs-kpi-card__inner">
+        <MudAvatar Color="Cor" Variant="Variant.Filled" Rounded="true" Size="Size.Large" Class="cs-kpi-card__icon">
             <MudIcon Icon="@Icone" />
         </MudAvatar>
-        <div style="min-width:0">
-            <MudText Typo="Typo.subtitle2" Color="Color.Secondary">@Titulo</MudText>
-            <MudText Typo="Typo.h5" Style="font-weight:600">@Valor</MudText>
+        <div class="cs-kpi-card__content">
+            <span>@Titulo</span>
+            <strong>@Valor</strong>
         </div>
     </div>
 </MudPaper>

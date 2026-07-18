@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
+using Microsoft.JSInterop;
 
 namespace ConexaoSolidaria.Web.Services;
 
@@ -14,7 +15,8 @@ namespace ConexaoSolidaria.Web.Services;
 /// </summary>
 public sealed class JwtAuthStateProvider(
     ProtectedLocalStorage storage,
-    TokenProvider tokenProvider) : AuthenticationStateProvider
+    TokenProvider tokenProvider,
+    ILogger<JwtAuthStateProvider> logger) : AuthenticationStateProvider
 {
     internal const string TokenKey = "cs_access_token";
 
@@ -28,9 +30,18 @@ public sealed class JwtAuthStateProvider(
             var stored = await storage.GetAsync<string>(TokenKey);
             var token = stored.Success ? stored.Value : null;
 
-            if (string.IsNullOrWhiteSpace(token) || !TryBuildPrincipal(token, out var principal))
+            if (string.IsNullOrWhiteSpace(token))
             {
                 tokenProvider.Token = null;
+                return Anonymous;
+            }
+
+            if (!TryBuildPrincipal(token, out var principal))
+            {
+                // Token expirado/malformado nao deve permanecer no browser sendo
+                // reavaliado em toda renderizacao do AuthorizeView.
+                tokenProvider.Token = null;
+                await TryRemoveStoredTokenAsync();
                 return Anonymous;
             }
 
@@ -40,6 +51,15 @@ public sealed class JwtAuthStateProvider(
         catch (InvalidOperationException)
         {
             // ProtectedLocalStorage nao disponivel durante prerender (sem circuito JS).
+            tokenProvider.Token = null;
+            return Anonymous;
+        }
+        catch (JSException ex)
+        {
+            // localStorage indisponivel, circuito encerrando ou falha transitoria de JS.
+            // Autenticacao degrada para anonimo sem derrubar o circuito inteiro.
+            tokenProvider.Token = null;
+            logger.LogDebug(ex, "Nao foi possivel ler o estado de autenticacao do navegador.");
             return Anonymous;
         }
         catch (Exception ex) when (ex is CryptographicException or JsonException)
@@ -50,6 +70,8 @@ public sealed class JwtAuthStateProvider(
             // derruba o circuito Blazor logo apos conectar. Descarta o valor invalido para
             // que o proximo load ja comece limpo, em vez de repetir o erro a cada acesso.
             tokenProvider.Token = null;
+            logger.LogWarning(
+                "Token local descartado porque nao pode ser descriptografado pelo key ring atual.");
             await TryRemoveStoredTokenAsync();
             return Anonymous;
         }
@@ -64,6 +86,12 @@ public sealed class JwtAuthStateProvider(
         catch (InvalidOperationException)
         {
             // Sem circuito JS disponivel; o valor invalido cai no proximo acesso interativo.
+        }
+        catch (JSException ex)
+        {
+            // Limpeza best-effort: uma falha do browser durante o descarte nunca deve
+            // transformar logout/recuperacao de sessao em falha fatal do circuito.
+            logger.LogDebug(ex, "Nao foi possivel remover o token local invalido.");
         }
     }
 
@@ -101,8 +129,7 @@ public sealed class JwtAuthStateProvider(
         var exp = claims.FirstOrDefault(c => c.Type == "exp")?.Value;
         if (long.TryParse(exp, out var expSeconds))
         {
-            var expiresAt = DateTimeOffset.FromUnixTimeSeconds(expSeconds);
-            if (expiresAt <= DateTimeOffset.UtcNow)
+            if (expSeconds <= DateTimeOffset.UtcNow.ToUnixTimeSeconds())
             {
                 return false;
             }

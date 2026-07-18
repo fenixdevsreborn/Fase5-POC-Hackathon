@@ -23,14 +23,14 @@
             </div>
         </header>
 
-        <div class="nova-campanha">
+        <div class="nova-campanha" data-reveal>
             <section class="nova-campanha__main">
                 <div class="nova-campanha__card">
                     <div class="nova-campanha__card-head">
                         <span class="nova-campanha__step">1</span>
                         <div>
                             <h2>Dados da campanha</h2>
-                            <p>Capriche no titulo e na descricao — sao eles que conectam sua causa aos doadores.</p>
+                            <p>Capriche no título e na descrição — são eles que conectam sua causa aos doadores.</p>
                         </div>
                     </div>
                     <CampaignForm Model="_model"
@@ -48,13 +48,13 @@
                             <MudIcon Icon="@Icons.Material.Filled.AutoAwesome" />
                             <div>
                                 <strong>Criar com IA</strong>
-                                <small>Descreva a ideia e recebe um rascunho pronto</small>
+                                <small>Descreva a ideia e receba um rascunho pronto</small>
                             </div>
                         </div>
                         <div class="nova-campanha__ai-body">
                             <MudTextField T="string"
                                           @bind-Value="_ideia"
-                                          Placeholder="Ex.: arrecadar racao e vacinas para um abrigo com 40 caes resgatados"
+                                          Placeholder="Ex.: arrecadar ração e vacinas para um abrigo com 40 cães resgatados"
                                           Lines="3"
                                           Variant="Variant.Outlined"
                                           Margin="Margin.Dense"
@@ -89,20 +89,21 @@
                 <div class="nova-campanha__tips">
                     <h3>Dicas para uma boa campanha</h3>
                     <ul>
-                        <li><MudIcon Icon="@Icons.Material.Filled.Title" Size="Size.Small" /><span>Titulo claro e especifico sobre quem sera ajudado.</span></li>
-                        <li><MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Small" /><span>Conte a historia: o problema, a solucao e o impacto.</span></li>
+                        <li><MudIcon Icon="@Icons.Material.Filled.Title" Size="Size.Small" /><span>Título claro e específico sobre quem será ajudado.</span></li>
+                        <li><MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Small" /><span>Conte a história: o problema, a solução e o impacto.</span></li>
                         <li><MudIcon Icon="@Icons.Material.Filled.Savings" Size="Size.Small" /><span>Defina uma meta realista e transparente.</span></li>
-                        <li><MudIcon Icon="@Icons.Material.Filled.Event" Size="Size.Small" /><span>Prazo compativel com o objetivo da arrecadacao.</span></li>
+                        <li><MudIcon Icon="@Icons.Material.Filled.Event" Size="Size.Small" /><span>Prazo compatível com o objetivo da arrecadação.</span></li>
                     </ul>
                 </div>
             </aside>
         </div>
     </Authorized>
     <NotAuthorized>
-        <MudAlert Severity="Severity.Warning" Class="my-4">
-            Área restrita a gestores de ONG.
-            <MudLink Href="/entrar">Entrar</MudLink>
-        </MudAlert>
+        <section class="cs-access-state"><div>
+            <span class="cs-access-state__icon"><MudIcon Icon="@Icons.Material.Filled.AdminPanelSettings" Size="Size.Large" /></span>
+            <h1>Área de gestão protegida</h1><p>Entre com o perfil de gestor para criar uma nova campanha.</p>
+            <MudButton Href="/entrar?returnUrl=%2Fgestor%2Fcampanhas%2Fnova" Variant="Variant.Filled" Color="Color.Primary">Entrar</MudButton>
+        </div></section>
     </NotAuthorized>
 </AuthorizeView>
 

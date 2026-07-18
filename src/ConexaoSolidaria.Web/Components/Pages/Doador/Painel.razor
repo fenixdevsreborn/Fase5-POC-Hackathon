@@ -5,90 +5,97 @@
 
 <AuthorizeView Roles="Doador">
     <Authorized>
-        <header class="cs-page-header">
-            <div class="cs-page-header__content">
-                <span class="cs-page-header__badge">
+        <header class="donor-hero" data-reveal>
+            <div class="donor-hero__content">
+                <span class="donor-hero__badge">
                     <MudIcon Icon="@Icons.Material.Filled.VerifiedUser" Size="Size.Small" />
-                    Área do Doador
+                    Área segura do doador
                 </span>
-                <h1 class="cs-page-header__title">Olá, <span>@(context.User.Identity?.Name ?? "doador")</span>!</h1>
-                <p class="cs-page-header__lead">
-                    Bem-vindo ao seu painel. Apoie campanhas e acompanhe o processamento de suas doações em tempo real.
+                <h1>Olá, <span>@(context.User.Identity?.Name ?? "doador")</span>!</h1>
+                <p>
+                    Cada contribuição começa uma história. Descubra novas causas e acompanhe o impacto das suas doações com transparência.
                 </p>
+                <div class="donor-hero__actions">
+                    <a class="donor-button donor-button--primary" href="/campanhas">
+                        <MudIcon Icon="@Icons.Material.Filled.FavoriteBorder" Size="Size.Small" />
+                        Encontrar uma causa
+                    </a>
+                    <a class="donor-button donor-button--ghost" href="/doador/doacoes">
+                        Ver minhas doações
+                        <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small" />
+                    </a>
+                </div>
+                <div class="donor-hero__trust">
+                    <span><MudIcon Icon="@Icons.Material.Filled.Shield" Size="Size.Small" /> Ambiente protegido</span>
+                    <span><MudIcon Icon="@Icons.Material.Filled.Bolt" Size="Size.Small" /> Atualização em tempo real</span>
+                </div>
+            </div>
+            <div class="donor-hero__visual" aria-hidden="true">
+                <img src="images/campanhas/web/medium-shot-volunteers-with-donations.jpg" alt="" />
+                <span class="donor-hero__impact-card">
+                    <i><MudIcon Icon="@Icons.Material.Filled.VolunteerActivism" /></i>
+                    <span><strong>Impacto real</strong><small>Contribuições que chegam a quem precisa</small></span>
+                </span>
             </div>
         </header>
 
-        <MudGrid Spacing="4">
-            <MudItem xs="12" md="6">
-                <MudPaper Elevation="0" Class="pa-5 mud-height-full" Style="border:1px solid var(--mud-palette-lines-default);border-radius:16px;">
-                    <MudText Typo="Typo.h6" GutterBottom="true">
-                        <MudIcon Icon="@Icons.Material.Filled.Campaign" Class="mr-1" Size="Size.Small" />
-                        Apoiar uma campanha
-                    </MudText>
-                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
-                        Explore as campanhas ativas e faca sua doacao em poucos cliques.
-                    </MudText>
-                    <MudButton Href="/campanhas" Variant="Variant.Filled" Color="Color.Primary"
-                               StartIcon="@Icons.Material.Filled.Search">
-                        Ver campanhas
-                    </MudButton>
-                    <MudButton Href="/transparencia" Variant="Variant.Text" Color="Color.Primary" Class="ml-2">
-                        Transparencia
-                    </MudButton>
-                </MudPaper>
-            </MudItem>
+        <div class="cs-section-heading" data-reveal>
+            <div><span class="cs-kicker">Atalhos do seu painel</span><h2>Tudo o que você precisa, em um só lugar</h2></div>
+            <p>Acompanhe uma contribuição existente ou explore campanhas verificadas pela plataforma.</p>
+        </div>
 
-            <MudItem xs="12" md="6">
-                <MudPaper Elevation="0" Class="pa-5 mud-height-full" Style="border:1px solid var(--mud-palette-lines-default);border-radius:16px;">
-                    <MudText Typo="Typo.h6" GutterBottom="true">
-                        <MudIcon Icon="@Icons.Material.Filled.TrackChanges" Class="mr-1" Size="Size.Small" />
-                        Acompanhar uma doacao
-                    </MudText>
-                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
-                        Tem o protocolo (ID) de uma doacao? Informe abaixo para acompanhar o status.
-                    </MudText>
+        <section class="donor-action-grid" aria-label="Ações do doador">
+            <article class="cs-feature-card donor-action-card" data-reveal>
+                <span class="cs-icon-orb"><MudIcon Icon="@Icons.Material.Filled.Explore" /></span>
+                <h2>Descubra novas campanhas</h2>
+                <p>Explore histórias, conheça metas e escolha com clareza onde sua ajuda fará diferença.</p>
+                <div class="donor-action-card__links">
+                    <a class="cs-action-link" href="/campanhas">Explorar campanhas <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small" /></a>
+                    <a class="donor-text-link" href="/transparencia">Ver transparência</a>
+                </div>
+            </article>
+
+            <article class="cs-feature-card donor-action-card donor-action-card--track" data-reveal>
+                <span class="cs-icon-orb cs-icon-orb--orange"><MudIcon Icon="@Icons.Material.Filled.TrackChanges" /></span>
+                <h2>Acompanhe por protocolo</h2>
+                <p>Informe o identificador recebido após a doação para consultar o processamento.</p>
+                <div class="donor-protocol">
                     <MudTextField T="string" @bind-Value="_protocolo"
-                                  Label="ID da doacao"
+                                  Label="ID da doação"
                                   Variant="Variant.Outlined"
                                   Adornment="Adornment.End"
                                   AdornmentIcon="@Icons.Material.Filled.ArrowForward"
                                   OnAdornmentClick="Acompanhar"
                                   Error="_protocoloInvalido"
-                                  ErrorText="Informe um ID valido."
+                                  ErrorText="Informe um ID válido."
                                   Immediate="true" />
-                    <MudButton OnClick="Acompanhar" Variant="Variant.Outlined" Color="Color.Primary" Class="mt-3">
-                        Acompanhar
+                    <MudButton OnClick="Acompanhar" Variant="Variant.Filled" Color="Color.Primary">
+                        Consultar status
                     </MudButton>
-                </MudPaper>
-            </MudItem>
-        </MudGrid>
+                </div>
+            </article>
+        </section>
 
-        <MudPaper Elevation="0" Class="pa-5 mt-4" Style="background:var(--surface-alt);border-radius:16px;">
-            <MudText Typo="Typo.h6" GutterBottom="true">
-                <MudIcon Icon="@Icons.Material.Filled.Bolt" Class="mr-1" Size="Size.Small" />
-                Como funciona o processamento
-            </MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary">
-                As doacoes sao processadas de forma <b>assincrona</b>. Ao confirmar uma doacao,
-                ela e <b>recebida</b> e entra em uma <b>fila</b>. Em seguida e <b>processada</b> e,
-                quando conciliada, passa a <b>Concluida</b> (ou <b>Rejeitada</b>, sem cobranca).
-                Por isso, logo apos doar voce vera uma linha do tempo que se atualiza sozinha —
-                nao feche a pagina ate ver o resultado, ou volte depois usando o ID da doacao.
-            </MudText>
-        </MudPaper>
+        <section class="donor-process" data-reveal aria-labelledby="process-title">
+            <div class="donor-process__intro">
+                <span class="cs-kicker">Transparência em cada etapa</span>
+                <h2 id="process-title">Da contribuição ao impacto</h2>
+                <p>O processamento é assíncrono, seguro e acompanhado em tempo real. Você pode voltar quando quiser usando o protocolo.</p>
+            </div>
+            <ol class="donor-process__steps">
+                <li><span>01</span><div><strong>Recebida</strong><small>Seu pedido entra na fila segura.</small></div></li>
+                <li><span>02</span><div><strong>Validada</strong><small>Os dados são conciliados.</small></div></li>
+                <li><span>03</span><div><strong>Processada</strong><small>A campanha recebe a contribuição.</small></div></li>
+            </ol>
+        </section>
     </Authorized>
     <NotAuthorized>
-        <MudPaper Elevation="0" Class="pa-8 my-4 d-flex flex-column align-center" Style="border:1px dashed var(--mud-palette-lines-default);border-radius:16px;">
-            <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Large" Color="Color.Secondary" />
-            <MudText Typo="Typo.h6" Class="mt-2">Acesso restrito</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
-                Faca login como doador para acessar seu painel.
-            </MudText>
-            <MudButton Href="/entrar?returnUrl=%2Fdoador" Variant="Variant.Filled" Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.Login">
-                Entrar
-            </MudButton>
-        </MudPaper>
+        <section class="cs-access-state"><div>
+            <span class="cs-access-state__icon"><MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Large" /></span>
+            <h1>Seu painel está protegido</h1>
+            <p>Entre com sua conta de doador para acompanhar contribuições e apoiar novas causas.</p>
+            <MudButton Href="/entrar?returnUrl=%2Fdoador" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Login">Entrar</MudButton>
+        </div></section>
     </NotAuthorized>
 </AuthorizeView>
 

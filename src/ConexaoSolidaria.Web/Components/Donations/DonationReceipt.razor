@@ -7,13 +7,13 @@
    do doador via estado de autenticacao (cascading Task<AuthenticationState>). Botao de
    impressao chama window.print(). Formatacao de moeda/data em pt-BR. *@
 
-<MudPaper Elevation="0" Class="cs-receipt pa-6 mt-4" Style="border:1px solid var(--mud-palette-lines-default);border-radius:16px;position:relative;overflow:hidden;">
+<MudPaper Elevation="0" Class="cs-receipt pa-6 mt-4">
     <div class="d-flex align-center justify-space-between mb-4">
         <div class="d-flex align-center">
             <MudIcon Icon="@Icons.Material.Filled.VolunteerActivism" Color="Color.Primary" Class="mr-2" Size="Size.Large" />
             <div>
-                <MudText Typo="Typo.subtitle1" Style="line-height:1.1;"><b>Conexao Solidaria</b></MudText>
-                <MudText Typo="Typo.caption" Color="Color.Secondary">Comprovante de doacao</MudText>
+                <MudText Typo="Typo.subtitle1" Style="line-height:1.1;"><b>Conexão Solidária</b></MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Comprovante de doação</MudText>
             </div>
         </div>
         <MudChip T="string" Color="Color.Success" Variant="Variant.Filled" Size="Size.Small"
@@ -43,7 +43,7 @@
             <MudText Typo="Typo.body1">@DataFormatada</MudText>
         </MudItem>
         <MudItem xs="12" sm="6">
-            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block">Protocolo da doacao</MudText>
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block">Protocolo da doação</MudText>
             <MudText Typo="Typo.body2" Style="font-family:monospace;word-break:break-all;">@DoacaoId</MudText>
         </MudItem>
     </MudGrid>
@@ -51,8 +51,8 @@
     <MudDivider Class="my-4" />
 
     <MudText Typo="Typo.body2" Class="mb-4" Style="font-style:italic;">
-        Obrigado pela sua generosidade! Sua doacao faz diferenca real e ajuda a transformar vidas.
-        Guarde este comprovante como registro da sua contribuicao.
+        Obrigado pela sua generosidade! Sua doação faz diferença real e ajuda a transformar vidas.
+        Guarde este comprovante como registro da sua contribuição.
     </MudText>
 
     <div class="cs-receipt-no-print">

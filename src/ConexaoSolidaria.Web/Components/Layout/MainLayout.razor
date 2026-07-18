@@ -11,6 +11,9 @@
 <MudDialogProvider />
 <MudSnackbarProvider />
 
+<a class="cs-skip-link" href="#conteudo-principal">Ir para o conteúdo</a>
+<div class="cs-scroll-progress" aria-hidden="true"></div>
+
 <div class="cs-app-shell">
     <header class="cs-site-header">
         <div class="cs-site-header__inner">
@@ -73,7 +76,7 @@
         }
     </header>
 
-    <main class="cs-main-content">
+    <main id="conteudo-principal" class="cs-main-content" tabindex="-1">
         <div class="cs-page-container">
             @* @key muda a cada navegacao: recria a subarvore e reexecuta a animacao de entrada. *@
             <div class="cs-page-transition" @key="_navKey">
@@ -85,6 +88,10 @@
     <Footer />
 
     <AssistantLauncher />
+
+    <button class="cs-back-to-top" type="button" aria-label="Voltar ao topo" title="Voltar ao topo">
+        <MudIcon Icon="@Icons.Material.Filled.KeyboardArrowUp" />
+    </button>
 </div>
 
 <div id="blazor-error-ui" data-nosnippet>
