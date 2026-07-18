@@ -200,7 +200,7 @@ Para cada fase: **o problema**, **o que foi feito** e a **evidência/verificaç�
   - **Registry do ambiente local:** o cluster consome o **Docker Hub**
     (`junonn5/conexao-solidaria-*:latest`, via `infra/k8s/push-dockerhub.ps1`), observado pelo
     **Keel** para auto-update. GHCR = rastreabilidade por commit; Docker Hub = consumo local.
-  - **Dependabot** (nuget/actions/docker), PR template Spec-Driven, badge de CI no README.
+  - PR template Spec-Driven, badge de CI no README.
 - **Evidência:** `.github/workflows/ci.yml` (jobs `quality`, `tests`, `containers`,
   `kubernetes-validation`, `publish`).
 

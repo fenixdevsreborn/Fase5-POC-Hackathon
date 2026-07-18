@@ -296,7 +296,7 @@ O workflow multi-job em `.github/workflows/ci.yml` executa a cada push/pull requ
 
 > **Dois registries, de proposito.** O CI publica no **GHCR** (rastreabilidade por commit: tags `:sha` e `:latest`), enquanto o **ambiente local consome o Docker Hub** (`junonn5/conexao-solidaria-*:latest`, publicado por `push-dockerhub.ps1`) — que e de onde o cluster baixa as imagens e o Keel observa para o auto-update. Para apontar o cluster ao GHCR, basta trocar o bloco `images:` em `infra/k8s/overlays/local/kustomization.yaml`.
 
-Complementos: **Dependabot** (nuget/actions/docker), PR template Spec-Driven e badge do pipeline no topo deste README.
+Complementos: PR template Spec-Driven e badge do pipeline no topo deste README.
 
 ## Documentacao
 
