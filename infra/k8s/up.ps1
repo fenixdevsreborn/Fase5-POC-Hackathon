@@ -9,8 +9,9 @@
 #
 # Faz, em ordem (fluxo validado ao vivo - ver ReadmeKubernetes.md):
 #   1. seleciona o contexto docker-desktop
-#   2. (opcional, -Publish) build + push das 5 imagens para o Docker Hub
-#   3. cria o namespace, o PVC das Data Protection keys e o Secret
+#   2. le o .env da raiz (inclui o DOCKERHUB_TOKEN usado pelo passo 3)
+#   3. (opcional, -Publish) build + push das 5 imagens para o Docker Hub
+#   4. cria o namespace, os PVCs preservados e o Secret
 #      'conexao-solidaria-secret' a partir do .env
 #   4. instala o Keel (auto-update das imagens)
 #   5. kubectl apply -k (postgres, rabbitmq, es, Jobs de migracao, deployments)
@@ -22,9 +23,14 @@
 #
 # Uso:
 #   pwsh infra/k8s/up.ps1                # deploy puxando as imagens do Docker Hub
-#   $env:DOCKERHUB_TOKEN="<PAT>"
 #   pwsh infra/k8s/up.ps1 -Publish       # publica no Docker Hub antes de subir
 #   pwsh infra/k8s/up.ps1 -NoForward     # nao inicia os port-forwards automaticos
+#
+# O -Publish precisa do PAT do Docker Hub, procurado nesta ordem:
+#   1. $env:DOCKERHUB_TOKEN, se ja estiver definido na sessao
+#   2. DOCKERHUB_TOKEN no .env da raiz do repo
+# Nao havendo nenhum dos dois, o push-dockerhub.ps1 ainda funciona se voce ja tiver
+# feito `docker login` antes (a credencial fica no credential store do Docker).
 #
 # Pre-requisitos:
 #   - Docker Desktop com Kubernetes habilitado (node 'desktop-control-plane').
@@ -66,13 +72,40 @@ if ($LASTEXITCODE -ne 0 -and ($probe -match 'x509|certificate signed by unknown 
     kubectl config set-cluster docker-desktop --insecure-skip-tls-verify=true | Out-Null
 }
 
-# --- 2) (Opcional) Publicar as imagens no Docker Hub ------------------------
+# --- 2) .env ----------------------------------------------------------------
+# Lido AQUI, antes do -Publish, e nao junto do Secret mais abaixo: o
+# push-dockerhub.ps1 precisa do DOCKERHUB_TOKEN e roda no passo seguinte. Com a
+# leitura no lugar antigo, `up.ps1 -Publish` com o token so no .env falhava no
+# login do Docker Hub. O mesmo $envVars alimenta o Secret no passo 4.
+$envPath = Join-Path $repoRoot ".env"
+if (-not (Test-Path $envPath)) {
+    throw ".env nao encontrado em $envPath. Copie o .env.example e preencha os valores."
+}
+
+$envVars = @{}
+foreach ($line in Get-Content $envPath) {
+    $t = $line.Trim()
+    if ($t -eq "" -or $t.StartsWith("#")) { continue }
+    $kv = $t -split "=", 2
+    if ($kv.Count -eq 2) { $envVars[$kv[0].Trim()] = $kv[1].Trim().Trim('"').Trim("'") }
+}
+
+# --- 3) (Opcional) Publicar as imagens no Docker Hub ------------------------
 # As imagens das apps vem do Docker Hub; o node as baixa do registry (sem ctr
 # import). Com -Publish, build + push das 5 imagens antes de subir a stack.
 if ($SkipBuild) {
     Write-Host "    (-SkipBuild aceito e ignorado: o build local saiu do fluxo; use -Publish para publicar)" -ForegroundColor DarkGray
 }
 if ($Publish) {
+    # Precedencia: variavel de ambiente ja definida vence o .env (permite sobrepor o
+    # token pontualmente sem editar arquivo). Sem nenhum dos dois, o push-dockerhub.ps1
+    # ainda aceita credencial ja salva pelo `docker login` (-SkipLogin).
+    if ([string]::IsNullOrWhiteSpace($env:DOCKERHUB_TOKEN) -and
+        -not [string]::IsNullOrWhiteSpace($envVars["DOCKERHUB_TOKEN"])) {
+        Write-Step "DOCKERHUB_TOKEN carregado do .env."
+        $env:DOCKERHUB_TOKEN = $envVars["DOCKERHUB_TOKEN"]
+    }
+
     Write-Step "Publicando as imagens no Docker Hub (push-dockerhub.ps1)..."
     & (Join-Path $scriptDir "push-dockerhub.ps1")
     if ($LASTEXITCODE -ne 0) { throw "push-dockerhub.ps1 falhou" }
@@ -99,19 +132,8 @@ Write-Step "Aplicando o PVC das imagens de campanha (preservado entre ciclos)...
 kubectl apply -f (Join-Path $scriptDir "base/campaigns-images-pvc.yaml") | Out-Null
 if ($LASTEXITCODE -ne 0) { throw "falha ao aplicar o PVC campaigns-images" }
 
-$envPath = Join-Path $repoRoot ".env"
-if (-not (Test-Path $envPath)) {
-    throw ".env nao encontrado em $envPath. Copie o .env.example e preencha os valores."
-}
-
 Write-Step "Gerando o Secret 'conexao-solidaria-secret' a partir do .env..."
-$envVars = @{}
-foreach ($line in Get-Content $envPath) {
-    $t = $line.Trim()
-    if ($t -eq "" -or $t.StartsWith("#")) { continue }
-    $kv = $t -split "=", 2
-    if ($kv.Count -eq 2) { $envVars[$kv[0].Trim()] = $kv[1].Trim() }
-}
+# $envVars ja foi carregado no passo 2 (antes do -Publish, que precisa do token).
 
 function Require-Env($name) {
     if (-not $envVars.ContainsKey($name) -or [string]::IsNullOrWhiteSpace($envVars[$name])) {
