@@ -41,11 +41,16 @@ public interface ICampaignSearchRepository
     /// <summary>Indexa varias campanhas em lote (usado no backfill inicial do indice).</summary>
     Task IndexManyAsync(IReadOnlyCollection<Campaign> campaigns, CancellationToken cancellationToken);
 
+    /// <param name="filter">
+    /// Recorte adicional ao termo (ex.: somente campanhas ativas). O fallback de PostgreSQL
+    /// aplica exatamente o mesmo filtro — ver <see cref="CampaignSearchFilter"/>.
+    /// </param>
     Task<CampaignSearchResult<CampaignSearchDocument>> SearchAsync(
         string term,
         int page,
         int pageSize,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken,
+        CampaignSearchFilter? filter = null);
 }
 
 public sealed class ElasticCampaignSearchRepository : ICampaignSearchRepository
@@ -169,7 +174,8 @@ public sealed class ElasticCampaignSearchRepository : ICampaignSearchRepository
         string term,
         int page,
         int pageSize,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        CampaignSearchFilter? filter = null)
     {
         if (string.IsNullOrWhiteSpace(term))
         {
@@ -187,7 +193,7 @@ public sealed class ElasticCampaignSearchRepository : ICampaignSearchRepository
                 .Size(pageSize)
                 // Total exato (sem o teto padrao de 10.000) para a paginacao ficar correta.
                 .TrackTotalHits(new TrackHits(true))
-                .Query(BuildQuery(term))
+                .Query(BuildQuery(term, filter ?? CampaignSearchFilter.Nenhum))
                 .Sort(sort => sort
                     .Score(new ScoreSort { Order = SortOrder.Desc })),
             cancellationToken);
@@ -225,10 +231,45 @@ public sealed class ElasticCampaignSearchRepository : ICampaignSearchRepository
     /// </list>
     /// Titulo pesa mais que descricao; a categoria entra como sinal adicional.
     /// </summary>
-    private static Action<QueryDescriptor<CampaignSearchDocument>> BuildQuery(string term)
+    private static Action<QueryDescriptor<CampaignSearchDocument>> BuildQuery(
+        string term,
+        CampaignSearchFilter filter)
     {
+        // O recorte entra em FILTER context, nao em must/should: filter nao pontua e e cacheavel,
+        // entao o ranking por relevancia das clausulas should abaixo continua identico. Como o
+        // MinimumShouldMatch(1) e explicito, acrescentar Filter nao altera a semantica do should
+        // (esse e o erro classico ao misturar as duas coisas num mesmo bool).
+        if (!filter.TemFiltro)
+        {
+            return query => query.Bool(boolQuery => boolQuery
+                .Should(ClausulasDeTexto(term))
+                .MinimumShouldMatch(1));
+        }
+
+        // "Ativa" e nao o valor numerico do enum: o cliente serializa enums como string
+        // (JsonStringEnumConverter), entao o campo keyword no indice guarda o nome.
+        var agora = DateTimeOffset.UtcNow;
+
         return query => query.Bool(boolQuery => boolQuery
-            .Should(
+            .Should(ClausulasDeTexto(term))
+            .MinimumShouldMatch(1)
+            .Filter(
+                f => f.Term(t => t
+                    .Field("status")
+                    .Value(nameof(CampaignStatus.Ativa))),
+                f => f.Range(r => r.Date(d => d
+                    .Field("dataFim")
+                    .Gte(agora.UtcDateTime)))));
+    }
+
+    /// <summary>
+    /// As quatro clausulas textuais (fuzzy, phrase-prefix, edge-ngram e frase exata), extraidas
+    /// para serem identicas com e sem filtro.
+    /// </summary>
+    private static Action<QueryDescriptor<CampaignSearchDocument>>[] ClausulasDeTexto(string term)
+    {
+        return
+        [
                 should => should.MultiMatch(multiMatch => multiMatch
                     .Query(term)
                     .Fields(new[] { "titulo^3", "descricao", "categoriaTexto^2" })
@@ -248,8 +289,8 @@ public sealed class ElasticCampaignSearchRepository : ICampaignSearchRepository
                 should => should.MatchPhrase(matchPhrase => matchPhrase
                     .Field("titulo")
                     .Query(term)
-                    .Boost(5)))
-            .MinimumShouldMatch(1));
+                    .Boost(5))
+        ];
     }
 
     private static CampaignSearchDocument ToDocument(Campaign campaign)

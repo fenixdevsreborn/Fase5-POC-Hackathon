@@ -2,6 +2,7 @@ using Asp.Versioning;
 using ConexaoSolidaria.Shared.Domain;
 using ConexaoSolidaria.Shared.Persistence;
 using ConexaoSolidaria.Campaigns.Api.Infrastructure;
+using ConexaoSolidaria.Campaigns.Api.Repositories;
 using ConexaoSolidaria.Campaigns.Api.Requests;
 using ConexaoSolidaria.Campaigns.Api.Responses;
 using ConexaoSolidaria.Campaigns.Api.Services;
@@ -88,9 +89,18 @@ public sealed class CampanhasController(
         [FromQuery] string? q,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10,
+        // Recorte da vitrine publica de transparencia: so campanhas em andamento (Ativa + no prazo).
+        // Aplicado no Elasticsearch E no fallback do Postgres, para o resultado nao mudar conforme
+        // o motor que atendeu a requisicao.
+        [FromQuery] bool apenasAtivas = false,
         CancellationToken cancellationToken = default)
     {
-        var result = await campaignService.SearchAsync(q, page, pageSize, cancellationToken);
+        var result = await campaignService.SearchAsync(
+            q,
+            page,
+            pageSize,
+            cancellationToken,
+            apenasAtivas ? CampaignSearchFilter.SomenteAtivas : CampaignSearchFilter.Nenhum);
         page = Math.Max(page, 1);
         pageSize = pageSize < 1 ? 10 : Math.Clamp(pageSize, 1, 100);
 

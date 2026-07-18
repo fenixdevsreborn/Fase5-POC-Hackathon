@@ -18,11 +18,14 @@ public sealed class FakeCampaignSearchRepository : ICampaignSearchRepository
     public Task IndexManyAsync(IReadOnlyCollection<Campaign> campaigns, CancellationToken cancellationToken)
         => Task.CompletedTask;
 
+    // Devolver vazio faz o CampaignService cair no fallback de PostgreSQL, que e onde os testes
+    // de integracao exercitam a busca (inclusive o recorte de 'filter', aplicado la via EF).
     public Task<CampaignSearchResult<CampaignSearchDocument>> SearchAsync(
         string term,
         int page,
         int pageSize,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        CampaignSearchFilter? filter = null)
     {
         return Task.FromResult(new CampaignSearchResult<CampaignSearchDocument>([], 0));
     }

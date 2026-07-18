@@ -31,13 +31,28 @@ public sealed class ApiClient(HttpClient http, TokenProvider tokenProvider)
 
     // ---------- Campanhas (publico + gestor) ----------
 
+    /// <summary>
+    /// Busca campanhas com tolerancia a erro de digitacao (Elasticsearch no servidor, com
+    /// fallback para o PostgreSQL). Com <paramref name="apenasAtivas"/>, o servidor restringe a
+    /// campanhas em andamento (Ativa + no prazo) — recorte usado pela vitrine de transparencia.
+    /// Filtrar no servidor, e nao aqui, mantem Total/TotalPages coerentes com o que e exibido.
+    /// </summary>
     public async Task<Paginated<CampanhaDto>> BuscarCampanhasAsync(
-        string? q, int page, int pageSize, CancellationToken ct = default)
+        string? q,
+        int page,
+        int pageSize,
+        CancellationToken ct = default,
+        bool apenasAtivas = false)
     {
         var url = $"api/campanhas/search?page={page}&pageSize={pageSize}";
         if (!string.IsNullOrWhiteSpace(q))
         {
             url += $"&q={Uri.EscapeDataString(q)}";
+        }
+
+        if (apenasAtivas)
+        {
+            url += "&apenasAtivas=true";
         }
 
         var result = await GetAsync<Paginated<CampanhaDto>>(url, ct);

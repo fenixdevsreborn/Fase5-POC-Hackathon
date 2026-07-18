@@ -27,11 +27,16 @@ public interface ICampaignService
     /// </summary>
     Task<CampanhaResponse?> GetResponseByIdAsync(Guid id, CancellationToken cancellationToken);
 
+    /// <param name="filter">
+    /// Recorte adicional (ex.: somente campanhas ativas, usado pela vitrine de transparencia).
+    /// Aplicado tanto no Elasticsearch quanto no fallback de PostgreSQL.
+    /// </param>
     Task<CampaignSearchResult<CampanhaResponse>> SearchAsync(
         string? term,
         int page = 1,
         int pageSize = 10,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default,
+        CampaignSearchFilter? filter = null);
 
     /// <summary>
     /// Cria a campanha. Lanca <see cref="DuplicateCampaignTitleException"/> (=&gt; 409) quando ja
@@ -134,16 +139,18 @@ public sealed class CampaignService : ICampaignService
         string? term,
         int page = 1,
         int pageSize = 10,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        CampaignSearchFilter? filter = null)
     {
         page = Math.Max(page, 1);
         pageSize = pageSize < 1 ? 10 : Math.Clamp(pageSize, 1, 100);
+        var recorte = filter ?? CampaignSearchFilter.Nenhum;
 
         // Sem termo = "listar todas" (ex.: painel do gestor e vitrine). Vem direto do Postgres
         // (fonte da verdade), paginado; o Elasticsearch so entra quando ha termo de busca.
         if (string.IsNullOrWhiteSpace(term))
         {
-            return await ListFromDatabaseAsync(page, pageSize, cancellationToken);
+            return await ListFromDatabaseAsync(page, pageSize, cancellationToken, recorte);
         }
 
         var normalizedTerm = term.Trim();
@@ -154,7 +161,8 @@ public sealed class CampaignService : ICampaignService
             // ExecuteAsync passa a lancar BrokenCircuitException IMEDIATAMENTE (sem martelar o ES) por
             // um periodo, caindo direto no fallback do Postgres abaixo.
             var result = await searchPipeline.ExecuteAsync(
-                async token => await searchRepository.SearchAsync(normalizedTerm, page, pageSize, token),
+                async token => await searchRepository.SearchAsync(
+                    normalizedTerm, page, pageSize, token, recorte),
                 cancellationToken);
 
             var enriched = await EnrichWithDonorCountsAsync(
@@ -170,7 +178,7 @@ public sealed class CampaignService : ICampaignService
                 "Circuito do Elasticsearch ABERTO. Servindo a busca '{Term}' direto do PostgreSQL.",
                 normalizedTerm);
 
-            return await SearchInDatabaseAsync(normalizedTerm, page, pageSize, cancellationToken);
+            return await SearchInDatabaseAsync(normalizedTerm, page, pageSize, cancellationToken, recorte);
         }
         catch (Exception ex)
         {
@@ -181,7 +189,7 @@ public sealed class CampaignService : ICampaignService
                 "Busca no Elasticsearch indisponivel para o termo '{Term}'. Aplicando fallback para PostgreSQL.",
                 normalizedTerm);
 
-            return await SearchInDatabaseAsync(normalizedTerm, page, pageSize, cancellationToken);
+            return await SearchInDatabaseAsync(normalizedTerm, page, pageSize, cancellationToken, recorte);
         }
     }
 
@@ -189,9 +197,10 @@ public sealed class CampaignService : ICampaignService
     private async Task<CampaignSearchResult<CampanhaResponse>> ListFromDatabaseAsync(
         int page,
         int pageSize,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        CampaignSearchFilter filter)
     {
-        var query = db.Campaigns.AsNoTracking();
+        var query = db.Campaigns.AsNoTracking().Where(filter.ToPredicate(DateTimeOffset.UtcNow));
 
         var total = await query.LongCountAsync(cancellationToken);
 
@@ -221,12 +230,16 @@ public sealed class CampaignService : ICampaignService
         string term,
         int page,
         int pageSize,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        CampaignSearchFilter filter)
     {
         var pattern = $"%{term}%";
 
+        // O MESMO recorte aplicado no Elasticsearch (ver CampaignSearchFilter): sem isto, uma queda
+        // do ES faria a vitrine de transparencia passar a listar campanhas canceladas/encerradas.
         var query = db.Campaigns
             .AsNoTracking()
+            .Where(filter.ToPredicate(DateTimeOffset.UtcNow))
             .Where(campaign =>
                 EF.Functions.ILike(campaign.Titulo, pattern) ||
                 EF.Functions.ILike(campaign.Descricao, pattern));

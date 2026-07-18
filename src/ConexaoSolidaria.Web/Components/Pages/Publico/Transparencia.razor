@@ -78,8 +78,9 @@
                     <span class="cs-tp-search__icon"><MudIcon Icon="@Icons.Material.Filled.Search" /></span>
                     <span class="cs-tp-search__field">
                         <span>Pesquisar campanha</span>
+                        @* Busca no servidor (Elasticsearch): tolera erro de digitação e acento. *@
                         <input type="search"
-                               placeholder="Digite um título ou palavra-chave"
+                               placeholder="Busque por título, causa ou categoria — tolera erros de digitação"
                                value="@_q"
                                @oninput="@(e => _q = e.Value?.ToString() ?? string.Empty)"
                                aria-label="Buscar campanhas" />
@@ -262,8 +263,16 @@
     private bool _loading = true;
     private bool _error;
 
+    // _ativas: TODAS as campanhas ativas — alimenta os indicadores do topo, que sao globais
+    // (nao reagem a busca). _resultados: o conjunto que a busca devolveu (ou _ativas, sem termo);
+    // e sobre ele que categoria/ordenacao sao aplicadas para produzir _view.
     private IReadOnlyList<CampanhaDto> _ativas = Array.Empty<CampanhaDto>();
+    private IReadOnlyList<CampanhaDto> _resultados = Array.Empty<CampanhaDto>();
     private IReadOnlyList<CampanhaDto> _view = Array.Empty<CampanhaDto>();
+
+    // Termo ja consultado no servidor. Evita refazer a busca quando so categoria/ordenacao mudam
+    // (esses dois continuam sendo filtros locais, baratos, sobre o resultado ja carregado).
+    private string? _termoCarregado;
 
     private int _totalAtivas;
     private int _totalCampanhas;
@@ -273,15 +282,23 @@
     private bool TemFiltroAtivo =>
         !string.IsNullOrWhiteSpace(_q) || _categoria != "Todas" || _ordenar != "recentes";
 
-    protected override Task OnInitializedAsync() => LoadAsync();
-
-    // Roda no primeiro render e sempre que a query string muda: re-sincroniza os controles
-    // com a rota e recalcula a lista exibida. A busca no servidor so ocorre no LoadAsync.
-    protected override void OnParametersSet()
+    // Roda no primeiro render e sempre que a query string muda: re-sincroniza os controles com a
+    // rota. Se o TERMO mudou, refaz a busca no servidor (e la que mora o fuzzy do Elasticsearch);
+    // se so mudaram categoria/ordenacao, reaproveita o resultado ja carregado.
+    protected override async Task OnParametersSetAsync()
     {
         _q = QParam ?? string.Empty;
         _categoria = string.IsNullOrWhiteSpace(CategoriaParam) ? "Todas" : CategoriaParam;
         _ordenar = string.IsNullOrWhiteSpace(OrdenarParam) ? "recentes" : OrdenarParam;
+
+        var termo = _q.Trim();
+
+        // _termoCarregado nulo = nada foi carregado ainda (primeira passagem).
+        if (_termoCarregado is null || !string.Equals(termo, _termoCarregado, StringComparison.Ordinal))
+        {
+            await LoadAsync(termo);
+            return;
+        }
 
         if (!_loading && !_error)
         {
@@ -289,7 +306,7 @@
         }
     }
 
-    private async Task LoadAsync()
+    private async Task LoadAsync(string termo)
     {
         _loading = true;
         _error = false;
@@ -297,8 +314,9 @@
 
         try
         {
-            // Uma unica leitura (sem termo) traz todas as campanhas do Postgres; filtramos as ativas
-            // e aplicamos busca/categoria/ordenacao no cliente — barato para o volume da vitrine.
+            // 1) Leitura sem termo: alimenta os indicadores do topo, que sao GLOBAIS. O total da
+            //    plataforma conta campanhas de qualquer status, por isso esta chamada NAO usa
+            //    apenasAtivas; o recorte de ativas para os demais numeros e feito logo abaixo.
             var pagina = await Api.BuscarCampanhasAsync(null, 1, 100);
             _totalCampanhas = pagina.Total;
 
@@ -307,13 +325,24 @@
             _totalArrecadado = _ativas.Sum(c => c.ValorTotalArrecadado);
             _totalDoadores = _ativas.Sum(c => c.TotalDoadores);
 
+            // 2) Com termo, a lista exibida vem da busca do servidor (Elasticsearch com tolerancia
+            //    a erro de digitacao e acento; PostgreSQL como fallback). apenasAtivas garante que
+            //    a vitrine nunca mostre campanha encerrada ou cancelada — inclusive no fallback.
+            _resultados = string.IsNullOrWhiteSpace(termo)
+                ? _ativas
+                : (await Api.BuscarCampanhasAsync(termo, 1, 100, apenasAtivas: true)).Items;
+
+            _termoCarregado = termo;
             AplicarFiltrosLocais();
         }
         catch
         {
             _error = true;
             _ativas = Array.Empty<CampanhaDto>();
+            _resultados = Array.Empty<CampanhaDto>();
             _view = Array.Empty<CampanhaDto>();
+            // Nao marca o termo como carregado: uma nova tentativa deve refazer a busca.
+            _termoCarregado = null;
         }
         finally
         {
@@ -322,18 +351,12 @@
         }
     }
 
-    // Filtra e ordena a lista de ativas conforme os controles (que refletem a rota).
+    // Categoria e ordenacao continuam locais (baratos, sem ida ao servidor). A BUSCA POR TERMO nao
+    // esta mais aqui: era um Contains simples, que exigia digitacao exata — "sao paulo" nao achava
+    // "São Paulo" e "metrica" nao achava "Metricas". Agora ela vem do Elasticsearch em _resultados.
     private void AplicarFiltrosLocais()
     {
-        IEnumerable<CampanhaDto> query = _ativas;
-
-        if (!string.IsNullOrWhiteSpace(_q))
-        {
-            var termo = _q.Trim();
-            query = query.Where(c =>
-                c.Titulo.Contains(termo, StringComparison.OrdinalIgnoreCase) ||
-                c.Descricao.Contains(termo, StringComparison.OrdinalIgnoreCase));
-        }
+        IEnumerable<CampanhaDto> query = _resultados;
 
         if (!string.Equals(_categoria, "Todas", StringComparison.OrdinalIgnoreCase))
         {
@@ -386,7 +409,7 @@
         Navigation.NavigateTo(uri);
     }
 
-    private Task Recarregar() => LoadAsync();
+    private Task Recarregar() => LoadAsync(_q.Trim());
 
     // ----- Helpers de apresentacao -----
     private static double Percent(CampanhaDto c) => c.MetaFinanceira <= 0m
