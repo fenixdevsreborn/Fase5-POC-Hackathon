@@ -1,0 +1,104 @@
+<Project>
+
+  <!--
+    Central Package Management (CPM).
+    Fonte unica de versoes para toda a solucao: os .csproj declaram apenas
+    <PackageReference Include="..." />, sem Version. Isso mantem os projetos
+    coerentes entre si e evita NU1605 (package downgrade) quando um pacote e
+    atualizado em apenas um projeto — cenario que o Dependabot produzia ao abrir
+    um PR por pacote/projeto.
+
+    Excecao: a versao do Aspire.AppHost.Sdk (atributo Sdk= no AppHost.csproj)
+    nao e gerenciavel por CPM e continua fixada la; deve casar com
+    Aspire.Hosting.AppHost abaixo.
+  -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+
+  <!-- ASP.NET Core / API -->
+  <ItemGroup>
+    <PackageVersion Include="Asp.Versioning.Mvc" Version="10.0.0" />
+    <PackageVersion Include="Asp.Versioning.Mvc.ApiExplorer" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.9" />
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.9" />
+    <PackageVersion Include="Swashbuckle.AspNetCore" Version="10.2.3" />
+    <!-- Override transitivo (via Swashbuckle) para corrigir NU1903 GHSA-v5pm-xwqc-g5wc -->
+    <PackageVersion Include="Microsoft.OpenApi" Version="2.7.5" />
+    <PackageVersion Include="Yarp.ReverseProxy" Version="2.3.0" />
+  </ItemGroup>
+
+  <!-- Aspire (AppHost + integracoes). Casar com o Sdk= do AppHost.csproj -->
+  <ItemGroup>
+    <PackageVersion Include="Aspire.Hosting.AppHost" Version="13.4.6" />
+    <!-- Ultima versao disponivel do pacote (nao ha 13.4.6); nao precisa casar com o SDK/DCP. -->
+    <PackageVersion Include="Aspire.Hosting.Elasticsearch" Version="13.3.0" />
+    <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="13.4.6" />
+    <PackageVersion Include="Aspire.Hosting.RabbitMQ" Version="13.4.6" />
+  </ItemGroup>
+
+  <!-- Resiliencia e service discovery (ServiceDefaults e consumidores) -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.7.0" />
+    <PackageVersion Include="Microsoft.Extensions.Resilience" Version="10.7.0" />
+    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="10.7.0" />
+    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery.Yarp" Version="10.7.0" />
+  </ItemGroup>
+
+  <!-- Persistencia (EF Core + Npgsql). Manter as 4 refs EF na mesma versao -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.9" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.9" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.9" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.9" />
+    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
+  </ItemGroup>
+
+  <!-- Mensageria e busca -->
+  <ItemGroup>
+    <PackageVersion Include="RabbitMQ.Client" Version="7.2.1" />
+    <!-- Alinhado ao servidor Elasticsearch 8.15.3 (infra/k8s/base/elasticsearch.yaml). O client 9.x
+         envia o media-type compatible-with=9, que o ES 8.x rejeita ("Invalid media-type value"). -->
+    <PackageVersion Include="Elastic.Clients.Elasticsearch" Version="8.19.21" />
+    <PackageVersion Include="MessagePack" Version="3.1.8" />
+  </ItemGroup>
+
+  <!-- Observabilidade -->
+  <ItemGroup>
+    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.16.0" />
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.16.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.16.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.16.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.16.0" />
+    <PackageVersion Include="prometheus-net.AspNetCore" Version="8.2.1" />
+  </ItemGroup>
+
+  <!-- Frontend (Blazor) e IA -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.Agents.AI" Version="1.13.0" />
+    <PackageVersion Include="Microsoft.Agents.AI.OpenAI" Version="1.13.0" />
+    <PackageVersion Include="MudBlazor" Version="9.7.0" />
+  </ItemGroup>
+
+  <!-- Utilitarios -->
+  <ItemGroup>
+    <PackageVersion Include="BCrypt.Net-Next" Version="4.2.0" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.9" />
+  </ItemGroup>
+
+  <!-- Testes -->
+  <ItemGroup>
+    <PackageVersion Include="coverlet.collector" Version="10.0.1" />
+    <PackageVersion Include="FluentAssertions" Version="8.10.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.9" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.7.0" />
+    <PackageVersion Include="Testcontainers.PostgreSql" Version="4.13.0" />
+    <PackageVersion Include="Testcontainers.RabbitMq" Version="4.13.0" />
+    <PackageVersion Include="xunit" Version="2.9.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
+    <!-- Override transitivo (via EFCore.Sqlite) para corrigir NU1903 GHSA-2m69-gcr7-jv3q -->
+    <PackageVersion Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.3" />
+  </ItemGroup>
+
+</Project>
