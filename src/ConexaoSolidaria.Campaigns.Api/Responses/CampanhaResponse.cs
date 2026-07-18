@@ -14,4 +14,7 @@ public sealed record CampanhaResponse(
     CampaignCategory Categoria,
     // Numero de doacoes processadas (proxy de "doadores"). Vem do read model campaign_stats,
     // populado pelo Donations.Worker; 0 enquanto nao ha doacoes processadas.
-    int TotalDoadores);
+    int TotalDoadores,
+    // Nome do arquivo de imagem enviado pelo gestor; null quando a campanha nao tem foto propria
+    // (a Web cai na imagem ilustrativa por categoria).
+    string? Imagem = null);

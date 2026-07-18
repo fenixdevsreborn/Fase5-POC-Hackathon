@@ -43,6 +43,85 @@
 .nova-campanha__card-head h2 { margin: 2px 0 4px; font-size: 1.2rem; font-weight: 800; color: #0b2350; }
 .nova-campanha__card-head p { margin: 0; font-size: 0.86rem; color: #6a7891; line-height: 1.5; }
 
+/* A coluna principal empilha o formulário e, abaixo, a lista do lote. */
+.nova-campanha__main { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
+
+.nova-campanha__edicao-aviso { display: flex; justify-content: flex-end; margin-top: 10px; }
+
+/* Passo já concluído (contador da lista) usa verde em vez do azul do formulário. */
+.nova-campanha__step--ok {
+    background: linear-gradient(145deg, #34c98a, #17a06a);
+    box-shadow: 0 8px 18px rgba(23, 160, 106, 0.28);
+}
+
+/* Lista de campanhas pendentes de salvamento */
+.nova-campanha__lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+
+.nova-campanha__item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 14px;
+    border: 1px solid #e9eef7;
+    border-radius: 14px;
+    background: #fbfcfe;
+}
+
+.nova-campanha__item--erro { border-color: #f3c2c2; background: #fdf6f6; }
+
+.nova-campanha__item-foto {
+    flex: 0 0 auto;
+    width: 64px;
+    height: 48px;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #eef2f8;
+    display: grid;
+    place-items: center;
+    color: #9aa8bd;
+}
+
+.nova-campanha__item-foto img { width: 100%; height: 100%; object-fit: cover; }
+
+.nova-campanha__item-dados { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 auto; }
+.nova-campanha__item-dados strong { font-size: 0.95rem; color: #0b2350; overflow-wrap: anywhere; }
+
+.nova-campanha__item-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    font-size: 0.8rem;
+    color: #6a7891;
+}
+
+.nova-campanha__item-erro {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 3px;
+    font-size: 0.79rem;
+    font-weight: 600;
+    color: #c43838;
+}
+
+.nova-campanha__item-acoes { flex: 0 0 auto; display: flex; gap: 2px; }
+
+.nova-campanha__lote-acoes {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 9px;
+    margin-top: 20px;
+    padding-top: 18px;
+    border-top: 1px solid #edf1f6;
+}
+
+.nova-campanha__lote-acoes ::deep .mud-button-root { min-height: 44px; border-radius: 11px; font-weight: 700; }
+
+.nova-campanha__ai--import .nova-campanha__ai-head { background: linear-gradient(120deg, #0f7594, #23a36d); }
+.nova-campanha__import-erros { margin: 6px 0 0; padding-left: 18px; font-size: 0.78rem; line-height: 1.5; }
+
 /* Coluna lateral */
 .nova-campanha__side {
     position: sticky;
@@ -113,6 +192,13 @@
     .nova-campanha { grid-template-columns: 1fr; }
     .nova-campanha__side { position: static; }
     .nova-campanha__card { padding: 24px 20px 28px; }
+}
+
+@media (max-width: 520px) {
+    .nova-campanha__item { align-items: flex-start; flex-wrap: wrap; }
+    .nova-campanha__item-acoes { margin-left: auto; }
+    .nova-campanha__lote-acoes { align-items: stretch; flex-direction: column-reverse; }
+    .nova-campanha__lote-acoes ::deep .mud-button-root { width: 100%; }
 }
 
 @media (prefers-reduced-motion: reduce) {

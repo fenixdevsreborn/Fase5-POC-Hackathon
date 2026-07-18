@@ -1,6 +1,8 @@
 @* Formulário reutilizável de campanha (criação e edição). Validação client-side melhora a
    UX, mas a verdade é o backend: em 400 a página exibe ErrorMessage. *@
 @using System.Globalization
+@inject ApiClient Api
+@inject ISnackbar Snackbar
 
 <MudForm @ref="_form">
     @if (!string.IsNullOrWhiteSpace(ErrorMessage))
@@ -104,17 +106,81 @@
                 }
             </MudSelect>
         </MudItem>
+
+        <MudItem xs="12">
+            @* A imagem sobe assim que é escolhida e o form guarda só o nome do arquivo. Isso
+               permite montar várias campanhas com foto antes de salvar qualquer uma. *@
+            <div class="cs-campaign-form__imagem">
+                <div class="cs-campaign-form__imagem-preview">
+                    @if (!string.IsNullOrWhiteSpace(_imagemUrl))
+                    {
+                        <img src="@_imagemUrl" alt="Pré-visualização da imagem da campanha" />
+                    }
+                    else
+                    {
+                        <span class="cs-campaign-form__imagem-vazia">
+                            <MudIcon Icon="@Icons.Material.Filled.Image" />
+                        </span>
+                    }
+                </div>
+
+                <div class="cs-campaign-form__imagem-acoes">
+                    <strong>Imagem da campanha</strong>
+                    <small>JPG, PNG ou WebP, até 5 MB. Sem foto, usamos uma imagem da categoria.</small>
+
+                    <div class="cs-campaign-form__imagem-botoes">
+                        <MudFileUpload T="IBrowserFile"
+                                       Accept=".jpg,.jpeg,.png,.webp"
+                                       FilesChanged="EnviarImagemAsync"
+                                       MaximumFileCount="1"
+                                       Context="upload">
+                            <CustomContent>
+                                <MudButton Variant="Variant.Outlined"
+                                           Color="Color.Primary"
+                                           StartIcon="@Icons.Material.Filled.CloudUpload"
+                                           OnClick="@upload.OpenFilePickerAsync"
+                                           Disabled="_enviandoImagem">
+                                    @if (_enviandoImagem)
+                                    {
+                                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                                        <span>Enviando...</span>
+                                    }
+                                    else
+                                    {
+                                        <span>@(string.IsNullOrWhiteSpace(_imagem) ? "Escolher imagem" : "Trocar imagem")</span>
+                                    }
+                                </MudButton>
+                            </CustomContent>
+                        </MudFileUpload>
+
+                        @if (!string.IsNullOrWhiteSpace(_imagem))
+                        {
+                            <MudButton Variant="Variant.Text"
+                                       Color="Color.Error"
+                                       StartIcon="@Icons.Material.Filled.Delete"
+                                       Disabled="_enviandoImagem"
+                                       OnClick="RemoverImagem">
+                                Remover
+                            </MudButton>
+                        }
+                    </div>
+                </div>
+            </div>
+        </MudItem>
     </MudGrid>
 
     <div class="cs-campaign-form__actions">
-        <MudButton Variant="Variant.Text" Color="Color.Default" Href="/gestor" Disabled="_enviando">
-            Cancelar
-        </MudButton>
+        @if (!string.IsNullOrWhiteSpace(CancelHref))
+        {
+            <MudButton Variant="Variant.Text" Color="Color.Default" Href="@CancelHref" Disabled="_enviando">
+                Cancelar
+            </MudButton>
+        }
         <MudButton Variant="Variant.Filled"
                    Color="Color.Primary"
-                   StartIcon="@Icons.Material.Filled.Save"
+                   StartIcon="@SubmitIcon"
                    OnClick="SubmeterAsync"
-                   Disabled="_enviando">
+                   Disabled="@(_enviando || _enviandoImagem)">
             @if (_enviando)
             {
                 <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
@@ -131,6 +197,10 @@
     [Parameter] public string SubmitLabel { get; set; } = "Salvar";
     [Parameter] public EventCallback<SalvarCampanha> OnSubmit { get; set; }
     [Parameter] public string? ErrorMessage { get; set; }
+    [Parameter] public string SubmitIcon { get; set; } = Icons.Material.Filled.Save;
+
+    /// <summary>Destino do botão "Cancelar". Vazio esconde o botão (uso na tela de lote).</summary>
+    [Parameter] public string? CancelHref { get; set; } = "/gestor";
 
     private MudForm _form = default!;
     private bool _enviando;
@@ -144,9 +214,31 @@
     private string _status = "Ativa";
     private string _categoria = "Saude";
 
+    // Nome do arquivo já enviado à API (não os bytes) + URL de preview derivada dele.
+    private string? _imagem;
+    private string? _imagemUrl;
+    private bool _enviandoImagem;
+
+    /// <summary>Limite alinhado ao aceito pela API; o backend revalida (nunca confiar no cliente).</summary>
+    private const long TamanhoMaximoImagem = 5 * 1024 * 1024;
+
     // Inicializa os campos apenas quando o Model (referência) muda, para não
     // sobrescrever a digitação do usuário quando o pai atualizar o ErrorMessage.
     private SalvarCampanha? _modelAplicado;
+
+    // Marcado quando o Model troca; consumido no primeiro render seguinte (ver OnParametersSet).
+    private bool _precisaResetarValidacao;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_precisaResetarValidacao || _form is null)
+        {
+            return;
+        }
+
+        _precisaResetarValidacao = false;
+        await _form.ResetValidationAsync();
+    }
 
     protected override void OnParametersSet()
     {
@@ -157,6 +249,13 @@
 
         _modelAplicado = Model;
 
+        // O pai troca a referência do Model para limpar o formulário (ex.: depois de adicionar a
+        // campanha à lista de lote). Sem resetar a validação, o MudForm mantém o estado "tocado"
+        // do envio anterior e o formulário vazio nasce todo vermelho, como se o usuário tivesse
+        // errado algo. O reset em si só pode rodar depois da renderização (o _form ainda é null
+        // na primeira passagem), então fica agendado para o OnAfterRender.
+        _precisaResetarValidacao = true;
+
         if (Model is not null)
         {
             _titulo = Model.Titulo;
@@ -166,7 +265,62 @@
             _meta = Model.MetaFinanceira;
             _status = string.IsNullOrWhiteSpace(Model.Status) ? "Ativa" : Model.Status;
             _categoria = string.IsNullOrWhiteSpace(Model.Categoria) ? "Saude" : Model.Categoria;
+            _imagem = Model.Imagem;
+            _imagemUrl = ApiClient.UrlImagemCampanha(Model.Imagem);
         }
+    }
+
+    // Sobe o arquivo na hora e guarda só o nome devolvido pela API. Assim o form continua
+    // carregando um record leve e a mesma imagem pode ser referenciada por uma campanha ainda
+    // não salva (fluxo de lote).
+    private async Task EnviarImagemAsync(IBrowserFile? arquivo)
+    {
+        if (arquivo is null)
+        {
+            return;
+        }
+
+        if (arquivo.Size > TamanhoMaximoImagem)
+        {
+            Snackbar.Add("Imagem muito grande. O tamanho máximo é 5 MB.", Severity.Warning);
+            return;
+        }
+
+        _enviandoImagem = true;
+        try
+        {
+            await using var conteudo = arquivo.OpenReadStream(TamanhoMaximoImagem);
+            var enviada = await Api.EnviarImagemCampanhaAsync(
+                conteudo,
+                arquivo.Name,
+                string.IsNullOrWhiteSpace(arquivo.ContentType) ? "application/octet-stream" : arquivo.ContentType);
+
+            if (enviada is null)
+            {
+                Snackbar.Add("Não foi possível enviar a imagem. Verifique o formato e tente novamente.", Severity.Warning);
+                return;
+            }
+
+            _imagem = enviada.Arquivo;
+            _imagemUrl = ApiClient.UrlImagemCampanha(enviada.Arquivo);
+            Snackbar.Add("Imagem enviada.", Severity.Success);
+        }
+        catch (IOException)
+        {
+            // OpenReadStream estoura IOException quando o arquivo passa do limite informado.
+            Snackbar.Add("Imagem muito grande. O tamanho máximo é 5 MB.", Severity.Warning);
+        }
+        finally
+        {
+            _enviandoImagem = false;
+        }
+    }
+
+    // String vazia (e não null) porque no PUT o backend trata null como "manter a imagem atual".
+    private void RemoverImagem()
+    {
+        _imagem = string.Empty;
+        _imagemUrl = null;
     }
 
     private static string? ValidarTitulo(string? valor)
@@ -227,7 +381,8 @@
             DataFim: new DateTimeOffset(DateTime.SpecifyKind(_dataFim!.Value, DateTimeKind.Unspecified), TimeSpan.Zero),
             MetaFinanceira: _meta,
             Status: _status,
-            Categoria: _categoria);
+            Categoria: _categoria,
+            Imagem: _imagem);
 
         _enviando = true;
         try

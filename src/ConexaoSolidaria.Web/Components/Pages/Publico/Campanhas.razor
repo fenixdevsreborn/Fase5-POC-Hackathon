@@ -58,7 +58,7 @@
             <ItemTemplate Context="sugestao">
                 <div class="campaign-suggestion">
                     <img class="campaign-suggestion__thumb"
-                         src="@CampaignVisuals.ImagemDe(sugestao.Id)" alt="" loading="lazy" />
+                         src="@CampaignVisuals.ImagemDe(sugestao.Id, sugestao.Imagem)" alt="" loading="lazy" />
                     <span class="campaign-suggestion__text">
                         <strong>@sugestao.Titulo</strong>
                         <small>@CampaignVisuals.RotuloCategoria(sugestao.Categoria) · @Money(sugestao.ValorTotalArrecadado) arrecadados</small>

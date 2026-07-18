@@ -10,7 +10,22 @@ public sealed class Campaign
 
     public string Titulo { get; private set; } = string.Empty;
 
+    /// <summary>
+    /// Titulo em forma canonica (trim + minusculas + espacos internos colapsados). Existe como
+    /// coluna propria porque e ela que sustenta o indice UNICO de titulo: comparar o titulo cru
+    /// deixaria passar "Cestas de Natal" e "cestas de natal " como campanhas distintas.
+    /// Mantido apenas pelo dominio (Create/Update) — nunca setado de fora.
+    /// </summary>
+    public string TituloNormalizado { get; private set; } = string.Empty;
+
     public string Descricao { get; private set; } = string.Empty;
+
+    /// <summary>
+    /// Nome do arquivo de imagem da campanha no storage (ex.: "3f2a....jpg"), ou null quando o
+    /// gestor nao enviou foto — nesse caso a UI cai na imagem ilustrativa por categoria.
+    /// Guarda so o nome: a URL publica e montada por quem serve (GET /api/campanhas/imagens/{arquivo}).
+    /// </summary>
+    public string? Imagem { get; private set; }
 
     public DateTimeOffset DataInicio { get; private set; }
 
@@ -36,20 +51,39 @@ public sealed class Campaign
         decimal metaFinanceira,
         CampaignStatus status,
         DateTimeOffset now,
-        CampaignCategory categoria = CampaignCategory.Outros)
+        CampaignCategory categoria = CampaignCategory.Outros,
+        string? imagem = null)
     {
         Validate(titulo, descricao, dataInicio, dataFim, metaFinanceira, now);
 
         return new Campaign
         {
             Titulo = titulo.Trim(),
+            TituloNormalizado = NormalizarTitulo(titulo),
             Descricao = descricao.Trim(),
             DataInicio = dataInicio.ToUniversalTime(),
             DataFim = dataFim.ToUniversalTime(),
             MetaFinanceira = metaFinanceira,
             Status = status,
-            Categoria = categoria
+            Categoria = categoria,
+            Imagem = string.IsNullOrWhiteSpace(imagem) ? null : imagem.Trim()
         };
+    }
+
+    /// <summary>
+    /// Forma canonica usada na comparacao de unicidade: trim, minusculas (invariante) e espacos
+    /// internos colapsados. Publico e estatico para que a API possa consultar o banco pelo mesmo
+    /// criterio antes de tentar inserir (mensagem de erro amigavel em vez de violacao de indice).
+    /// </summary>
+    public static string NormalizarTitulo(string titulo)
+    {
+        if (string.IsNullOrWhiteSpace(titulo))
+        {
+            return string.Empty;
+        }
+
+        var partes = titulo.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+        return string.Join(' ', partes).ToLowerInvariant();
     }
 
     public void Update(
@@ -60,7 +94,8 @@ public sealed class Campaign
         decimal metaFinanceira,
         CampaignStatus status,
         DateTimeOffset now,
-        CampaignCategory categoria = CampaignCategory.Outros)
+        CampaignCategory categoria = CampaignCategory.Outros,
+        string? imagem = null)
     {
         Validate(titulo, descricao, dataInicio, dataFim, metaFinanceira, now);
 
@@ -71,6 +106,13 @@ public sealed class Campaign
         }
 
         Titulo = titulo.Trim();
+        TituloNormalizado = NormalizarTitulo(titulo);
+        // null preserva a imagem atual (edicao sem mexer na foto); string vazia remove.
+        if (imagem is not null)
+        {
+            Imagem = string.IsNullOrWhiteSpace(imagem) ? null : imagem.Trim();
+        }
+
         Descricao = descricao.Trim();
         DataInicio = dataInicio.ToUniversalTime();
         DataFim = dataFim.ToUniversalTime();

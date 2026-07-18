@@ -61,6 +61,86 @@ public sealed class ApiClient(HttpClient http, TokenProvider tokenProvider)
     public Task<CampanhaDto?> AtualizarCampanhaAsync(Guid id, SalvarCampanha dto, CancellationToken ct = default) =>
         PutAsync<CampanhaDto>($"api/campanhas/{id}", dto, ct);
 
+    /// <summary>
+    /// Cria varias campanhas de uma vez. A API responde 200 mesmo com falhas parciais, entao o
+    /// retorno traz as criadas e as recusadas separadamente. Null so em falha de transporte.
+    /// </summary>
+    public Task<CriacaoEmLoteResultado?> CriarCampanhasEmLoteAsync(
+        IReadOnlyList<SalvarCampanha> campanhas,
+        CancellationToken ct = default) =>
+        PostAsync<CriacaoEmLoteResultado>("api/campanhas/lote", new { campanhas }, ct);
+
+    /// <summary>
+    /// Envia a imagem antes da campanha existir e devolve o nome do arquivo para colocar em
+    /// <see cref="SalvarCampanha.Imagem"/>. Null quando a API recusa (formato/tamanho) ou o
+    /// transporte falha — a pagina mostra o aviso e mantem a campanha sem foto.
+    /// </summary>
+    public async Task<ImagemEnviada?> EnviarImagemCampanhaAsync(
+        Stream conteudo,
+        string nomeArquivo,
+        string contentType,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            using var request = CreateRequest(HttpMethod.Post, "api/campanhas/imagens");
+
+            // MultipartFormDataContent assume a posse dos filhos; o using externo cobre os dois.
+            using var form = new MultipartFormDataContent();
+            var arquivo = new StreamContent(conteudo);
+            arquivo.Headers.ContentType = new MediaTypeHeaderValue(contentType);
+
+            // "arquivo" precisa casar com o nome do parametro IFormFile no controller.
+            form.Add(arquivo, "arquivo", nomeArquivo);
+            request.Content = form;
+
+            using var response = await http.SendAsync(request, ct);
+            return await ReadAsync<ImagemEnviada>(response, ct);
+        }
+        catch (HttpRequestException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// URL que o BROWSER usa para carregar a imagem. Aponta para uma rota da propria Web, nao para
+    /// o Gateway: o Gateway nao e publicado para o navegador (so a Web e), entao o endpoint
+    /// <c>/imagens/campanhas/{arquivo}</c> registrado no Program.cs faz o proxy server-side.
+    /// Null quando a campanha nao tem foto propria — a UI cai na imagem por categoria.
+    /// </summary>
+    public static string? UrlImagemCampanha(string? arquivo) =>
+        string.IsNullOrWhiteSpace(arquivo) ? null : $"/imagens/campanhas/{arquivo}";
+
+    /// <summary>
+    /// Busca os bytes da imagem no Gateway para o proxy da Web repassar ao browser.
+    /// Null quando a imagem nao existe ou a API esta indisponivel.
+    /// </summary>
+    public async Task<(Stream Content, string ContentType)?> BaixarImagemCampanhaAsync(
+        string arquivo,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            using var request = CreateRequest(HttpMethod.Get, $"api/campanhas/imagens/{arquivo}");
+            var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                response.Dispose();
+                return null;
+            }
+
+            var contentType = response.Content.Headers.ContentType?.MediaType ?? "application/octet-stream";
+            var content = await response.Content.ReadAsStreamAsync(ct);
+            return (content, contentType);
+        }
+        catch (HttpRequestException)
+        {
+            return null;
+        }
+    }
+
     // ---------- Doacoes (doador) ----------
 
     public Task<DoacaoAceitaDto?> DoarAsync(Guid idCampanha, decimal valor, CancellationToken ct = default) =>

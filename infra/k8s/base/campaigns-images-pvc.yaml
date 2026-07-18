@@ -1,0 +1,33 @@
+# =============================================================================
+# PVC das imagens de campanha enviadas pelos gestores.
+#
+# DELIBERADAMENTE FORA de base/kustomization.yaml, pela mesma razao do PVC do
+# Data Protection (ver base/web-dataprotection-pvc.yaml): se entrasse no
+# overlay, o `kubectl delete -k` do down.ps1 apagaria as imagens a CADA ciclo
+# down/up. As campanhas continuariam no Postgres apontando para arquivos que
+# nao existem mais, e a vitrine ficaria com fotos quebradas.
+#
+# Ciclo de vida:
+#   up.ps1                -> aplica este arquivo (kubectl apply -f, idempotente)
+#   down.ps1              -> NAO remove (fora do overlay)
+#   down.ps1 -PurgeData   -> remove junto com os demais PVCs do namespace
+#
+# O Deployment campaigns-api (base/campaigns-api.yaml) referencia este claim por
+# nome; sem ele aplicado, o pod fica Pending aguardando o volume.
+# =============================================================================
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: campaigns-images
+  namespace: conexao-solidaria
+  labels:
+    app: campaigns-api
+    app.kubernetes.io/component: api
+spec:
+  # RWO basta enquanto a Campaigns.Api roda com replicas: 1 (ver campaigns-api.yaml).
+  # Para escalar a API, troque por RWX ou migre o CampaignImageStorage para object storage
+  # — o restante do codigo nao muda, so aquela classe.
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 2Gi

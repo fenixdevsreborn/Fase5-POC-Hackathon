@@ -32,7 +32,9 @@ public sealed class CampaignsDbContext(DbContextOptions<CampaignsDbContext> opti
             entity.ToTable("campaigns");
             entity.HasKey(campaign => campaign.Id);
             entity.Property(campaign => campaign.Titulo).HasMaxLength(160).IsRequired();
+            entity.Property(campaign => campaign.TituloNormalizado).HasMaxLength(160).IsRequired();
             entity.Property(campaign => campaign.Descricao).HasMaxLength(1000).IsRequired();
+            entity.Property(campaign => campaign.Imagem).HasMaxLength(200);
             entity.Property(campaign => campaign.MetaFinanceira).HasPrecision(18, 2).IsRequired();
             entity.Property(campaign => campaign.ValorTotalArrecadado).HasPrecision(18, 2).IsRequired();
             entity.Property(campaign => campaign.Status).HasConversion<string>().HasMaxLength(30).IsRequired();
@@ -48,6 +50,13 @@ public sealed class CampaignsDbContext(DbContextOptions<CampaignsDbContext> opti
             // Cobre a query de transparencia/listagem publica (Status = Ativa AND DataFim >= now,
             // ordenada por DataFim). Indice composto na ordem (Status, DataFim).
             entity.HasIndex(campaign => new { campaign.Status, campaign.DataFim });
+
+            // Unicidade de titulo (case/espaco-insensitive via TituloNormalizado). O indice e a
+            // garantia real: a Api tambem pre-consulta para dar erro amigavel, mas duas requisicoes
+            // concorrentes com o mesmo titulo so sao barradas aqui. Vale para qualquer status.
+            entity.HasIndex(campaign => campaign.TituloNormalizado)
+                .IsUnique()
+                .HasDatabaseName("ix_campaigns_titulo_normalizado");
         });
 
         modelBuilder.Entity<Donation>(entity =>

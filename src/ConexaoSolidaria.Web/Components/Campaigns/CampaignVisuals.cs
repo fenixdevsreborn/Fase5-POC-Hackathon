@@ -1,9 +1,12 @@
+using ConexaoSolidaria.Web.Services;
+
 namespace ConexaoSolidaria.Web.Components.Campaigns;
 
 /// <summary>
-/// Recursos visuais de uma campanha. A imagem e escolhida de forma deterministica pelo Id
-/// (o DTO nao carrega foto), enquanto a categoria agora vem do backend e aqui so mapeamos o
-/// valor do enum (ex.: "MeioAmbiente") para um rotulo acentuado exibido no chip.
+/// Recursos visuais de uma campanha. Quando o gestor enviou uma foto, ela e usada; sem foto
+/// propria a imagem e escolhida de forma deterministica pelo Id, para a vitrine nunca ficar
+/// vazia. A categoria vem do backend e aqui so mapeamos o valor do enum (ex.: "MeioAmbiente")
+/// para um rotulo acentuado exibido no chip.
 /// </summary>
 public static class CampaignVisuals
 {
@@ -45,7 +48,15 @@ public static class CampaignVisuals
         ("Outros", "Outros"),
     };
 
-    /// <summary>Caminho relativo (a partir de wwwroot) da foto da campanha.</summary>
+    /// <summary>
+    /// Foto a exibir para a campanha: a imagem enviada pelo gestor quando existe, senao a
+    /// ilustrativa deterministica por Id. Sobrecarga preferida — a de Id continua para os
+    /// casos em que o chamador so tem o identificador.
+    /// </summary>
+    public static string ImagemDe(Guid id, string? imagem) =>
+        ApiClient.UrlImagemCampanha(imagem) ?? ImagemDe(id);
+
+    /// <summary>Caminho relativo (a partir de wwwroot) da foto ilustrativa da campanha.</summary>
     public static string ImagemDe(Guid id)
     {
         var bytes = id.ToByteArray();

@@ -341,7 +341,7 @@ else
                 _showcase = _destaques[0];
                 _showcaseTitulo = _showcase.Titulo;
                 _showcaseCategoria = CampaignVisuals.RotuloCategoria(_showcase.Categoria);
-                _showcaseImagem = CampaignVisuals.ImagemDe(_showcase.Id);
+                _showcaseImagem = CampaignVisuals.ImagemDe(_showcase.Id, _showcase.Imagem);
                 _showcaseDoadores = _showcase.TotalDoadores;
             }
         }

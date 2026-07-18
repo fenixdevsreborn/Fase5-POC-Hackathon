@@ -93,6 +93,12 @@ Write-Step "Aplicando o PVC das Data Protection keys (preservado entre ciclos)..
 kubectl apply -f (Join-Path $scriptDir "base/web-dataprotection-pvc.yaml") | Out-Null
 if ($LASTEXITCODE -ne 0) { throw "falha ao aplicar o PVC web-dataprotection-keys" }
 
+# PVC das imagens de campanha: mesma logica: fora do overlay para que down/up nao apague
+# as fotos ja enviadas (as campanhas no Postgres continuariam apontando para elas).
+Write-Step "Aplicando o PVC das imagens de campanha (preservado entre ciclos)..."
+kubectl apply -f (Join-Path $scriptDir "base/campaigns-images-pvc.yaml") | Out-Null
+if ($LASTEXITCODE -ne 0) { throw "falha ao aplicar o PVC campaigns-images" }
+
 $envPath = Join-Path $repoRoot ".env"
 if (-not (Test-Path $envPath)) {
     throw ".env nao encontrado em $envPath. Copie o .env.example e preencha os valores."

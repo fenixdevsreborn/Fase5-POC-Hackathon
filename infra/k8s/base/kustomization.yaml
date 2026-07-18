@@ -36,3 +36,7 @@ resources:
 # Dentro do overlay, o `kubectl delete -k` do down.ps1 apagaria o key ring do
 # Data Protection a cada ciclo down/up, invalidando os JWTs ja gravados no
 # localStorage dos browsers. O up.ps1 aplica esse PVC separadamente.
+
+# NOTA: base/campaigns-images-pvc.yaml tambem esta FORA desta lista, pelo mesmo
+# motivo: no overlay, cada down/up apagaria as imagens enviadas pelos gestores e
+# as campanhas ja criadas ficariam com fotos quebradas. O up.ps1 o aplica a parte.

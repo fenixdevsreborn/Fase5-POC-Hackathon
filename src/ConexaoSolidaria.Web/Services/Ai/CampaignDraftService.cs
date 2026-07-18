@@ -26,11 +26,27 @@ public sealed class CampaignDraftService(
         e uma meta de arrecadacao realista em reais.
         """;
 
+    private const string InstrucoesLote =
+        """
+        Voce ajuda gestores de ONGs da plataforma Conexao Solidaria a estruturar campanhas
+        de doacao. A partir da ideia enviada, produza VARIAS campanhas complementares em
+        portugues do Brasil, cada uma com titulo mobilizador, descricao persuasiva (causa,
+        impacto e chamado a acao) e meta de arrecadacao realista em reais.
+
+        Regras: cada campanha deve ter um TITULO UNICO e atacar um recorte diferente da causa
+        (publico atendido, regiao ou tipo de ajuda). Nunca repita o mesmo titulo com pequenas
+        variacoes, e nunca gere duas campanhas com o mesmo objetivo.
+        """;
+
     public const int TituloMax = 160;
     public const int DescricaoMax = 1000;
     public const decimal MetaFallback = 5000m;
 
+    /// <summary>Teto de campanhas por geracao — controla custo/latencia e o tamanho da lista na tela.</summary>
+    public const int MaximoPorGeracao = 10;
+
     private AIAgent? _agent;
+    private AIAgent? _agentLote;
 
     public bool Enabled => provider.Enabled;
 
@@ -64,6 +80,71 @@ public sealed class CampaignDraftService(
         {
             logger.LogWarning(ex, "Falha ao gerar rascunho de campanha com IA.");
             return null;
+        }
+    }
+
+    /// <summary>
+    /// Gera VARIAS campanhas distintas a partir de uma unica ideia, para o gestor revisar e salvar
+    /// em lote. Titulos repetidos entre si sao descartados aqui (o backend rejeitaria de qualquer
+    /// forma, mas e melhor nunca colocar duplicata na tela). Lista vazia em falha.
+    /// </summary>
+    public async Task<IReadOnlyList<CampaignDraftResult>> GerarVariasAsync(
+        string ideia,
+        int quantidade,
+        CancellationToken ct = default)
+    {
+        if (!Enabled || string.IsNullOrWhiteSpace(ideia))
+        {
+            return Array.Empty<CampaignDraftResult>();
+        }
+
+        var alvo = Math.Clamp(quantidade, 1, MaximoPorGeracao);
+
+        try
+        {
+            _agentLote ??= provider.GetClient().AsAIAgent(new ChatClientAgentOptions
+            {
+                Name = "RascunhoDeCampanhasEmLote",
+                ChatOptions = new ChatOptions { Instructions = InstrucoesLote },
+            });
+
+            var resposta = await _agentLote.RunAsync<CampaignDraftBatch>(
+                $"Gere exatamente {alvo} campanhas distintas a partir desta ideia do gestor: {ideia.Trim()}",
+                cancellationToken: ct);
+
+            var sugestoes = resposta.Result?.Campanhas;
+            if (sugestoes is null || sugestoes.Count == 0)
+            {
+                return Array.Empty<CampaignDraftResult>();
+            }
+
+            var vistos = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var resultados = new List<CampaignDraftResult>();
+
+            foreach (var sugestao in sugestoes.Take(alvo))
+            {
+                var resultado = Normalizar(sugestao);
+
+                // Titulo vazio ou repetido nao vira card: seria recusado no POST /lote.
+                if (string.IsNullOrWhiteSpace(resultado.Campanha.Titulo) ||
+                    !vistos.Add(resultado.Campanha.Titulo.Trim()))
+                {
+                    continue;
+                }
+
+                resultados.Add(resultado);
+            }
+
+            return resultados;
+        }
+        catch (OperationCanceledException)
+        {
+            return Array.Empty<CampaignDraftResult>();
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Falha ao gerar campanhas em lote com IA.");
+            return Array.Empty<CampaignDraftResult>();
         }
     }
 

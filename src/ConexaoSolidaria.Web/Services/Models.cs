@@ -23,7 +23,10 @@ public sealed record CampanhaDto(
     decimal ValorTotalArrecadado,
     string Status,
     string Categoria = "Outros",
-    int TotalDoadores = 0);
+    int TotalDoadores = 0,
+    // Nome do arquivo de imagem enviado pelo gestor; null quando a campanha usa a foto
+    // ilustrativa por categoria (ver CampaignVisuals).
+    string? Imagem = null);
 
 /// <summary>Item da vitrine publica de transparencia.</summary>
 public sealed record TransparenciaDto(
@@ -60,7 +63,28 @@ public sealed record SalvarCampanha(
     DateTimeOffset DataFim,
     decimal MetaFinanceira,
     string Status,
-    string Categoria = "Outros");
+    string Categoria = "Outros",
+    // Nome do arquivo devolvido por POST /api/campanhas/imagens. No PUT, null preserva a imagem
+    // atual e string vazia remove.
+    string? Imagem = null);
+
+/// <summary>Imagem recem-enviada: nome do arquivo (vai no payload) e URL publica (preview).</summary>
+public sealed record ImagemEnviada(string Arquivo, string Url);
+
+/// <summary>Campanha do lote recusada pela API, com o motivo pronto para exibir.</summary>
+public sealed record CampanhaLoteErro(int Indice, string Titulo, string Motivo);
+
+/// <summary>
+/// Resultado de POST /api/campanhas/lote. Sucesso parcial: o gestor ve quantas entraram e
+/// mantem na tela apenas as que falharam, com o motivo.
+/// </summary>
+public sealed record CriacaoEmLoteResultado(
+    IReadOnlyList<CampanhaDto> Criadas,
+    IReadOnlyList<CampanhaLoteErro> Erros)
+{
+    public static CriacaoEmLoteResultado Vazio { get; } =
+        new(Array.Empty<CampanhaDto>(), Array.Empty<CampanhaLoteErro>());
+}
 
 /// <summary>Payload de cadastro de doador.</summary>
 public sealed record CadastroDoador(

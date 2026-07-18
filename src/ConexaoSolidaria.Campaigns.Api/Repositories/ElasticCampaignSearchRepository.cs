@@ -21,7 +21,10 @@ public sealed record CampaignSearchDocument(
     CampaignCategory Categoria = CampaignCategory.Outros,
     // Rotulo humano da categoria ("Meio Ambiente", "Saude"...) indexado como texto analisado para
     // que a busca por termo tambem case a categoria por nome. Vazio em documentos antigos.
-    string CategoriaTexto = "");
+    string CategoriaTexto = "",
+    // Nome do arquivo de imagem, carregado junto para que a vitrine mostre a foto certa nos
+    // resultados que vierem do Elasticsearch. Null em documentos indexados antes desta coluna.
+    string? Imagem = null);
 
 public sealed record CampaignSearchResult<T>(IReadOnlyCollection<T> Items, long Total);
 
@@ -261,7 +264,8 @@ public sealed class ElasticCampaignSearchRepository : ICampaignSearchRepository
             campaign.ValorTotalArrecadado,
             campaign.Status,
             campaign.Categoria,
-            CategoriaLabel(campaign.Categoria));
+            CategoriaLabel(campaign.Categoria),
+            campaign.Imagem);
     }
 
     // Rotulo humano em pt-BR para a categoria, indexado como texto pesquisavel. Os acentos sao

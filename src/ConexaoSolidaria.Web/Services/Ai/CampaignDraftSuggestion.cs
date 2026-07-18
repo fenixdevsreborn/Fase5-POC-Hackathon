@@ -19,3 +19,15 @@ public sealed record CampaignDraftSuggestion(
     decimal MetaSugerida,
     [property: Description("Justificativa de uma frase para a meta sugerida.")]
     string Justificativa);
+
+/// <summary>
+/// Alvo do structured output quando o gestor pede VARIAS campanhas de uma vez. Um record
+/// envelope (em vez de devolver um array na raiz) porque o schema de structured output da
+/// OpenAI exige um objeto no topo.
+/// </summary>
+public sealed record CampaignDraftBatch(
+    [property: Description(
+        "Lista de campanhas distintas geradas a partir da ideia. Cada uma deve ter um titulo " +
+        "UNICO e um recorte proprio da causa (publico, regiao ou tipo de ajuda diferente) — " +
+        "nunca variacoes do mesmo titulo.")]
+    IReadOnlyList<CampaignDraftSuggestion> Campanhas);

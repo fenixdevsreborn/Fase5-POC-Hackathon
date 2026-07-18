@@ -80,9 +80,14 @@ services:
       RabbitMq__RoutingKey: doacao.recebida
       Elasticsearch__Url: http://elasticsearch:9200
       Elasticsearch__IndexName: campanhas
+      # Imagens de campanha enviadas pelos gestores, no volume nomeado abaixo (precisam
+      # sobreviver ao recreate do container).
+      CampaignImages__RootPath: /app/imagens-campanhas
       # Tracing distribuido: exporta OTLP (traces/metricas/logs) para o OTel Collector.
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
       OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+    volumes:
+      - campaigns-images:/app/imagens-campanhas
     ports:
       - "5002:8080"
     depends_on:
@@ -225,6 +230,12 @@ volumes:
       com.conexaosolidaria.project: conexao-solidaria
       com.conexaosolidaria.service: postgres
       com.conexaosolidaria.description: Dados do PostgreSQL para identitydb, campaignsdb e zabbixdb
+  campaigns-images:
+    name: conexao-solidaria-campaigns-images
+    labels:
+      com.conexaosolidaria.project: conexao-solidaria
+      com.conexaosolidaria.service: campaigns-api
+      com.conexaosolidaria.description: Imagens de campanha enviadas pelos gestores
   grafana-data:
     name: conexao-solidaria-grafana-data
     labels:

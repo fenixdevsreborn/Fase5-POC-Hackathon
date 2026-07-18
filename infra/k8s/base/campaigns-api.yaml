@@ -81,6 +81,10 @@ spec:
               value: http://elasticsearch:9200
             - name: Elasticsearch__IndexName
               value: campanhas
+            # Imagens de campanha: gravadas no volume montado abaixo. O rootfs e read-only,
+            # entao este caminho PRECISA ser um volume gravavel.
+            - name: CampaignImages__RootPath
+              value: /app/imagens-campanhas
           startupProbe:
             httpGet:
               path: /alive
@@ -110,9 +114,16 @@ spec:
           volumeMounts:
             - name: tmp
               mountPath: /tmp
+            - name: imagens-campanhas
+              mountPath: /app/imagens-campanhas
       volumes:
         - name: tmp
           emptyDir: {}
+        # Persistente (nao emptyDir): as imagens precisam sobreviver ao restart do pod, senao
+        # as campanhas ja criadas ficariam apontando para arquivos inexistentes.
+        - name: imagens-campanhas
+          persistentVolumeClaim:
+            claimName: campaigns-images
 ---
 apiVersion: v1
 kind: Service

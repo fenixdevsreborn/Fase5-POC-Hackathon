@@ -15,8 +15,58 @@ namespace ConexaoSolidaria.Campaigns.Api.Controllers;
 [ApiController]
 [ApiVersion("1.0")]
 [Route("api/campanhas")]
-public sealed class CampanhasController(CampaignsDbContext db, ICampaignService campaignService) : ControllerBase
+public sealed class CampanhasController(
+    CampaignsDbContext db,
+    ICampaignService campaignService,
+    ICampaignImageStorage imageStorage) : ControllerBase
 {
+    /// <summary>Tamanho maximo aceito no upload de imagem (o storage revalida o limite real).</summary>
+    private const long TamanhoMaximoImagem = 5 * 1024 * 1024;
+
+    // Upload DESACOPLADO da campanha (nao e /{id}/imagem) de proposito: a tela de lote monta varias
+    // campanhas com foto ANTES de qualquer uma existir no banco. O gestor sobe a imagem, recebe o
+    // nome do arquivo e o envia depois no POST/PUT da campanha.
+    [HttpPost("imagens")]
+    [Authorize(Policy = "CampaignManagement")]
+    [RequestSizeLimit(TamanhoMaximoImagem + 4096)] // folga para o envelope multipart
+    [ProducesResponseType<ImagemCampanhaResponse>(StatusCodes.Status201Created)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<ImagemCampanhaResponse>> EnviarImagem(
+        IFormFile arquivo,
+        CancellationToken cancellationToken)
+    {
+        if (arquivo is null || arquivo.Length == 0)
+        {
+            return ProblemResults.UnprocessableEntity("Envie um arquivo de imagem.");
+        }
+
+        // Formato/tamanho invalidos viram DomainRuleException => 422 no handler global.
+        await using var conteudo = arquivo.OpenReadStream();
+        var nome = await imageStorage.SalvarAsync(conteudo, arquivo.FileName, cancellationToken);
+
+        var url = Url.Action(nameof(ObterImagem), new { arquivo = nome }) ?? $"/api/campanhas/imagens/{nome}";
+        return Created(url, new ImagemCampanhaResponse(nome, url));
+    }
+
+    // Publico: a vitrine anonima precisa renderizar a foto da campanha. Cache longo e seguro porque
+    // o nome do arquivo e imutavel (trocar a foto gera outro nome).
+    [HttpGet("imagens/{arquivo}")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public ActionResult ObterImagem(string arquivo)
+    {
+        var imagem = imageStorage.Abrir(arquivo);
+        if (imagem is null)
+        {
+            return ProblemResults.NotFound("Imagem nao encontrada.");
+        }
+
+        Response.Headers.CacheControl = "public, max-age=31536000, immutable";
+        return File(imagem.Content, imagem.ContentType);
+    }
+
+
     // Publico: o frontend anonimo consulta uma campanha por Id sem precisar listar/filtrar todas.
     // AllowAnonymous tambem permite o gestor autenticado (anonimo nao bloqueia quem tem token).
     [HttpGet("{id:guid}")]
@@ -69,9 +119,37 @@ public sealed class CampanhasController(CampaignsDbContext db, ICampaignService 
             request.MetaFinanceira,
             request.Status,
             request.Categoria,
-            cancellationToken);
+            cancellationToken,
+            request.Imagem);
 
         return CreatedAtAction(nameof(ObterPorId), new { id = campaign.Id }, ToResponse(campaign));
+    }
+
+    // Criacao em lote: a tela do gestor acumula varias campanhas (digitadas, geradas por IA ou
+    // importadas de planilha) e envia todas de uma vez. Responde 200 mesmo com falhas parciais —
+    // o corpo separa Criadas de Erros, e a UI mantem so as que falharam para correcao.
+    [HttpPost("lote")]
+    [Authorize(Policy = "CampaignManagement")]
+    [ProducesResponseType<CriacaoEmLoteResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<CriacaoEmLoteResponse>> CriarEmLote(
+        SalvarCampanhasEmLoteRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (request.Campanhas is null || request.Campanhas.Count == 0)
+        {
+            return ProblemResults.UnprocessableEntity("Envie ao menos uma campanha.");
+        }
+
+        // Teto defensivo: evita que uma planilha gigante vire uma transacao interminavel.
+        if (request.Campanhas.Count > 200)
+        {
+            return ProblemResults.UnprocessableEntity(
+                "Envie no maximo 200 campanhas por vez.");
+        }
+
+        var resultado = await campaignService.CreateManyAsync(request.Campanhas, cancellationToken);
+        return Ok(resultado);
     }
 
     [HttpPut("{id:guid}")]
@@ -92,7 +170,8 @@ public sealed class CampanhasController(CampaignsDbContext db, ICampaignService 
             request.MetaFinanceira,
             request.Status,
             request.Categoria,
-            cancellationToken);
+            cancellationToken,
+            request.Imagem);
 
         return campaign is null
             ? ProblemResults.NotFound("Campanha nao encontrada.")
@@ -194,7 +273,8 @@ public sealed class CampanhasController(CampaignsDbContext db, ICampaignService 
             campaign.ValorTotalArrecadado,
             campaign.Status,
             campaign.Categoria,
-            0);
+            0,
+            campaign.Imagem);
     }
 
 }

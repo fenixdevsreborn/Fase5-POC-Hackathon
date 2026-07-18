@@ -166,7 +166,7 @@
                 {
                     <a class="cs-tp-campaign" href="@($"/campanhas/{c.Id}")" @key="c.Id">
                         <span class="cs-tp-campaign__top">
-                            <img class="cs-tp-thumb" src="@CampaignVisuals.ImagemDe(c.Id)" alt="" loading="lazy" />
+                            <img class="cs-tp-thumb" src="@CampaignVisuals.ImagemDe(c.Id, c.Imagem)" alt="" loading="lazy" />
                             <span class="cs-tp-campaign__identity">
                                 <span class="cs-tp-chip cs-tp-chip--@CategoriaCor(c.Categoria)">@CampaignVisuals.RotuloCategoria(c.Categoria)</span>
                                 <strong>@c.Titulo</strong>

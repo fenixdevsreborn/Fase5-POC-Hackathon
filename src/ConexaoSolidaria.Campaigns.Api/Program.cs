@@ -38,6 +38,20 @@ builder.Services.AddHostedService<OutboxDispatcherWorker>();
 builder.Services.AddScoped<ICampaignService, CampaignService>();
 builder.Services.AddScoped<ICampaignSearchRepository, ElasticCampaignSearchRepository>();
 
+// Storage das imagens de campanha. Singleton: cria o diretorio uma unica vez no startup e nao
+// guarda estado por requisicao. O RootPath vem do ambiente (volume montado no pod); vazio em dev
+// cai numa pasta local sob o diretorio da aplicacao.
+builder.Services.AddSingleton(serviceProvider =>
+{
+    var options = new CampaignImageOptions();
+    serviceProvider.GetRequiredService<IConfiguration>()
+        .GetSection(CampaignImageOptions.SectionName)
+        .Bind(options);
+
+    return options;
+});
+builder.Services.AddSingleton<ICampaignImageStorage, CampaignImageStorage>();
+
 // B4: circuit breaker que protege o Elasticsearch. Apos falhas consecutivas o circuito abre e as
 // buscas vao direto ao Postgres (fallback no CampaignService) por um periodo, sem martelar o ES.
 builder.Services.AddResiliencePipeline(CampaignService.SearchPipelineKey, (pipeline, context) =>

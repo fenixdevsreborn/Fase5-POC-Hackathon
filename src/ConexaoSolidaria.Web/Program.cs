@@ -2,6 +2,7 @@ using ConexaoSolidaria.Contracts.Messaging;
 using ConexaoSolidaria.Web.Components;
 using ConexaoSolidaria.Web.Services;
 using ConexaoSolidaria.Web.Services.Ai;
+using ConexaoSolidaria.Web.Services.Import;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
@@ -76,6 +77,10 @@ builder.Services.AddScoped<AssistantTools>();            // usa ApiClient/TokenP
 builder.Services.AddScoped<AssistantChatService>();      // agente + thread por circuito Blazor
 builder.Services.AddScoped<CampaignDraftService>();
 
+// Importacao de planilhas de campanha (.xlsx/.csv). Sem estado por requisicao: o parse acontece
+// inteiro em memoria e o resultado vai para a tela de lote, que so persiste apos revisao.
+builder.Services.AddSingleton<CampaignImportService>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -91,6 +96,34 @@ app.UseHttpsRedirection();
 app.UseAntiforgery();
 
 app.MapStaticAssets();
+
+// Proxy das imagens de campanha. O browser so enxerga a Web (o Gateway nao e publicado para fora),
+// entao esta rota busca o arquivo na Campaigns.Api via Gateway e repassa os bytes. Anonima de
+// proposito: a vitrine publica precisa renderizar as fotos sem login.
+app.MapGet("/imagens/campanhas/{arquivo}", async (
+    string arquivo,
+    ApiClient api,
+    HttpContext context,
+    CancellationToken cancellationToken) =>
+{
+    var imagem = await api.BaixarImagemCampanhaAsync(arquivo, cancellationToken);
+    if (imagem is null)
+    {
+        return Results.NotFound();
+    }
+
+    // O nome do arquivo e imutavel (trocar a foto gera outro nome), entao cache longo e seguro.
+    context.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
+    return Results.Stream(imagem.Value.Content, imagem.Value.ContentType);
+});
+
+// Modelo da planilha de importacao. Gerado sob demanda para o cabecalho nunca sair de sincronia
+// com o que o CampaignImportService sabe ler.
+app.MapGet("/modelo-campanhas.xlsx", () => Results.File(
+    CampaignImportService.GerarModeloExcel(),
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "modelo-campanhas.xlsx"));
+
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 

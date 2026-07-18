@@ -59,7 +59,7 @@
     private static readonly CultureInfo Ptbr = CultureInfo.GetCultureInfo("pt-BR");
 
     private string Detalhe => $"/campanhas/{Campanha.Id}";
-    private string Imagem => CampaignVisuals.ImagemDe(Campanha.Id);
+    private string Imagem => CampaignVisuals.ImagemDe(Campanha.Id, Campanha.Imagem);
     private string Categoria => CampaignVisuals.RotuloCategoria(Campanha.Categoria);
 
     private string DoadoresLabel => Campanha.TotalDoadores switch

@@ -1,10 +1,13 @@
 @page "/gestor/campanhas/nova"
+@using System.Globalization
 @using ConexaoSolidaria.Web.Components.Campaigns
 @using ConexaoSolidaria.Web.Services.Ai
+@using ConexaoSolidaria.Web.Services.Import
 @inject ApiClient Api
 @inject NavigationManager Nav
 @inject ISnackbar Snackbar
 @inject CampaignDraftService Rascunho
+@inject CampaignImportService Importacao
 
 <PageTitle>Nova campanha</PageTitle>
 
@@ -18,7 +21,8 @@
                 </span>
                 <h1 class="cs-page-header__title">Nova <span>Campanha</span></h1>
                 <p class="cs-page-header__lead">
-                    Preencha os dados abaixo para iniciar sua campanha. As informações finais serão validadas pela plataforma.
+                    Monte quantas campanhas quiser e salve todas de uma vez. Você pode preencher à mão,
+                    gerar com IA ou importar uma planilha.
                 </p>
             </div>
         </header>
@@ -27,17 +31,115 @@
             <section class="nova-campanha__main">
                 <div class="nova-campanha__card">
                     <div class="nova-campanha__card-head">
-                        <span class="nova-campanha__step">1</span>
+                        <span class="nova-campanha__step">@(_lote.Count + 1)</span>
                         <div>
-                            <h2>Dados da campanha</h2>
+                            <h2>@(_editando is null ? "Dados da campanha" : "Editando campanha da lista")</h2>
                             <p>Capriche no título e na descrição — são eles que conectam sua causa aos doadores.</p>
                         </div>
                     </div>
+
                     <CampaignForm Model="_model"
-                                  SubmitLabel="Criar campanha"
-                                  OnSubmit="CriarAsync"
+                                  SubmitLabel="@(_editando is null ? "Adicionar à lista" : "Salvar alteração")"
+                                  SubmitIcon="@(_editando is null ? Icons.Material.Filled.PlaylistAdd : Icons.Material.Filled.Check)"
+                                  CancelHref=""
+                                  OnSubmit="AdicionarAoLoteAsync"
                                   ErrorMessage="@_erro" />
+
+                    @if (_editando is not null)
+                    {
+                        <div class="nova-campanha__edicao-aviso">
+                            <MudButton Variant="Variant.Text" Size="Size.Small" OnClick="CancelarEdicao">
+                                Cancelar edição e voltar a adicionar novas
+                            </MudButton>
+                        </div>
+                    }
                 </div>
+
+                @if (_lote.Count > 0)
+                {
+                    <div class="nova-campanha__card nova-campanha__lote">
+                        <div class="nova-campanha__card-head">
+                            <span class="nova-campanha__step nova-campanha__step--ok">@_lote.Count</span>
+                            <div>
+                                <h2>Campanhas prontas para salvar</h2>
+                                <p>Revise a lista antes de criar. Nada foi salvo ainda.</p>
+                            </div>
+                        </div>
+
+                        <ul class="nova-campanha__lista">
+                            @foreach (var item in _lote)
+                            {
+                                <li class="nova-campanha__item @(item.Erro is not null ? "nova-campanha__item--erro" : "")"
+                                    @key="item.Id">
+                                    <div class="nova-campanha__item-foto">
+                                        @if (ApiClient.UrlImagemCampanha(item.Campanha.Imagem) is { } foto)
+                                        {
+                                            <img src="@foto" alt="" loading="lazy" />
+                                        }
+                                        else
+                                        {
+                                            <MudIcon Icon="@Icons.Material.Filled.Image" />
+                                        }
+                                    </div>
+
+                                    <div class="nova-campanha__item-dados">
+                                        <strong>@item.Campanha.Titulo</strong>
+                                        <span class="nova-campanha__item-meta">
+                                            <MudChip T="string" Size="Size.Small" Variant="Variant.Text">
+                                                @CampaignVisuals.RotuloCategoria(item.Campanha.Categoria)
+                                            </MudChip>
+                                            @item.Campanha.MetaFinanceira.ToString("C2", Br)
+                                            &middot;
+                                            até @item.Campanha.DataFim.ToString("dd/MM/yyyy")
+                                        </span>
+
+                                        @if (item.Erro is not null)
+                                        {
+                                            <span class="nova-campanha__item-erro">
+                                                <MudIcon Icon="@Icons.Material.Filled.ErrorOutline" Size="Size.Small" />
+                                                @item.Erro
+                                            </span>
+                                        }
+                                    </div>
+
+                                    <div class="nova-campanha__item-acoes">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                                       Size="Size.Small"
+                                                       aria-label="Editar campanha da lista"
+                                                       Disabled="_salvando"
+                                                       OnClick="@(() => EditarItem(item))" />
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                       Size="Size.Small"
+                                                       Color="Color.Error"
+                                                       aria-label="Remover campanha da lista"
+                                                       Disabled="_salvando"
+                                                       OnClick="@(() => RemoverItem(item))" />
+                                    </div>
+                                </li>
+                            }
+                        </ul>
+
+                        <div class="nova-campanha__lote-acoes">
+                            <MudButton Variant="Variant.Text"
+                                       Color="Color.Default"
+                                       Disabled="_salvando"
+                                       OnClick="LimparLote">
+                                Limpar lista
+                            </MudButton>
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Filled.Save"
+                                       Disabled="_salvando"
+                                       OnClick="SalvarLoteAsync">
+                                @if (_salvando)
+                                {
+                                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                                }
+                                Criar @_lote.Count campanha@(_lote.Count == 1 ? "" : "s")
+                            </MudButton>
+                        </div>
+                    </div>
+                }
             </section>
 
             <aside class="nova-campanha__side">
@@ -48,7 +150,7 @@
                             <MudIcon Icon="@Icons.Material.Filled.AutoAwesome" />
                             <div>
                                 <strong>Criar com IA</strong>
-                                <small>Descreva a ideia e receba um rascunho pronto</small>
+                                <small>Descreva a ideia e receba rascunhos prontos</small>
                             </div>
                         </div>
                         <div class="nova-campanha__ai-body">
@@ -59,6 +161,17 @@
                                           Variant="Variant.Outlined"
                                           Margin="Margin.Dense"
                                           Disabled="_gerando" />
+
+                            <MudNumericField T="int"
+                                             @bind-Value="_quantidadeIa"
+                                             Label="Quantas campanhas"
+                                             Min="1"
+                                             Max="@CampaignDraftService.MaximoPorGeracao"
+                                             Variant="Variant.Outlined"
+                                             Margin="Margin.Dense"
+                                             Class="mt-3"
+                                             Disabled="_gerando" />
+
                             <MudButton Variant="Variant.Filled"
                                        Color="Color.Primary"
                                        FullWidth="true"
@@ -73,9 +186,10 @@
                                 }
                                 else
                                 {
-                                    <span>Gerar rascunho</span>
+                                    <span>@(_quantidadeIa > 1 ? "Gerar rascunhos" : "Gerar rascunho")</span>
                                 }
                             </MudButton>
+
                             @if (!string.IsNullOrWhiteSpace(_justificativaMeta))
                             {
                                 <MudAlert Severity="Severity.Info" Dense="true" Class="mt-3">
@@ -86,10 +200,72 @@
                     </div>
                 }
 
+                <div class="nova-campanha__ai nova-campanha__ai--import">
+                    <div class="nova-campanha__ai-head">
+                        <MudIcon Icon="@Icons.Material.Filled.TableChart" />
+                        <div>
+                            <strong>Importar planilha</strong>
+                            <small>Traga várias campanhas de um Excel ou CSV</small>
+                        </div>
+                    </div>
+                    <div class="nova-campanha__ai-body">
+                        <MudFileUpload T="IBrowserFile"
+                                       Accept=".xlsx,.csv"
+                                       FilesChanged="ImportarAsync"
+                                       MaximumFileCount="1"
+                                       Context="planilha">
+                            <CustomContent>
+                                <MudButton Variant="Variant.Filled"
+                                           Color="Color.Primary"
+                                           FullWidth="true"
+                                           StartIcon="@Icons.Material.Filled.UploadFile"
+                                           OnClick="@planilha.OpenFilePickerAsync"
+                                           Disabled="_importando">
+                                    @if (_importando)
+                                    {
+                                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                                        <span>Lendo...</span>
+                                    }
+                                    else
+                                    {
+                                        <span>Escolher arquivo</span>
+                                    }
+                                </MudButton>
+                            </CustomContent>
+                        </MudFileUpload>
+
+                        <MudButton Variant="Variant.Text"
+                                   Color="Color.Primary"
+                                   FullWidth="true"
+                                   StartIcon="@Icons.Material.Filled.Download"
+                                   Href="/modelo-campanhas.xlsx"
+                                   Class="mt-2">
+                            Baixar modelo
+                        </MudButton>
+
+                        @if (_errosImportacao.Count > 0)
+                        {
+                            <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-3">
+                                <strong>Linhas não importadas:</strong>
+                                <ul class="nova-campanha__import-erros">
+                                    @foreach (var erro in _errosImportacao.Take(6))
+                                    {
+                                        <li>@(erro.Linha > 0 ? $"Linha {erro.Linha}: " : "")@erro.Motivo</li>
+                                    }
+                                </ul>
+                                @if (_errosImportacao.Count > 6)
+                                {
+                                    <span>...e mais @(_errosImportacao.Count - 6).</span>
+                                }
+                            </MudAlert>
+                        }
+                    </div>
+                </div>
+
                 <div class="nova-campanha__tips">
                     <h3>Dicas para uma boa campanha</h3>
                     <ul>
-                        <li><MudIcon Icon="@Icons.Material.Filled.Title" Size="Size.Small" /><span>Título claro e específico sobre quem será ajudado.</span></li>
+                        <li><MudIcon Icon="@Icons.Material.Filled.Title" Size="Size.Small" /><span>Título claro, específico e único — títulos repetidos são recusados.</span></li>
                         <li><MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Small" /><span>Conte a história: o problema, a solução e o impacto.</span></li>
                         <li><MudIcon Icon="@Icons.Material.Filled.Savings" Size="Size.Small" /><span>Defina uma meta realista e transparente.</span></li>
                         <li><MudIcon Icon="@Icons.Material.Filled.Event" Size="Size.Small" /><span>Prazo compatível com o objetivo da arrecadação.</span></li>
@@ -108,9 +284,34 @@
 </AuthorizeView>
 
 @code {
+    private static readonly CultureInfo Br = CultureInfo.GetCultureInfo("pt-BR");
+
+    /// <summary>
+    /// Campanha aguardando salvamento. O Id local existe só para dar @key estável à lista
+    /// (o Id real só nasce no backend) e o Erro guarda o motivo devolvido pelo lote.
+    /// </summary>
+    private sealed record ItemDoLote(Guid Id, SalvarCampanha Campanha, string? Erro = null);
+
     // Mutavel de proposito: o CampaignForm repopula os campos quando a REFERENCIA do Model
-    // muda (ver CampaignForm.OnParametersSet) — e assim que o rascunho da IA preenche o form.
-    private SalvarCampanha _model = new(
+    // muda (ver CampaignForm.OnParametersSet) — e assim que o rascunho da IA e a edicao de um
+    // item da lista preenchem o form.
+    private SalvarCampanha _model = FormularioVazio();
+
+    private readonly List<ItemDoLote> _lote = [];
+    private IReadOnlyList<ImportacaoErro> _errosImportacao = Array.Empty<ImportacaoErro>();
+
+    private string? _erro;
+    private string _ideia = string.Empty;
+    private int _quantidadeIa = 3;
+    private bool _gerando;
+    private bool _importando;
+    private bool _salvando;
+    private string? _justificativaMeta;
+
+    /// <summary>Item da lista que está sendo editado; null quando o form está criando um novo.</summary>
+    private ItemDoLote? _editando;
+
+    private static SalvarCampanha FormularioVazio() => new(
         Titulo: string.Empty,
         Descricao: string.Empty,
         DataInicio: DateTimeOffset.Now,
@@ -119,27 +320,179 @@
         Status: "Ativa",
         Categoria: "Saude");
 
-    private string? _erro;
-    private string _ideia = string.Empty;
-    private bool _gerando;
-    private string? _justificativaMeta;
+    // ---------- Lista (lote) ----------
+
+    private Task AdicionarAoLoteAsync(SalvarCampanha dto)
+    {
+        _erro = null;
+
+        // Barra o duplicado já na tela: a API também recusa, mas avisar aqui evita o usuário
+        // montar dez campanhas e só descobrir o conflito ao salvar. Ignora o próprio item na edição.
+        var conflito = _lote.FirstOrDefault(item =>
+            item.Id != _editando?.Id &&
+            string.Equals(
+                NormalizarTitulo(item.Campanha.Titulo),
+                NormalizarTitulo(dto.Titulo),
+                StringComparison.Ordinal));
+
+        if (conflito is not null)
+        {
+            _erro = $"Já existe uma campanha com o título \"{dto.Titulo}\" nesta lista.";
+            return Task.CompletedTask;
+        }
+
+        if (_editando is not null)
+        {
+            var posicao = _lote.FindIndex(item => item.Id == _editando.Id);
+            if (posicao >= 0)
+            {
+                _lote[posicao] = _editando with { Campanha = dto, Erro = null };
+            }
+
+            _editando = null;
+            Snackbar.Add("Campanha atualizada na lista.", Severity.Success);
+        }
+        else
+        {
+            _lote.Add(new ItemDoLote(Guid.NewGuid(), dto));
+            Snackbar.Add("Campanha adicionada. Continue ou salve a lista.", Severity.Success);
+        }
+
+        // Nova referência: o CampaignForm limpa os campos para a próxima campanha.
+        _model = FormularioVazio();
+        _justificativaMeta = null;
+        return Task.CompletedTask;
+    }
+
+    private void EditarItem(ItemDoLote item)
+    {
+        _editando = item;
+        _erro = null;
+        _model = item.Campanha; // nova referência -> CampaignForm repopula
+    }
+
+    private void CancelarEdicao()
+    {
+        _editando = null;
+        _erro = null;
+        _model = FormularioVazio();
+    }
+
+    private void RemoverItem(ItemDoLote item)
+    {
+        _lote.RemoveAll(atual => atual.Id == item.Id);
+
+        if (_editando?.Id == item.Id)
+        {
+            CancelarEdicao();
+        }
+    }
+
+    private void LimparLote()
+    {
+        _lote.Clear();
+        _errosImportacao = Array.Empty<ImportacaoErro>();
+        CancelarEdicao();
+    }
+
+    private async Task SalvarLoteAsync()
+    {
+        if (_lote.Count == 0)
+        {
+            return;
+        }
+
+        _salvando = true;
+        _erro = null;
+
+        try
+        {
+            var resultado = await Api.CriarCampanhasEmLoteAsync(_lote.Select(item => item.Campanha).ToList());
+            if (resultado is null)
+            {
+                _erro = "Não foi possível salvar agora. Verifique sua conexão e tente novamente.";
+                return;
+            }
+
+            // Sucesso parcial: as criadas somem da tela e as recusadas ficam com o motivo,
+            // na mesma ordem em que foram enviadas (o backend devolve o índice do item).
+            if (resultado.Erros.Count > 0)
+            {
+                var porIndice = resultado.Erros.ToDictionary(erro => erro.Indice, erro => erro.Motivo);
+
+                var restantes = _lote
+                    .Select((item, indice) => porIndice.TryGetValue(indice, out var motivo)
+                        ? item with { Erro = motivo }
+                        : null)
+                    .Where(item => item is not null)
+                    .Select(item => item!)
+                    .ToList();
+
+                _lote.Clear();
+                _lote.AddRange(restantes);
+
+                Snackbar.Add(
+                    $"{resultado.Criadas.Count} criada(s), {resultado.Erros.Count} com problema. Corrija e salve de novo.",
+                    Severity.Warning);
+                return;
+            }
+
+            Snackbar.Add(
+                $"{resultado.Criadas.Count} campanha(s) criada(s) com sucesso.", Severity.Success);
+            _lote.Clear();
+            Nav.NavigateTo("/gestor");
+        }
+        catch
+        {
+            _erro = "Ocorreu um erro inesperado ao criar as campanhas. Tente novamente.";
+        }
+        finally
+        {
+            _salvando = false;
+        }
+    }
+
+    // ---------- IA ----------
 
     private async Task GerarRascunhoAsync()
     {
         _gerando = true;
         _justificativaMeta = null;
+        _erro = null;
+
         try
         {
-            var resultado = await Rascunho.GerarAsync(_ideia);
-            if (resultado is null)
+            // Uma campanha vai direto para o formulário (revisão imediata); várias entram na lista.
+            if (_quantidadeIa <= 1)
             {
-                Snackbar.Add("Não foi possível gerar o rascunho agora. Tente novamente.", Severity.Warning);
+                var resultado = await Rascunho.GerarAsync(_ideia);
+                if (resultado is null)
+                {
+                    Snackbar.Add("Não foi possível gerar o rascunho agora. Tente novamente.", Severity.Warning);
+                    return;
+                }
+
+                _editando = null;
+                _model = resultado.Campanha; // nova referência -> CampaignForm repopula
+                _justificativaMeta = resultado.Justificativa;
+                Snackbar.Add("Rascunho gerado! Revise os campos antes de adicionar.", Severity.Success);
                 return;
             }
 
-            _model = resultado.Campanha; // nova referencia -> CampaignForm repopula
-            _justificativaMeta = resultado.Justificativa;
-            Snackbar.Add("Rascunho gerado! Revise os campos antes de criar.", Severity.Success);
+            var gerados = await Rascunho.GerarVariasAsync(_ideia, _quantidadeIa);
+            if (gerados.Count == 0)
+            {
+                Snackbar.Add("Não foi possível gerar os rascunhos agora. Tente novamente.", Severity.Warning);
+                return;
+            }
+
+            var adicionados = AdicionarVarias(gerados.Select(item => item.Campanha));
+
+            Snackbar.Add(
+                adicionados == gerados.Count
+                    ? $"{adicionados} campanhas geradas e adicionadas à lista. Revise antes de salvar."
+                    : $"{adicionados} campanha(s) adicionada(s); as repetidas foram descartadas.",
+                Severity.Success);
         }
         finally
         {
@@ -147,24 +500,87 @@
         }
     }
 
-    private async Task CriarAsync(SalvarCampanha dto)
+    // ---------- Importação ----------
+
+    private async Task ImportarAsync(IBrowserFile? arquivo)
     {
+        if (arquivo is null)
+        {
+            return;
+        }
+
+        _importando = true;
+        _errosImportacao = Array.Empty<ImportacaoErro>();
         _erro = null;
+
         try
         {
-            var criada = await Api.CriarCampanhaAsync(dto);
-            if (criada is null)
+            // 10 MB cobre com folga uma planilha de 200 linhas.
+            await using var conteudo = arquivo.OpenReadStream(10 * 1024 * 1024);
+            var resultado = await Importacao.LerAsync(conteudo, arquivo.Name);
+
+            _errosImportacao = resultado.Erros;
+
+            if (resultado.Campanhas.Count == 0)
             {
-                _erro = "Não foi possível criar (verifique meta>0 e datas).";
+                Snackbar.Add("Nenhuma campanha válida foi encontrada no arquivo.", Severity.Warning);
                 return;
             }
 
-            Snackbar.Add("Campanha criada com sucesso.", Severity.Success);
-            Nav.NavigateTo("/gestor");
+            var adicionadas = AdicionarVarias(resultado.Campanhas);
+
+            Snackbar.Add(
+                adicionadas == resultado.Campanhas.Count
+                    ? $"{adicionadas} campanha(s) importada(s). Revise antes de salvar."
+                    : $"{adicionadas} importada(s); as de título repetido foram descartadas.",
+                Severity.Success);
         }
-        catch
+        catch (IOException)
         {
-            _erro = "Ocorreu um erro inesperado ao criar a campanha. Tente novamente.";
+            Snackbar.Add("Arquivo muito grande. O limite é 10 MB.", Severity.Warning);
         }
+        finally
+        {
+            _importando = false;
+        }
+    }
+
+    // Insere na lista descartando o que colidiria por título (com a lista atual ou entre si).
+    private int AdicionarVarias(IEnumerable<SalvarCampanha> campanhas)
+    {
+        var existentes = _lote
+            .Select(item => NormalizarTitulo(item.Campanha.Titulo))
+            .ToHashSet(StringComparer.Ordinal);
+
+        var adicionadas = 0;
+
+        foreach (var campanha in campanhas)
+        {
+            if (!existentes.Add(NormalizarTitulo(campanha.Titulo)))
+            {
+                continue;
+            }
+
+            _lote.Add(new ItemDoLote(Guid.NewGuid(), campanha));
+            adicionadas++;
+        }
+
+        return adicionadas;
+    }
+
+    /// <summary>
+    /// Mesma normalização do backend (Campaign.NormalizarTitulo): trim, espaços internos
+    /// colapsados e minúsculas. Duplicada aqui de propósito — a Web não referencia o projeto
+    /// de domínio, e o servidor continua sendo a autoridade sobre a unicidade.
+    /// </summary>
+    private static string NormalizarTitulo(string? titulo)
+    {
+        if (string.IsNullOrWhiteSpace(titulo))
+        {
+            return string.Empty;
+        }
+
+        var partes = titulo.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+        return string.Join(' ', partes).ToLowerInvariant();
     }
 }
