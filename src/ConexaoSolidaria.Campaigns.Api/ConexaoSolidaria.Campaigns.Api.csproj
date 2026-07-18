@@ -12,7 +12,7 @@
     <PackageReference Include="Microsoft.Extensions.Resilience" Version="10.7.0" />
     <!-- Alinhado ao servidor Elasticsearch 8.15.3 (infra/k8s/base/elasticsearch.yaml). O client 9.x
          envia o media-type compatible-with=9, que o ES 8.x rejeita ("Invalid media-type value"). -->
-    <PackageReference Include="Elastic.Clients.Elasticsearch" Version="8.19.21" />
+    <PackageReference Include="Elastic.Clients.Elasticsearch" Version="9.4.2" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.9" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.9" />
     <!-- Override transitivo (via Swashbuckle) para corrigir NU1903 GHSA-v5pm-xwqc-g5wc -->
