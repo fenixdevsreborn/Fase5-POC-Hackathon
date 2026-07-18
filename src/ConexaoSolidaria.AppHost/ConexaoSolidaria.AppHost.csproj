@@ -9,13 +9,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Versoes em Directory.Packages.props. Atencao: o Sdk= na linha 1 NAO e gerenciado por
-         CPM e deve ser atualizado junto com Aspire.Hosting.AppHost. -->
-    <PackageReference Include="Aspire.Hosting.AppHost" />
-    <PackageReference Include="Aspire.Hosting.Elasticsearch" />
-    <PackageReference Include="Aspire.Hosting.PostgreSQL" />
-    <PackageReference Include="Aspire.Hosting.RabbitMQ" />
-    <PackageReference Include="MessagePack" />
+    <PackageReference Include="Aspire.Hosting.AppHost" Version="13.4.6" />
+    <!-- Ultima versao disponivel do pacote (nao ha 13.4.6); nao precisa casar com o SDK/DCP. -->
+    <PackageReference Include="Aspire.Hosting.Elasticsearch" Version="13.3.0" />
+    <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="13.4.6" />
+    <PackageReference Include="Aspire.Hosting.RabbitMQ" Version="13.4.6" />
+    <PackageReference Include="MessagePack" Version="3.1.8" />
   </ItemGroup>
 
   <PropertyGroup>

@@ -6,10 +6,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Agents.AI" />
-    <PackageReference Include="Microsoft.Agents.AI.OpenAI" />
-    <PackageReference Include="MudBlazor" />
-    <PackageReference Include="RabbitMQ.Client" />
+    <PackageReference Include="Microsoft.Agents.AI" Version="1.13.0" />
+    <PackageReference Include="Microsoft.Agents.AI.OpenAI" Version="1.13.0" />
+    <PackageReference Include="MudBlazor" Version="9.7.0" />
+    <PackageReference Include="RabbitMQ.Client" Version="7.2.1" />
   </ItemGroup>
 
   <PropertyGroup>

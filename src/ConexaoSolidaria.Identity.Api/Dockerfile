@@ -3,9 +3,6 @@ WORKDIR /src
 
 # Restore por projeto: copiar TODOS os .csproj referenciados (transitivamente) antes do restore
 # para maximizar o cache de camadas. Identity.Api -> Contracts + ServiceDefaults.
-# Os arquivos da raiz sao obrigatorios: Directory.Packages.props centraliza as versoes (CPM),
-# sem ele os PackageReference ficam sem Version e o restore falha com NU1015.
-COPY ["Directory.Build.props", "Directory.Packages.props", "./"]
 COPY ["src/ConexaoSolidaria.Contracts/ConexaoSolidaria.Contracts.csproj", "src/ConexaoSolidaria.Contracts/"]
 COPY ["src/ConexaoSolidaria.ServiceDefaults/ConexaoSolidaria.ServiceDefaults.csproj", "src/ConexaoSolidaria.ServiceDefaults/"]
 COPY ["src/ConexaoSolidaria.Identity.Api/ConexaoSolidaria.Identity.Api.csproj", "src/ConexaoSolidaria.Identity.Api/"]

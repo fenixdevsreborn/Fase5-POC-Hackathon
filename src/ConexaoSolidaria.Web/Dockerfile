@@ -1,9 +1,6 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-# Os arquivos da raiz sao obrigatorios: Directory.Packages.props centraliza as versoes (CPM),
-# sem ele os PackageReference ficam sem Version e o restore falha com NU1015.
-COPY ["Directory.Build.props", "Directory.Packages.props", "./"]
 COPY ["src/ConexaoSolidaria.ServiceDefaults/ConexaoSolidaria.ServiceDefaults.csproj", "src/ConexaoSolidaria.ServiceDefaults/"]
 COPY ["src/ConexaoSolidaria.Web/ConexaoSolidaria.Web.csproj", "src/ConexaoSolidaria.Web/"]
 RUN dotnet restore "src/ConexaoSolidaria.Web/ConexaoSolidaria.Web.csproj"
