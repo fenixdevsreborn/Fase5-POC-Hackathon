@@ -54,11 +54,21 @@ jobs:
         continue-on-error: true
         run: dotnet format ${{ env.SOLUTION }} --verify-no-changes
 
-      # Scan de vulnerabilidades: report-only. Ha 1 vuln transitiva conhecida
-      # (MessagePack via Aspire no AppHost) que NAO pode falhar o pipeline.
-      - name: Vulnerability scan (report-only)
-        continue-on-error: true
-        run: dotnet list ${{ env.SOLUTION }} package --vulnerable --include-transitive
+      # Scan de vulnerabilidades: BLOQUEANTE. Era report-only por causa de uma vuln
+      # transitiva conhecida (MessagePack via Aspire), que deixou de existir com a remocao
+      # do AppHost (AD-37) — a solution reporta zero pacotes vulneraveis.
+      # Atencao: `dotnet list package --vulnerable` sai com codigo 0 mesmo achando vulns,
+      # entao o grep e quem falha o job. `--include-transitive` cobre o grafo inteiro.
+      - name: Vulnerability scan
+        run: |
+          # pipefail: sem isso, uma falha do `dotnet list` seria mascarada pelo exit 0 do tee.
+          set -o pipefail
+          dotnet list ${{ env.SOLUTION }} package --vulnerable --include-transitive 2>&1 | tee vuln.log
+          if grep -q -E '^\s+>' vuln.log; then
+            echo "::error::Pacotes vulneraveis encontrados (ver log acima)."
+            exit 1
+          fi
+          echo "Nenhum pacote vulneravel."
 
       - name: Build (Release)
         run: dotnet build ${{ env.SOLUTION }} -c Release --no-restore

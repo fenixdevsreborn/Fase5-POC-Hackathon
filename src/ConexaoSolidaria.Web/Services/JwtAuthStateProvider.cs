@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text.Json;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
@@ -40,6 +41,29 @@ public sealed class JwtAuthStateProvider(
         {
             // ProtectedLocalStorage nao disponivel durante prerender (sem circuito JS).
             return Anonymous;
+        }
+        catch (Exception ex) when (ex is CryptographicException or JsonException)
+        {
+            // Payload cifrado por outro key ring do Data Protection (chaves regeneradas,
+            // pasta de keys trocada, outro ApplicationName) ou JSON corrompido. O GetAsync
+            // do ProtectedLocalStorage NAO trata isso: sem este catch a excecao sobe e
+            // derruba o circuito Blazor logo apos conectar. Descarta o valor invalido para
+            // que o proximo load ja comece limpo, em vez de repetir o erro a cada acesso.
+            tokenProvider.Token = null;
+            await TryRemoveStoredTokenAsync();
+            return Anonymous;
+        }
+    }
+
+    private async Task TryRemoveStoredTokenAsync()
+    {
+        try
+        {
+            await storage.DeleteAsync(TokenKey);
+        }
+        catch (InvalidOperationException)
+        {
+            // Sem circuito JS disponivel; o valor invalido cai no proximo acesso interativo.
         }
     }
 

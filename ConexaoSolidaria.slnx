@@ -1,6 +1,5 @@
 <Solution>
   <Folder Name="/src/">
-    <Project Path="src/ConexaoSolidaria.AppHost/ConexaoSolidaria.AppHost.csproj" />
     <Project Path="src/ConexaoSolidaria.Campaigns.Api/ConexaoSolidaria.Campaigns.Api.csproj" />
     <Project Path="src/ConexaoSolidaria.Contracts/ConexaoSolidaria.Contracts.csproj" />
     <Project Path="src/ConexaoSolidaria.Donations.Worker/ConexaoSolidaria.Donations.Worker.csproj" />

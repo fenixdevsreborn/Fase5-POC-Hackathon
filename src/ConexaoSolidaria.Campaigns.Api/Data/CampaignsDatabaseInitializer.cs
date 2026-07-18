@@ -8,7 +8,7 @@ public static class CampaignsDatabaseInitializer
     /// <summary>
     /// Prepara o schema no startup da API. Comportamento controlado por <c>Migrations:RunOnStartup</c>:
     /// <list type="bullet">
-    /// <item>default/"true" (dev, compose, AppHost, testes): a API e DONA do schema e APLICA as
+    /// <item>default/"true" (dev, compose, testes): a API e DONA do schema e APLICA as
     /// migrations (<c>MigrateAsync</c>).</item>
     /// <item>"false" (k8s, onde um Job dedicado roda as migrations com RunMigrationsOnly): a API NAO
     /// migra; apenas AGUARDA o schema ficar pronto (CanConnect + consulta a uma tabela real), igual
@@ -22,7 +22,7 @@ public static class CampaignsDatabaseInitializer
         var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
         var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("CampaignsDatabaseInitializer");
 
-        // Default true: mantem o comportamento atual em dev/compose/AppHost/testes.
+        // Default true: mantem o comportamento atual em dev/compose/testes.
         var runOnStartup = !string.Equals(
             configuration["Migrations:RunOnStartup"],
             "false",

@@ -6,8 +6,8 @@ camadas:
 - **Métricas de negócio, aplicação e mensageria** → `prometheus-net` (`/metrics`) →
   **Prometheus** → **Grafana** (3 dashboards + alertas).
 - **Tracing distribuído (traces/métricas/logs)** → **OpenTelemetry** (OTLP) →
-  **Aspire Dashboard** (dev) ou **OTel Collector** → **Tempo** (traces) + Prometheus
-  (métricas), explorados na aba **Explore** do Grafana (datasource Tempo).
+  **OTel Collector** → **Tempo** (traces) + Prometheus (métricas), explorados na aba
+  **Explore** do Grafana (datasource Tempo).
 - **Disponibilidade / profundidade de fila** → **Zabbix** (template real).
 
 Decisões e trade-offs em `docs/decisoes-arquiteturais.md` (AD-20, AD-21). Operação de
@@ -125,7 +125,7 @@ up{job="identity-api"}
 ```
 
 > No Docker Compose o `gateway` não é um serviço; o target `gateway` aparecerá **DOWN**
-> nesse ambiente (ele existe no Kubernetes/Aspire). O `rabbitmq` só fica UP com o plugin
+> nesse ambiente (ele existe apenas no Kubernetes). O `rabbitmq` só fica UP com o plugin
 > `rabbitmq_prometheus` habilitado.
 
 ## Zabbix (template real)
@@ -154,8 +154,8 @@ fila principal acima de `{$QUEUE.DEPTH.MAX}` por 2min (HIGH) e DLQ `> 0` (HIGH).
 
 ## Tracing distribuído (OpenTelemetry → Tempo)
 
-Todos os serviços instrumentam traces via `ServiceDefaults` (OpenTelemetry). O pipeline
-fora do Aspire é: **serviços (.NET) → OTel Collector → Tempo → Grafana (Explore)**.
+Todos os serviços instrumentam traces via `ServiceDefaults` (OpenTelemetry). O pipeline é:
+**serviços (.NET) → OTel Collector → Tempo → Grafana (Explore)**.
 
 ### Fluxo
 
@@ -204,8 +204,8 @@ span (ex.: filtrar por `service.name`).
 ### Ligando o exporter (envs)
 
 O `AddOpenTelemetryExporters()` do `ServiceDefaults` só liga o exporter OTLP quando
-`OTEL_EXPORTER_OTLP_ENDPOINT` está definido. Sem essa variável, a telemetria OTLP vai
-apenas para o **Aspire Dashboard** local.
+`OTEL_EXPORTER_OTLP_ENDPOINT` está definido. Sem essa variável o exporter simplesmente
+não é registrado — a instrumentação continua ativa, mas nada sai por OTLP.
 
 - **Docker Compose:** já configurado. `identity-api`, `campaigns-api` e `donations-worker`
   recebem `OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317` e
@@ -223,10 +223,6 @@ apenas para o **Aspire Dashboard** local.
   `otel-collector` + `tempo` e a env acima apontando para o Service do collector.
 
 ## Como abrir cada ferramenta
-
-### Dev local (Aspire)
-`dotnet run` no `ConexaoSolidaria.AppHost` sobe o grafo e o **Aspire Dashboard** (traces,
-métricas e logs OTLP), sem configuração extra.
 
 ### Docker Compose
 ```powershell

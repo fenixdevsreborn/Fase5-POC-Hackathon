@@ -45,7 +45,7 @@ spec:
             # B8: o Worker compartilha o CampaignsDbContext com a Campaigns.Api
             # (mesmo bounded context, AD-23). O schema e aplicado pelo Job
             # campaigns-migrations; o Worker NAO migra no boot para nao competir
-            # com a API/replicas pelo MigrateAsync. Default true no Compose/AppHost.
+            # com a API/replicas pelo MigrateAsync. Default true no Compose.
             - name: Migrations__RunOnStartup
               value: "false"
             - name: POSTGRES_PASSWORD

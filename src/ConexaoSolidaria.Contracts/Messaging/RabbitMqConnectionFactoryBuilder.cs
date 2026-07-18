@@ -11,7 +11,7 @@ namespace ConexaoSolidaria.Contracts.Messaging;
 /// <item>docker-compose / k8s: usa os campos discretos de <see cref="RabbitMqOptions"/>
 /// (HostName/Port/UserName/Password), preservando o comportamento atual.</item>
 /// </list>
-/// Isso permite que o mesmo binario rode sob o AppHost do Aspire e sob o compose/k8s sem alteracao de codigo.
+/// Isso permite que o mesmo binario rode sob o compose e sob o k8s sem alteracao de codigo.
 /// </summary>
 public static class RabbitMqConnectionFactoryBuilder
 {

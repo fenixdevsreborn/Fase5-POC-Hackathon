@@ -14,7 +14,7 @@ no próprio bloco.
 
 ## 1. Orquestração e execução
 
-### AD-01 — .NET Aspire para orquestração local
+### AD-01 — .NET Aspire para orquestração local — **SUPERSEDIDA pela AD-37**
 - **Contexto:** a solução tem 5 processos (Identity, Campaigns, Worker, Gateway, Web)
   mais Postgres, RabbitMQ e Elasticsearch. Subir tudo à mão em dev é caro e propenso a erro.
 - **Decisão:** usar **.NET Aspire** (`ConexaoSolidaria.AppHost`) para orquestrar o
@@ -29,6 +29,8 @@ no próprio bloco.
     versão de **MessagePack** com vulnerabilidade reportada. Só afeta o tooling de dev
     (não vai para as imagens de produção), mas a atualização fica **pendente** até o
     Aspire publicar a correção transitiva.
+- **Status:** o custo previsto em "dois caminhos a manter em sincronia" se materializou e a
+  dívida do MessagePack não se resolveu. Substituída pela **AD-37**.
 
 ### AD-02 — ServiceDefaults compartilhado
 - **Contexto:** health checks, OpenTelemetry e resiliência HTTP precisavam ser idênticos
@@ -601,3 +603,56 @@ persona) e `docs/api-reference.md` (contrato HTTP).
   - (−) mais um componente no cluster (Keel) com RBAC de `update` em Deployments do cluster inteiro.
   - Cross-ref: AD-19 (hardening do k8s), AD-28 (Jobs de migração). Detalhes operacionais em
     `ReadmeKubernetes.md` (seções 2, 3, 5 e 10) e `infra/k8s/README.md`.
+
+---
+
+### AD-37 — Remoção do AppHost (.NET Aspire); Kubernetes como ambiente de execução
+- **Contexto:** a AD-01 adotou o Aspire para orquestração local. Com o tempo o projeto passou
+  a ter **três** descrições do mesmo grafo — AppHost, `docker-compose.yml` e os manifestos
+  Kustomize — e só a última descrevia o ambiente real. As duas consequências negativas
+  previstas na AD-01 se confirmaram: o compose divergiu (nunca ganhou `gateway` nem `web`) e
+  a dívida transitiva do **MessagePack** continuou pendente, sem correção publicada.
+- **Decisão:** **remover** `ConexaoSolidaria.AppHost` da solução. O **Kubernetes** (Kustomize)
+  passa a ser o ambiente de execução completo e única fonte de verdade do wiring; o
+  **Docker Compose** fica explicitamente como ambiente parcial (infra + APIs + Worker +
+  observabilidade, sem Gateway nem Web).
+- **Consequências:**
+  - (+) **elimina a dívida de segurança da AD-01**: o MessagePack sai por completo do grafo de
+    dependências e `dotnet list package --vulnerable --include-transitive` passa a reportar
+    zero pacotes vulneráveis na solução inteira.
+  - (+) uma descrição a menos do grafo para manter em sincronia; o que roda em dev é o mesmo
+    artefato que roda no cluster.
+  - (−) **não existe mais um `dotnet run` único que suba tudo.** Exercitar a UI ponta a ponta
+    agora exige build de imagem + deploy no cluster — ciclo de feedback mais lento que o
+    AppHost oferecia. Mitigação: `infra/k8s/up.ps1` automatiza o caminho e já sobe os
+    port-forwards.
+  - (−) some o **Aspire Dashboard** como backend de telemetria de dev; o caminho passa a ser
+    sempre OTel Collector → Tempo/Prometheus → Grafana (AD-29), que já existia para Compose/k8s.
+  - **Não afetado:** o `Microsoft.Extensions.ServiceDiscovery` **permanece**. Apesar de vir no
+    template do Aspire, é um pacote autônomo e está no caminho crítico do Gateway, que resolve
+    os destinos do YARP via `AddServiceDiscoveryDestinationResolver()`.
+  - Cross-ref: AD-01 (supersedida), AD-02 (ServiceDefaults, mantido), AD-29 (OTel Collector +
+    Tempo), AD-36 (Keel/auto-update).
+
+### AD-38 — Data Protection keys do Web em volume persistente
+- **Contexto:** o `ConexaoSolidaria.Web` (Blazor Server) cifra o JWT no `ProtectedLocalStorage`
+  usando o key ring do Data Protection. No k8s esse key ring morava em `/tmp/keys`, sobre um
+  volume **`emptyDir`** — efêmero por definição.
+- **Problema observado:** a cada recriação do pod o key ring nascia do zero, enquanto o browser
+  do usuário seguia com o token cifrado pelo ring anterior. O `Unprotect()` lançava
+  `CryptographicException` dentro de `GetAuthenticationStateAsync`, **derrubando o circuito
+  Blazor logo após conectar** — o usuário via a tela morrer com "unhandled exception on the
+  current circuit", sem caminho de recuperação pela UI (todo reload repetia o erro).
+- **Decisão:** (a) mover o key ring para um **PVC dedicado** (`web-dataprotection-keys`, RWO,
+  montado em `/keys`), com `strategy: Recreate` no Deployment, já que um PVC ReadWriteOnce
+  travaria um rolling update em `Pending`; (b) tratar `CryptographicException`/`JsonException`
+  em `JwtAuthStateProvider`, descartando o valor inválido e caindo para anônimo.
+- **Consequências:**
+  - (+) restart de pod deixa de deslogar os usuários.
+  - (+) defesa em profundidade: mesmo com key ring perdido, a sessão degrada para anônimo em
+    vez de quebrar o circuito.
+  - (−) `Recreate` implica downtime no deploy do Web — aceitável com `replicas: 1`, que já era
+    a configuração por causa dos circuitos SignalR.
+  - (−) o PVC é **ReadWriteOnce**: escalar o Web exige trocá-lo por RWX + sticky sessions no
+    Ingress. Restrição registrada em comentário no próprio `web.yaml`.
+  - Cross-ref: AD-03 (Blazor Interactive Server), AD-19 (hardening do k8s).

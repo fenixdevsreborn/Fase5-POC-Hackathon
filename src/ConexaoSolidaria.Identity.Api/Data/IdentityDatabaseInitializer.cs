@@ -11,7 +11,7 @@ public static class IdentityDatabaseInitializer
         var db = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
         var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("IdentityDatabaseInitializer");
 
-        // B8 - Em dev/compose/AppHost migra no startup (default true). No k8s o Job cuida das migrations
+        // B8 - Em dev/compose migra no startup (default true). No k8s o Job cuida das migrations
         // e o deployment recebe Migrations__RunOnStartup=false: aqui apenas aguardamos o schema antes do seed.
         var runOnStartup = !string.Equals(configuration["Migrations:RunOnStartup"], "false", StringComparison.OrdinalIgnoreCase);
 

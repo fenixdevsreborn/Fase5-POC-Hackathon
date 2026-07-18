@@ -1,3 +1,21 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: web-dataprotection-keys
+  labels:
+    app: web
+    app.kubernetes.io/component: web
+spec:
+  # Key ring do Data Protection que cifra o JWT no ProtectedLocalStorage do browser.
+  # PRECISA sobreviver ao restart do pod: com emptyDir, cada recriacao gerava um key
+  # ring novo e todo token ja emitido virava indecifravel (CryptographicException no
+  # Unprotect ao reconectar o circuito Blazor).
+  # RWO basta enquanto replicas: 1. Para escalar o Web, troque por RWX + sticky sessions.
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 128Mi
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -15,6 +33,11 @@ spec:
   # ProtectedLocalStorage via Data Protection). Escalar exige sticky sessions no
   # Ingress + volume RWX compartilhado das Data Protection keys (ver README).
   replicas: 1
+  # Recreate (e nao RollingUpdate): o PVC das chaves e ReadWriteOnce, entao o pod novo
+  # nao consegue montar o volume enquanto o antigo o segura — um rolling update ficaria
+  # travado em Pending. Com replicas: 1 o downtime ja existia de qualquer forma.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: web
@@ -45,10 +68,11 @@ spec:
           env:
             - name: ASPNETCORE_URLS
               value: http://+:8080
-            # Data Protection keys em volume gravavel. Em replica unica, o emptyDir /tmp
-            # basta. Para escalar o Web, troque por um PVC ReadWriteMany compartilhado.
+            # Data Protection keys em PVC dedicado (ver o PVC acima): precisam PERSISTIR
+            # entre restarts, senao todo JWT ja emitido vira indecifravel. /tmp continua
+            # emptyDir, so para arquivos temporarios (rootfs e read-only).
             - name: DataProtection__KeysPath
-              value: /tmp/keys
+              value: /keys
             # O Web chama "http://gateway" (base address no Program.cs) -> service discovery/DNS.
             # RabbitMQ: o Web consome o fanout de notificacoes (conexao-solidaria.notifications)
             # para empurrar atualizacoes em tempo real via SignalR. Consumer resiliente (fallback = polling).
@@ -103,9 +127,14 @@ spec:
           volumeMounts:
             - name: tmp
               mountPath: /tmp
+            - name: dataprotection-keys
+              mountPath: /keys
       volumes:
         - name: tmp
           emptyDir: {}
+        - name: dataprotection-keys
+          persistentVolumeClaim:
+            claimName: web-dataprotection-keys
 ---
 apiVersion: v1
 kind: Service

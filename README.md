@@ -1,12 +1,17 @@
-# Conexao Solidaria
+<p align="center">
+  <img src="src/ConexaoSolidaria.Web/wwwroot/images/logo/logomarca-horizontal.png"
+       alt="Conexao Solidaria" width="420">
+</p>
 
 <!-- Badge do pipeline de CI. owner/repo deduzidos do git remote (github.com/fenixdevsreborn/Fase5-POC-Hackathon).
      Ao dar fork/mover o repo, ajuste "fenixdevsreborn/Fase5-POC-Hackathon" para "<owner>/<repo>". -->
-[![CI](https://github.com/fenixdevsreborn/Fase5-POC-Hackathon/actions/workflows/ci.yml/badge.svg)](https://github.com/fenixdevsreborn/Fase5-POC-Hackathon/actions/workflows/ci.yml)
+<p align="center">
+  <a href="https://github.com/fenixdevsreborn/Fase5-POC-Hackathon/actions/workflows/ci.yml"><img src="https://github.com/fenixdevsreborn/Fase5-POC-Hackathon/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+</p>
 
 Plataforma social para o desafio do hackathon da ONG Esperanca Solidaria: doacoes processadas de forma **assincrona**, rastreabilidade ponta a ponta e transparencia visual para doadores e gestores. O foco de arquitetura e nunca perder uma doacao (Outbox transacional + mensageria confiavel), processar cada evento **exatamente uma vez** (idempotencia) e dar visibilidade completa (logs, traces, metricas e alertas).
 
-Stack: .NET 10, .NET Aspire 13.2.0, Blazor Web App (MudBlazor), YARP, JWT/RBAC, PostgreSQL, RabbitMQ, Elasticsearch, Docker Desktop, Kubernetes (Kustomize), Grafana, Prometheus, Zabbix e OpenTelemetry.
+Stack: .NET 10, Blazor Web App (MudBlazor), YARP, JWT/RBAC, PostgreSQL, RabbitMQ, Elasticsearch, Docker Desktop, Kubernetes (Kustomize), Grafana, Prometheus, Zabbix e OpenTelemetry.
 
 ## Visao do produto
 
@@ -18,11 +23,10 @@ Detalhamento por persona em [docs/funcionalidades.md](docs/funcionalidades.md) (
 
 ## Arquitetura
 
-Solucao com **9 projetos** de aplicacao/infra + **2 de teste** (`ConexaoSolidaria.slnx`).
+Solucao com **8 projetos** de aplicacao/infra + **2 de teste** (`ConexaoSolidaria.slnx`).
 
 Aplicacao (`src/`):
 
-- `ConexaoSolidaria.AppHost`: orquestrador **.NET Aspire** — sobe todo o ambiente local (bancos, fila, busca e todos os servicos) com um unico comando e expoe o Aspire Dashboard (logs, traces, metricas, health).
 - `ConexaoSolidaria.ServiceDefaults`: configuracao compartilhada de infra — OpenTelemetry (traces/metricas via OTLP), health checks (`/health`, `/alive`), service discovery e resiliencia HTTP.
 - `ConexaoSolidaria.Gateway`: API Gateway **YARP** — ponto unico de entrada. Roteia `/api/auth/*` para a Identity e `/api/campanhas/*` + `/api/doacoes/*` para a Campaigns via service discovery; injeta `X-Correlation-Id`; aplica **rate limiting** (auth 10/min, donation 30/min, global 100/min); adiciona security headers + HSTS; expoe `/metrics`.
 - `ConexaoSolidaria.Web`: interface **Blazor Web App (Interactive Server)** com MudBlazor — experiencia publica, area do doador e painel do gestor. Fala apenas com o Gateway. Auth via JWT em `ProtectedLocalStorage` + `AuthenticationStateProvider` custom; Data Protection keys persistidas (multi-replica). Consome o fanout `conexao-solidaria.notifications` via `NotificationConsumer` (BackgroundService resiliente, fila anonima) e empurra as atualizacoes para a UI por `NotificationDispatcher` (tempo real sobre o circuito SignalR do Blazor Server).
@@ -91,26 +95,17 @@ Endpoints expostos via Gateway. Versionamento por header `x-api-version` (ou que
 
 ## Pre-requisitos
 
-- SDK **.NET 10** (o AppHost usa o SDK do Aspire, restaurado via NuGet).
-- **Docker Desktop** (o AppHost e o Docker Compose provisionam os containers de infra).
+- SDK **.NET 10**.
+- **Docker Desktop** (o Docker Compose provisiona os containers de infra e o build das imagens).
 - `kubectl` (e, opcionalmente, o Kubernetes do Docker Desktop) para o deploy em cluster.
 
-## Subir com AppHost (recomendado)
+## Como subir
 
-Experiencia principal de desenvolvimento — sobe **tudo** (Postgres, RabbitMQ, Elasticsearch, as 3 APIs, o Worker, o Gateway e a interface Blazor) com um comando:
+O **Kubernetes** e o ambiente de execucao completo do projeto: e o unico caminho que sobe a stack inteira, incluindo o Gateway e a interface Blazor. Comece por [Kubernetes com Kustomize](#kubernetes-com-kustomize) — na pratica, `pwsh infra/k8s/up.ps1`.
 
-```powershell
-dotnet run --project src/ConexaoSolidaria.AppHost
-```
+O **Docker Compose** cobre um subconjunto: infra (Postgres, RabbitMQ, Elasticsearch), as duas APIs, o Worker e toda a observabilidade em portas fixas. **Nao inclui `gateway` nem `web`** — serve para trabalhar no backend e nos dashboards, nao para exercitar a UI. Ver [Docker Compose](#docker-compose-backend--observabilidade).
 
-O console imprime a URL do **Aspire Dashboard** (ex.: `https://localhost:17276`), onde ficam recursos, logs, traces, metricas, health e os links/portas de cada servico (portas atribuidas dinamicamente). Abra o recurso `web` para a interface e `gateway` para a API unificada.
-
-Segredos locais: o AppHost gera automaticamente as senhas de Postgres/RabbitMQ e usa defaults de desenvolvimento para `jwt-secret` e `seed-manager-password` (em `src/ConexaoSolidaria.AppHost/appsettings.Development.json`). Para uso real, sobrescreva via user-secrets:
-
-```powershell
-dotnet user-secrets set "Parameters:jwt-secret" "<segredo-com-ao-menos-64-caracteres>" --project src/ConexaoSolidaria.AppHost
-dotnet user-secrets set "Parameters:seed-manager-password" "<senha-forte-do-gestor-seed>" --project src/ConexaoSolidaria.AppHost
-```
+> Versoes anteriores subiam tudo localmente via `ConexaoSolidaria.AppHost` (.NET Aspire). O AppHost foi **removido** do projeto: o deploy real e Kubernetes, e manter um orquestrador paralelo so para dev duplicava o wiring. Consequencia pratica: nao ha mais um `dotnet run` unico que suba o grafo inteiro. Ver `AD-01`.
 
 ## Kubernetes com Kustomize
 
@@ -181,9 +176,9 @@ kubectl logs -n keel deploy/keel -f
 
 > O `docker login` usa `--password-stdin` lendo `$env:DOCKERHUB_TOKEN`; o token não é gravado em disco. Os repositórios são públicos, então o Keel puxa sem credenciais. Para outro usuário/registry, use `-User` em `push-dockerhub.ps1` e ajuste o bloco `images:` do overlay.
 
-## Docker Compose (alternativa)
+## Docker Compose (backend + observabilidade)
 
-Caminho alternativo ao AppHost, util para reproduzir o ambiente completo com Grafana/Prometheus/Zabbix em portas fixas:
+Sobe infra, as duas APIs, o Worker e a stack de observabilidade (Grafana/Prometheus/Zabbix) em portas fixas. **Nao inclui `gateway` nem `web`**: para exercitar a interface Blazor ou o roteamento do Gateway, use o Kubernetes.
 
 ```powershell
 Copy-Item .env.example .env   # preencha os segredos antes de subir
@@ -211,7 +206,7 @@ Usuario gestor criado no seed:
 
 ## Interface web (Blazor)
 
-Rotas da aplicacao `ConexaoSolidaria.Web` (abra pelo recurso `web` no Aspire Dashboard ou pelo Ingress):
+Rotas da aplicacao `ConexaoSolidaria.Web` (abra pelo Ingress ou pelo port-forward `18088`):
 
 - Publico: `/` (landing), `/campanhas`, `/campanhas/{id}`, `/transparencia`
 - Conta: `/entrar`, `/cadastrar`
@@ -223,7 +218,7 @@ Rotas da aplicacao `ConexaoSolidaria.Web` (abra pelo recurso `web` no Aspire Das
 
 Telemetria end-to-end com correlacao por `X-Correlation-Id` e propagacao de `traceparent` ate o Worker.
 
-- **OpenTelemetry**: instrumentacao via `ServiceDefaults`, exportando traces/metricas por OTLP. Local: Aspire Dashboard. Compose/k8s: **OTel Collector** (`infra/otel/`) roteia os traces para o **Tempo** (`infra/tempo/`, datasource no Grafana) e as metricas para o Prometheus.
+- **OpenTelemetry**: instrumentacao via `ServiceDefaults`, exportando traces/metricas por OTLP para o **OTel Collector** (`infra/otel/`), que roteia os traces para o **Tempo** (`infra/tempo/`, datasource no Grafana) e as metricas para o Prometheus. Sem `OTEL_EXPORTER_OTLP_ENDPOINT` configurado, o exportador simplesmente nao e registrado.
 - **Tracing distribuido**: traces correlacionados app -> OTel Collector -> Tempo, exploraveis na aba Explore do Grafana (datasource `Tempo`), com `traceparent` propagado ate o Worker.
 - **Prometheus + prometheus-net**: endpoint `/metrics` em todos os servicos (incluindo o Gateway); Prometheus faz scrape. Metricas custom de negocio/mensageria: `conexao_donations_processed_total`, `conexao_donations_rejected_total`, `conexao_donation_publish_total`, `conexao_donation_publish_failures_total`, `conexao_outbox_pending_messages`, `conexao_donation_processing_duration_seconds`, `conexao_dead_letter_messages`.
 - **Grafana**: dashboards provisionados em `infra/grafana/dashboards/` (`negocio.json`, `aplicacao.json`, `mensageria.json`) e alertas em `infra/grafana/provisioning/alerting/` (DLQ > 0, Outbox > 20 por 2 min, 5xx).
@@ -236,7 +231,7 @@ Telemetria end-to-end com correlacao por `X-Correlation-Id` e propagacao de `tra
 dotnet test ConexaoSolidaria.slnx
 ```
 
-- `tests/ConexaoSolidaria.Tests`: **23 testes unitarios** (regras de dominio + persistencia EF com SQLite in-memory).
+- `tests/ConexaoSolidaria.Tests`: **46 testes unitarios** (regras de dominio + persistencia EF com SQLite in-memory).
 - `tests/ConexaoSolidaria.IntegrationTests`: **12 testes de integracao** com **Testcontainers** (Postgres + RabbitMQ reais): identity, campaigns, outbox, fluxo assincrono completo, idempotencia por `EventId` e por `Idempotency-Key`, e populacao do read model `campaign_stats`.
 
 ## Padroes e decisoes
@@ -256,7 +251,7 @@ Resumo (detalhes e trade-offs em [docs/decisoes-arquiteturais.md](docs/decisoes-
 - **API versioning** por header `x-api-version` (default `1.0`) nas APIs.
 - **Value Object `Cpf`** com validacao e mascara.
 
-Detalhes e trade-offs em [docs/decisoes-arquiteturais.md](docs/decisoes-arquiteturais.md) (AD-01..AD-24) e catalogo de funcionalidades em [docs/funcionalidades.md](docs/funcionalidades.md).
+Detalhes e trade-offs em [docs/decisoes-arquiteturais.md](docs/decisoes-arquiteturais.md) (AD-01..AD-38) e catalogo de funcionalidades em [docs/funcionalidades.md](docs/funcionalidades.md).
 
 ## Matriz de rastreabilidade
 
@@ -273,9 +268,8 @@ Detalhes e trade-offs em [docs/decisoes-arquiteturais.md](docs/decisoes-arquitet
 | Notificacao em tempo real | fanout `conexao-solidaria.notifications` + `NotificationConsumer` (SignalR) |
 | Interface web (doador + gestor) | `ConexaoSolidaria.Web` (Blazor + MudBlazor) |
 | Observabilidade (logs/traces/metricas/alertas) | OTel + OTel Collector + Tempo + Prometheus + Grafana + Zabbix |
-| Orquestracao local | `AppHost` (.NET Aspire) |
 | Deploy em Kubernetes | Kustomize `infra/k8s/` (base + overlay local); deploy validado ao vivo |
-| Testes automatizados | `tests/` (23 unit + 12 integracao Testcontainers) |
+| Testes automatizados | `tests/` (46 unit + 12 integracao Testcontainers) |
 | Seguranca de segredos | `.env.example`, `SECURITY.md`, Secret via example no k8s |
 
 ## Seguranca

@@ -44,7 +44,7 @@ spec:
               value: http://+:8080
             # B8: o schema e aplicado pelo Job campaigns-migrations ANTES do deploy.
             # Aqui a app NAO migra no boot (evita corrida de MigrateAsync entre replicas),
-            # apenas aguarda o schema ja existir. No Compose/AppHost o default e true.
+            # apenas aguarda o schema ja existir. No Compose o default e true.
             - name: Migrations__RunOnStartup
               value: "false"
             - name: POSTGRES_PASSWORD

@@ -1,6 +1,6 @@
 # Arquitetura
 
-Conexao Solidaria e um conjunto de servicos .NET 10 (9 projetos de app/infra + 2 de teste) orquestrados por **.NET Aspire**, com entrada unica por um Gateway YARP e processamento **assincrono** de doacoes via Outbox + RabbitMQ, read model (CQRS leve) e notificacoes em tempo real. Esta pagina descreve os componentes, os fluxos assincrono e de notificacao, o modelo de dados e a observabilidade.
+Conexao Solidaria e um conjunto de servicos .NET 10 (8 projetos de app/infra + 2 de teste) implantados em **Kubernetes** (Kustomize), com entrada unica por um Gateway YARP e processamento **assincrono** de doacoes via Outbox + RabbitMQ, read model (CQRS leve) e notificacoes em tempo real. Esta pagina descreve os componentes, os fluxos assincrono e de notificacao, o modelo de dados e a observabilidade.
 
 ## Componentes
 
@@ -36,7 +36,6 @@ flowchart TB
     end
 
     subgraph Transversal
-        AH["AppHost (Aspire)<br/>orquestra tudo"]
         SD["ServiceDefaults<br/>OTel, /health, /alive,<br/>service discovery, resiliencia"]
     end
 
@@ -48,7 +47,6 @@ flowchart TB
 
 ## Responsabilidades
 
-- **AppHost (.NET Aspire)**: orquestra o ambiente local completo (bancos, fila, busca e servicos) com um comando e expoe o Aspire Dashboard (logs, traces, metricas, health).
 - **ServiceDefaults**: OpenTelemetry (traces/metricas via OTLP), health checks `/health` e `/alive`, service discovery e resiliencia HTTP — referenciado por todos os servicos.
 - **Gateway (YARP)**: ponto unico de entrada. Roteia `/api/auth/*` para a Identity e `/api/campanhas/*` + `/api/doacoes/*` para a Campaigns via service discovery; injeta `X-Correlation-Id`; aplica rate limiting (auth 10/min, donation 30/min, global 100/min); adiciona security headers + HSTS; expoe `/metrics`.
 - **Web (Blazor Server + MudBlazor)**: UI publica, area do doador e painel do gestor. Fala apenas com o Gateway. Auth via JWT em `ProtectedLocalStorage` + `AuthenticationStateProvider` custom; Data Protection keys persistidas (multi-replica). Consome o fanout `conexao-solidaria.notifications` (`NotificationConsumer`, fila anonima) e empurra as atualizacoes para a UI via `NotificationDispatcher` (tempo real sobre o circuito SignalR); o **polling** em `GET /api/doacoes/{id}` funciona como fallback.
@@ -100,7 +98,7 @@ O schema e criado e evoluido por **EF Core Migrations** (`InitialCreate` + `AddP
 
 ## Observabilidade
 
-- **Traces/metricas** via OpenTelemetry (ServiceDefaults) exportados por OTLP. Local: Aspire Dashboard. Compose/k8s: **OTel Collector** (`infra/otel/`) roteia traces para o **Tempo** (`infra/tempo/`) e metricas para o Prometheus.
+- **Traces/metricas** via OpenTelemetry (ServiceDefaults) exportados por OTLP para o **OTel Collector** (`infra/otel/`), que roteia traces para o **Tempo** (`infra/tempo/`) e metricas para o Prometheus.
 - **Tracing distribuido**: traces correlacionados app -> OTel Collector -> Tempo, exploraveis na aba Explore do Grafana (datasource `Tempo`, API em `:3200`), com `traceparent` propagado ate o Worker (incluindo o salto pela fila).
 - **`/metrics`** (prometheus-net) em todos os servicos, incluindo o Gateway; Prometheus faz scrape (5s). Alem das metricas HTTP e de runtime (.NET/processo), ha metricas custom de negocio/mensageria: `conexao_donations_processed_total`, `conexao_donations_rejected_total`, `conexao_donation_publish_total`, `conexao_donation_publish_failures_total`, `conexao_outbox_pending_messages`, `conexao_donation_processing_duration_seconds`, `conexao_dead_letter_messages` e as de valor/campanha `conexao_donation_amount_brl_total`, `conexao_donations_by_campaign_total{campanha}`, `conexao_donation_amount_by_campaign_brl_total{campanha}`.
 - **RabbitMQ** expoe metricas nativas do broker em `:15692` (plugin `rabbitmq_prometheus`): fila `ready`/`unacked`, consumidores. Prometheus tambem coleta `up` e `scrape_duration_seconds` (saude rodando/parado).
