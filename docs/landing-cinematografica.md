@@ -250,18 +250,22 @@ aprovação → quadros-chave → aprovação → clipes.
 Sequência em canvas (não `video.currentTime`, instável no Safari/iOS).
 
 ```bash
-# ~31s de clipes, reamostrados a 10 fps -> ~310 quadros
-ffmpeg -i clipe-1.mp4 -vf "fps=10,scale=1440:-2" -q:v 6 desktop/frame-%04d.webp
-ffmpeg -i clipe-1.mp4 -vf "fps=10,scale=720:-2"  -q:v 4 mobile/frame-%04d.webp
+# ~31s de clipes na taxa NATIVA de 24 fps -> 744 quadros (acima de 24 o ffmpeg só
+# duplica quadros). Numeração GLOBAL contínua (144/168/144/144/144 por clipe):
+# -start_number = 1, 145, 313, 457, 601.
+ffmpeg -i clipe-1.mp4 -vf "scale=1280:-2" -frames:v 144 -c:v libwebp -quality 50 -compression_level 6 -preset photo -start_number 1 desktop/frame-%04d.webp
+ffmpeg -i clipe-1.mp4 -vf "scale=640:-2"  -frames:v 144 -c:v libwebp -quality 48 -compression_level 6 -preset photo -start_number 1 mobile/frame-%04d.webp
 ```
 
-| Alvo | Largura | Por quadro | Total (~310) |
+| Alvo | Largura | Por quadro | Total (744) |
 | --- | --- | --- | --- |
-| Desktop | 1440 px q6 | ~65 KB | **~20 MB** |
-| Mobile | 720 px q4 | ~20 KB | **~6 MB** |
+| Desktop | 1280 px q50 | ~24 KB | **~17,3 MB** |
+| Mobile | 640 px q48 | ~10 KB | **~7,0 MB** |
 
-**Carregamento progressivo obrigatório:** o segmento do clipe 1 (~60 quadros) bloqueia a
-revelação da hero; o resto carrega em background. Destino: `wwwroot/cinematic/{desktop,mobile}/`,
+**Carregamento progressivo obrigatório:** o segmento do clipe 1 (144 quadros) bloqueia a
+revelação da hero; o resto carrega em background. Só os blobs comprimidos ficam todos em
+memória — a decodificação em ImageBitmap acontece numa janela de ±24 quadros ao redor do
+quadro atual (`cinematic.js`), senão os 744 bitmaps somariam ~2,7 GB. Destino: `wwwroot/cinematic/{desktop,mobile}/`,
 servido **sem fingerprint** (os quadros são carregados por JS, fora do `@Assets[...]`).
 MP4 fonte em `assets/cinematic/source/` (fora de `wwwroot`).
 

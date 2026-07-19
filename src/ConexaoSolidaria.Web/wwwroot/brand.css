@@ -242,6 +242,22 @@ html.cine-over-stage .cs-site-header .cs-nav-link {
     pointer-events: none;
 }
 
+/* Variante sem cartao: mantem o cabecalho, remove superficie, moldura e ornamentos.
+   Seletor duplicado de proposito: precisa vencer a regra mobile de .cs-page-header, declarada adiante. */
+.cs-page-header.cs-page-header--plain {
+    padding: 8px 0 0;
+    margin-bottom: 28px;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+}
+
+.cs-page-header.cs-page-header--plain::before,
+.cs-page-header.cs-page-header--plain::after {
+    content: none;
+}
+
 .cs-page-header__content {
     flex: 1 1 auto;
     min-width: 0;

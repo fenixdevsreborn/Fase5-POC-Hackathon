@@ -6,14 +6,21 @@
 // Decisões de performance (o que fazia a cena travar/pular):
 //  - ImageBitmap via createImageBitmap(): decodifica FORA da main thread. Com <img> o
 //    decode acontecia no primeiro drawImage, travando o scroll.
+//  - JANELA de decodificação: só a vizinhança do quadro atual vive como ImageBitmap;
+//    o resto fica como blob comprimido (~24 KB). Manter os 744 bitmaps decodificados
+//    custaria ~2,7 GB (1280×720×4 bytes cada) — era o que degradava o scroll assim
+//    que o carregamento em background terminava.
+//  - Canvas limitado à resolução nativa dos quadros: acima disso o drawImage só paga
+//    upscale mais caro sem ganhar nitidez (o compositor estica o resto via CSS).
 //  - Desenho num loop de rAF, só quando o índice muda — o onUpdate do ScrollTrigger
 //    dispara muito mais vezes que a taxa de quadros útil.
 //  - Lenis com `lerp` (resposta proporcional) em vez de `duration` (que arrastava).
 
-// 20 fps: a 10 fps cada quadro saltava 0,1s de vídeo e a rolagem parecia stop-motion.
-const FPS = 20;
-// Quadros por clipe (6s, 7s, 6s, 6s, 6s a 20 fps), acumulados. Numeração global 0001..0620.
-const SEGMENTS = [120, 260, 380, 500, 620];
+// 24 fps = taxa nativa dos MP4 fonte: todo quadro único do vídeo entra na sequência.
+// Acima disso o ffmpeg só duplicaria quadros — mesma imagem, mais peso.
+const FPS = 24;
+// Quadros por clipe (6s, 7s, 6s, 6s, 6s a 24 fps), acumulados. Numeração global 0001..0744.
+const SEGMENTS = [144, 312, 456, 600, 744];
 const TOTAL_FRAMES = SEGMENTS[SEGMENTS.length - 1];
 
 let loadedLibs = null;
@@ -77,20 +84,54 @@ export async function init(stageId) {
     const ctx = canvas.getContext('2d', { alpha: false });
     const dir = Math.min(window.innerWidth, window.innerHeight * 1.78) <= 900 ? 'mobile' : 'desktop';
 
-    // ---- Carregamento dos quadros (ImageBitmap: decode fora da main thread) -------------
+    // ---- Carregamento dos quadros --------------------------------------------------------
+    // Duas camadas: `blobs` (todos os quadros, comprimidos) e `frames` (ImageBitmaps só na
+    // janela ao redor do quadro atual). A decodificação segue fora da main thread.
+    const state = { progress: 0 };
+    const currentIndex = () =>
+        Math.max(0, Math.min(TOTAL_FRAMES - 1, Math.round(state.progress * (TOTAL_FRAMES - 1))));
+
+    const blobs = new Array(TOTAL_FRAMES).fill(null);
     const frames = new Array(TOTAL_FRAMES).fill(null);
+    const decoding = new Set();
+    // ±24 quadros = ±1 s de cena decodificada (~180 MB no pior caso, desktop).
+    const WINDOW = 24;
     let disposed = false;
 
     async function loadFrame(i) {
-        if (disposed || frames[i]) return;
+        if (disposed || blobs[i]) return;
         try {
             const url = `cinematic/${dir}/frame-${String(i + 1).padStart(4, '0')}.webp`;
             const res = await fetch(url);
             if (!res.ok) return;
-            const bmp = await createImageBitmap(await res.blob());
-            if (disposed) { bmp.close?.(); return; }
-            frames[i] = bmp;
+            const blob = await res.blob();
+            if (disposed) return;
+            blobs[i] = blob;
+            if (Math.abs(i - currentIndex()) <= WINDOW) void decodeFrame(i);
         } catch { /* quadro faltando não trava a cena */ }
+    }
+
+    async function decodeFrame(i) {
+        if (disposed || frames[i] || !blobs[i] || decoding.has(i)) return;
+        decoding.add(i);
+        try {
+            const bmp = await createImageBitmap(blobs[i]);
+            // Num scrub rápido a janela pode ter passado longe enquanto decodificava.
+            if (disposed || Math.abs(i - currentIndex()) > WINDOW * 2) { bmp.close?.(); return; }
+            frames[i] = bmp;
+        } catch { /* decode falhou: o nearestReady cobre com o vizinho */ }
+        finally { decoding.delete(i); }
+    }
+
+    // Decodifica a vizinhança do quadro atual e devolve o resto ao estado de blob.
+    let lastCenter = -1;
+    function syncWindow(center) {
+        if (lastCenter >= 0 && Math.abs(center - lastCenter) < 4) return;
+        lastCenter = center;
+        for (let i = 0; i < TOTAL_FRAMES; i++) {
+            if (Math.abs(i - center) <= WINDOW) void decodeFrame(i);
+            else if (frames[i]) { frames[i].close?.(); frames[i] = null; }
+        }
     }
 
     async function loadRange(from, to, chunk) {
@@ -101,8 +142,10 @@ export async function init(stageId) {
         }
     }
 
-    // O primeiro clipe bloqueia a revelação da hero; o resto entra em background.
+    // O primeiro clipe bloqueia a revelação da hero (blobs + janela inicial decodificada);
+    // o resto entra em background.
     await loadRange(0, SEGMENTS[0], 12);
+    await Promise.all(Array.from({ length: WINDOW + 1 }, (_, i) => decodeFrame(i)));
     stage.classList.add('cine-ready');
     const backgroundLoad = loadRange(SEGMENTS[0], TOTAL_FRAMES, 8);
 
@@ -111,8 +154,12 @@ export async function init(stageId) {
 
     function resize() {
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
-        canvas.width = Math.round(canvas.clientWidth * dpr);
-        canvas.height = Math.round(canvas.clientHeight * dpr);
+        // Teto = largura nativa dos quadros: um backing store maior só encarece cada
+        // drawImage (telas 2K/4K chegavam a 4× mais pixels que a fonte tem).
+        const maxW = dir === 'desktop' ? 1280 : 640;
+        const fit = Math.min(1, maxW / Math.max(1, canvas.clientWidth * dpr));
+        canvas.width = Math.round(canvas.clientWidth * dpr * fit);
+        canvas.height = Math.round(canvas.clientHeight * dpr * fit);
         lastDrawn = -1;               // força repintura no novo tamanho
         drawIndex(currentIndex());
     }
@@ -137,10 +184,6 @@ export async function init(stageId) {
         ctx.drawImage(bmp, (cw - w) / 2, (ch - h) / 2, w, h);
         lastDrawn = idx;
     }
-
-    const state = { progress: 0 };
-    const currentIndex = () =>
-        Math.max(0, Math.min(TOTAL_FRAMES - 1, Math.round(state.progress * (TOTAL_FRAMES - 1))));
 
     window.addEventListener('resize', resize);
     resize();
@@ -182,7 +225,9 @@ export async function init(stageId) {
     let rafId = 0;
     function tick() {
         if (disposed) return;
-        drawIndex(currentIndex());
+        const idx = currentIndex();
+        syncWindow(idx);
+        drawIndex(idx);
         updateLayers(state.progress);
         rafId = requestAnimationFrame(tick);
     }
@@ -270,6 +315,8 @@ export async function init(stageId) {
             ScrollTrigger.getAll().forEach(t => t.kill());
             frames.forEach(b => b?.close?.());   // libera a memória dos bitmaps
             frames.fill(null);
+            blobs.fill(null);
+            decoding.clear();
             wrap.classList.remove('is-live');
             stage.classList.remove('cine-ready');
             document.documentElement.classList.remove('cine-page', 'cine-over-stage');
