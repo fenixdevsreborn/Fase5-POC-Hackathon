@@ -1,7 +1,6 @@
 @page "/gestor"
 @using System.Globalization
 @using ConexaoSolidaria.Web.Components.Dashboard
-@using ConexaoSolidaria.Web.Components.Campaigns
 @inject ApiClient Api
 @inject NavigationManager Nav
 @inject IDialogService DialogService
@@ -23,7 +22,7 @@
                 <MudButton Variant="Variant.Filled"
                            Color="Color.Primary"
                            StartIcon="@Icons.Material.Filled.AddCircle"
-                           OnClick="AbrirNovaCampanhaAsync">
+                           Href="/gestor/campanhas/nova">
                     Nova campanha
                 </MudButton>
             </div>
@@ -46,7 +45,7 @@
                 <span class="cs-empty-state__icon"><MudIcon Icon="@Icons.Material.Filled.Campaign" Size="Size.Large" /></span>
                 <h2>Sua primeira campanha começa aqui</h2>
                 <p>Crie uma causa, defina uma meta transparente e comece a mobilizar sua comunidade.</p>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.AddCircle" OnClick="AbrirNovaCampanhaAsync">Criar campanha</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.AddCircle" Href="/gestor/campanhas/nova">Criar campanha</MudButton>
             </div></section>
         }
         else
@@ -193,20 +192,6 @@
     private decimal _mediaPorAtiva;
 
     protected override async Task OnInitializedAsync() => await CarregarAsync();
-
-    // Abre o seletor de modo de criacao (manual / IA / planilha). Cada opcao leva
-    // para /gestor/campanhas/nova com ?modo=, focando o metodo escolhido.
-    private Task AbrirNovaCampanhaAsync()
-    {
-        var opcoes = new DialogOptions
-        {
-            MaxWidth = MaxWidth.ExtraSmall,
-            FullWidth = true,
-            CloseButton = true,
-            BackdropClick = true,
-        };
-        return DialogService.ShowAsync<CriarCampanhaDialog>("Nova campanha", opcoes);
-    }
 
     private async Task CarregarAsync()
     {

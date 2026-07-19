@@ -14,7 +14,7 @@
             {
                 <div class="cs-chat__welcome">
                     <div class="cs-chat__welcome-avatar">
-                        <MudIcon Icon="@Icons.Material.Filled.SmartToy" />
+                        <MudIcon Icon="@Icons.Material.Filled.SupportAgent" />
                     </div>
                     <h3>Ola! Sou o Assistente Solidario</h3>
                     <p>Posso buscar campanhas, mostrar quanto cada uma arrecadou e consultar suas doacoes.</p>
@@ -38,7 +38,7 @@
                 var doUsuario = msg.Role == "user";
                 <div class="cs-msg @(doUsuario ? "cs-msg--user" : "cs-msg--bot")">
                     <div class="cs-msg__avatar">
-                        <MudIcon Icon="@(doUsuario ? Icons.Material.Filled.Person : Icons.Material.Filled.SmartToy)" Size="Size.Small" />
+                        <MudIcon Icon="@(doUsuario ? Icons.Material.Filled.Person : Icons.Material.Filled.SupportAgent)" Size="Size.Small" />
                     </div>
                     @if (!doUsuario && string.IsNullOrEmpty(msg.Text) && Chat.Ocupado)
                     {

@@ -1,0 +1,58 @@
+@* Modal com o formulario de campanha: usado tanto para adicionar um novo item a lista
+   quanto para editar um item ja adicionado. A validacao de titulo duplicado fica no pai
+   (delegate Validar), que conhece a lista atual; aqui so exibimos o erro e mantemos aberto. *@
+
+<MudDialog>
+    <TitleContent>
+        <div class="camp-form-dlg__title">
+            <span class="camp-form-dlg__title-ico"><MudIcon Icon="@Icon" /></span>
+            <div>
+                <h2>@Heading</h2>
+                <p>Capriche no título e na descrição — são eles que conectam sua causa aos doadores.</p>
+            </div>
+        </div>
+    </TitleContent>
+    <DialogContent>
+        <CampaignForm Model="Model"
+                      SubmitLabel="@SubmitLabel"
+                      SubmitIcon="@SubmitIcon"
+                      CancelHref=""
+                      OnSubmit="OnFormSubmitAsync"
+                      ErrorMessage="@_erro" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancelar">Cancelar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    /// <summary>Valores iniciais do formulario (vazio para novo item, o item para edicao).</summary>
+    [Parameter, EditorRequired] public SalvarCampanha Model { get; set; } = default!;
+
+    [Parameter] public string Heading { get; set; } = "Nova campanha";
+    [Parameter] public string SubmitLabel { get; set; } = "Adicionar à lista";
+    [Parameter] public string SubmitIcon { get; set; } = Icons.Material.Filled.PlaylistAdd;
+    [Parameter] public string Icon { get; set; } = Icons.Material.Rounded.DriveFileRenameOutline;
+
+    /// <summary>Validacao extra do pai (ex.: titulo duplicado na lista). Retorna a mensagem de erro ou null.</summary>
+    [Parameter] public Func<SalvarCampanha, string?>? Validar { get; set; }
+
+    private string? _erro;
+
+    private Task OnFormSubmitAsync(SalvarCampanha dto)
+    {
+        var erro = Validar?.Invoke(dto);
+        if (erro is not null)
+        {
+            _erro = erro;
+            return Task.CompletedTask;
+        }
+
+        MudDialog.Close(DialogResult.Ok(dto));
+        return Task.CompletedTask;
+    }
+
+    private void Cancelar() => MudDialog.Cancel();
+}

@@ -1,13 +1,14 @@
-/* Chat do Assistente Solidário — estilo Index (dark glassmorphism, iluminação suave, botão de digitação de destaque) */
+/* Chat do Assistente Solidário — interior claro e acolhedor (fundo suave, bolhas leves,
+   sotaques da marca em azul/laranja para dar calor sem pesar). */
 
 .cs-chat {
     height: 100%;
     min-height: 0;
     background:
-        radial-gradient(circle at 10% 0%, rgba(18, 107, 243, 0.18), transparent 45%),
-        radial-gradient(circle at 90% 100%, rgba(244, 104, 8, 0.14), transparent 45%),
-        #071b3f;
-    color: #f6f9ff;
+        radial-gradient(circle at 12% 0%, rgba(18, 107, 243, 0.07), transparent 42%),
+        radial-gradient(circle at 88% 100%, rgba(244, 104, 8, 0.06), transparent 42%),
+        #f4f7fd;
+    color: #1d2b48;
 }
 
 .cs-chat__scroll {
@@ -15,7 +16,7 @@
     overflow-y: auto;
     min-height: 0;
     scrollbar-width: thin;
-    scrollbar-color: rgba(99, 164, 255, 0.3) transparent;
+    scrollbar-color: rgba(18, 107, 243, 0.28) transparent;
     scroll-behavior: smooth;
 }
 
@@ -34,23 +35,25 @@
 }
 
 .cs-chat__welcome-avatar {
-    width: 56px;
-    height: 56px;
+    width: 60px;
+    height: 60px;
     margin: 0 auto 14px;
     display: grid;
     place-items: center;
     border-radius: 50%;
     color: #fff;
-    background: linear-gradient(135deg, #126bf3, #075de4);
-    box-shadow: 0 10px 28px rgba(18, 107, 243, 0.45);
+    background: linear-gradient(135deg, #2f95ff, #1268e6);
+    box-shadow: 0 12px 26px rgba(18, 107, 243, 0.32);
     animation: cs-chat-bob 3.4s ease-in-out infinite;
 }
+
+.cs-chat__welcome-avatar ::deep .mud-icon-root { font-size: 2rem; }
 
 .cs-chat__welcome h3 {
     margin: 0 0 6px;
     font-size: 1.1rem;
     font-weight: 800;
-    color: #f8fbff;
+    color: #14284d;
     letter-spacing: -0.02em;
 }
 
@@ -59,7 +62,7 @@
     max-width: 320px;
     font-size: 0.85rem;
     line-height: 1.55;
-    color: rgba(233, 241, 255, 0.75);
+    color: #5b6b88;
 }
 
 .cs-chat__suggestions {
@@ -75,27 +78,27 @@
     gap: 12px;
     width: 100%;
     padding: 12px 16px;
-    border: 1px solid rgba(99, 164, 255, 0.22);
+    border: 1px solid rgba(18, 107, 243, 0.16);
     border-radius: 14px;
-    background: rgba(12, 35, 75, 0.7);
-    backdrop-filter: blur(8px);
-    color: #e9f1ff;
+    background: #ffffff;
+    color: #22355c;
     font-size: 0.86rem;
     font-weight: 600;
     text-align: left;
     cursor: pointer;
+    box-shadow: 0 4px 14px rgba(20, 40, 77, 0.06);
     transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease, background .2s ease;
 }
 
 .cs-chat__suggestion:hover {
     transform: translateY(-2px);
-    background: rgba(18, 55, 115, 0.9);
-    border-color: rgba(99, 164, 255, 0.45);
-    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+    background: #f7faff;
+    border-color: rgba(18, 107, 243, 0.4);
+    box-shadow: 0 10px 22px rgba(18, 107, 243, 0.14);
 }
 
 .cs-chat__suggestion ::deep .mud-icon-root {
-    color: #63a4ff;
+    color: #1268e6;
     font-size: 1.2rem;
 }
 
@@ -121,11 +124,11 @@
     border-radius: 50%;
     color: #fff;
     font-size: 0.95rem;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+    box-shadow: 0 4px 12px rgba(20, 40, 77, 0.18);
 }
 
 .cs-msg--bot .cs-msg__avatar {
-    background: linear-gradient(135deg, #126bf3, #075de4);
+    background: linear-gradient(135deg, #2f95ff, #1268e6);
 }
 
 .cs-msg--user .cs-msg__avatar {
@@ -140,27 +143,27 @@
     line-height: 1.55;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+    box-shadow: 0 4px 14px rgba(20, 40, 77, 0.08);
 }
 
 .cs-msg--bot .cs-msg__bubble {
-    background: rgba(12, 35, 75, 0.85);
-    border: 1px solid rgba(99, 164, 255, 0.25);
-    color: #f6f9ff;
+    background: #ffffff;
+    border: 1px solid rgba(18, 107, 243, 0.14);
+    color: #1d2b48;
     border-bottom-left-radius: 4px;
 }
 
 .cs-msg--user .cs-msg__bubble {
-    background: linear-gradient(135deg, #126bf3, #075de4);
+    background: linear-gradient(135deg, #2f95ff, #1268e6);
     color: #ffffff;
     border-bottom-right-radius: 4px;
-    box-shadow: 0 8px 24px rgba(18, 107, 243, 0.35);
+    box-shadow: 0 8px 20px rgba(18, 107, 243, 0.28);
 }
 
 .cs-msg__bubble--error {
-    background: rgba(120, 20, 20, 0.85) !important;
-    border-color: rgba(255, 100, 100, 0.4) !important;
-    color: #ffe6e6 !important;
+    background: #fff1f1 !important;
+    border: 1px solid rgba(220, 60, 60, 0.35) !important;
+    color: #b42318 !important;
 }
 
 /* Indicador "digitando" */
@@ -175,7 +178,7 @@
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: #63a4ff;
+    background: #1268e6;
     animation: cs-typing-bounce 1.2s infinite ease-in-out;
 }
 
@@ -188,31 +191,30 @@
     align-items: center;
     gap: 10px;
     padding: 14px 16px;
-    border-top: 1px solid rgba(99, 164, 255, 0.2);
-    background: rgba(7, 27, 63, 0.95);
-    backdrop-filter: blur(12px);
+    border-top: 1px solid rgba(18, 107, 243, 0.12);
+    background: #ffffff;
 }
 
 .cs-chat__composer ::deep .mud-input-control {
-    background: rgba(12, 35, 75, 0.85);
-    border: 1px solid rgba(99, 164, 255, 0.28);
+    background: #f2f6fd;
+    border: 1px solid rgba(18, 107, 243, 0.18);
     border-radius: 16px;
     padding: 6px 16px;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .cs-chat__composer ::deep .mud-input-control:focus-within {
-    border-color: #63a4ff;
-    box-shadow: 0 0 0 3px rgba(99, 164, 255, 0.2);
+    border-color: #1268e6;
+    box-shadow: 0 0 0 3px rgba(18, 107, 243, 0.15);
 }
 
 .cs-chat__composer ::deep .mud-input-slot {
     font-size: 0.94rem;
-    color: #f8fbff;
+    color: #1d2b48;
 }
 
 .cs-chat__composer ::deep input::placeholder {
-    color: rgba(233, 241, 255, 0.55);
+    color: #8494b0;
 }
 
 .cs-chat__send {
@@ -226,7 +228,7 @@
     color: #ffffff;
     cursor: pointer;
     background: linear-gradient(135deg, #ff9c3f, #f36c09);
-    box-shadow: 0 8px 24px rgba(243, 108, 9, 0.4);
+    box-shadow: 0 8px 20px rgba(243, 108, 9, 0.35);
     transition: transform .2s ease, opacity .2s ease, box-shadow .2s ease;
 }
 
@@ -236,11 +238,11 @@
 
 .cs-chat__send:hover:not(:disabled) {
     transform: translateY(-2px) scale(1.05);
-    box-shadow: 0 12px 28px rgba(243, 108, 9, 0.55);
+    box-shadow: 0 12px 26px rgba(243, 108, 9, 0.5);
 }
 
 .cs-chat__send:disabled {
-    opacity: 0.38;
+    opacity: 0.4;
     cursor: not-allowed;
     box-shadow: none;
 }

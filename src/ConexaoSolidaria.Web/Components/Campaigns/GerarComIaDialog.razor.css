@@ -1,0 +1,17 @@
+.ia-dlg__title { display: flex; align-items: center; gap: 13px; }
+
+.ia-dlg__title-ico {
+    flex: 0 0 auto;
+    width: 42px;
+    height: 42px;
+    display: grid;
+    place-items: center;
+    border-radius: 12px;
+    color: #fff;
+    box-shadow: 0 8px 18px rgba(18, 50, 91, 0.22);
+}
+
+.ia-dlg__title--violet .ia-dlg__title-ico { background: linear-gradient(145deg, #7b2ff7, #2584ff); }
+.ia-dlg__title-ico ::deep .mud-icon-root { font-size: 1.35rem; }
+.ia-dlg__title h2 { margin: 0; font-size: 1.15rem; font-weight: 800; color: #0b2350; }
+.ia-dlg__title p { margin: 2px 0 0; font-size: 0.82rem; color: #6a7891; line-height: 1.45; }

@@ -1,0 +1,112 @@
+@* Modal "Criar com IA": descreve a ideia, escolhe quantas campanhas e recebe rascunhos.
+   Ao concluir, devolve a lista de campanhas geradas para o pai adicionar ao lote. *@
+@using ConexaoSolidaria.Web.Services.Ai
+@inject CampaignDraftService Rascunho
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <div class="ia-dlg__title ia-dlg__title--violet">
+            <span class="ia-dlg__title-ico"><MudIcon Icon="@Icons.Material.Rounded.AutoAwesome" /></span>
+            <div>
+                <h2>Criar com IA</h2>
+                <p>Descreva a ideia e receba rascunhos prontos para revisar.</p>
+            </div>
+        </div>
+    </TitleContent>
+    <DialogContent>
+        <MudTextField T="string"
+                      @bind-Value="_ideia"
+                      Label="Sua ideia"
+                      Placeholder="Ex.: arrecadar ração e vacinas para um abrigo com 40 cães resgatados"
+                      Lines="3"
+                      Variant="Variant.Outlined"
+                      Margin="Margin.Dense"
+                      Immediate="true"
+                      Disabled="_gerando" />
+
+        <MudNumericField T="int"
+                         @bind-Value="_quantidade"
+                         Label="Quantas campanhas"
+                         Min="1"
+                         Max="@CampaignDraftService.MaximoPorGeracao"
+                         Variant="Variant.Outlined"
+                         Margin="Margin.Dense"
+                         Class="mt-3"
+                         Disabled="_gerando" />
+
+        <MudText Typo="Typo.caption" Class="mt-2 d-block" Style="color:#6a7891;">
+            As campanhas geradas entram na lista abaixo; revise e ajuste cada uma antes de salvar.
+        </MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancelar" Disabled="_gerando">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Rounded.AutoAwesome"
+                   OnClick="GerarAsync"
+                   Disabled="@(_gerando || string.IsNullOrWhiteSpace(_ideia))">
+            @if (_gerando)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                <span>Gerando...</span>
+            }
+            else
+            {
+                <span>@(_quantidade > 1 ? "Gerar rascunhos" : "Gerar rascunho")</span>
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private string _ideia = string.Empty;
+    private int _quantidade = 3;
+    private bool _gerando;
+
+    private async Task GerarAsync()
+    {
+        _gerando = true;
+        try
+        {
+            var campanhas = new List<SalvarCampanha>();
+
+            if (_quantidade <= 1)
+            {
+                var resultado = await Rascunho.GerarAsync(_ideia);
+                if (resultado is null)
+                {
+                    Snackbar.Add("Não foi possível gerar o rascunho agora. Tente novamente.", Severity.Warning);
+                    return;
+                }
+
+                campanhas.Add(resultado.Campanha);
+                if (!string.IsNullOrWhiteSpace(resultado.Justificativa))
+                {
+                    Snackbar.Add($"Meta sugerida: {resultado.Justificativa}", Severity.Info);
+                }
+            }
+            else
+            {
+                var gerados = await Rascunho.GerarVariasAsync(_ideia, _quantidade);
+                if (gerados.Count == 0)
+                {
+                    Snackbar.Add("Não foi possível gerar os rascunhos agora. Tente novamente.", Severity.Warning);
+                    return;
+                }
+
+                campanhas.AddRange(gerados.Select(item => item.Campanha));
+            }
+
+            MudDialog.Close(DialogResult.Ok<IReadOnlyList<SalvarCampanha>>(campanhas));
+        }
+        finally
+        {
+            _gerando = false;
+        }
+    }
+
+    private void Cancelar() => MudDialog.Cancel();
+}

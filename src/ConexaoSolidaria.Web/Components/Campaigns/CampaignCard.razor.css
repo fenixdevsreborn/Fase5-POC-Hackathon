@@ -8,6 +8,7 @@
     overflow: hidden;
     box-shadow: 0 6px 20px rgba(11, 59, 96, 0.06);
     transition: box-shadow 0.25s ease, transform 0.25s ease, border-color 0.25s ease;
+    animation: cs-card-enter .55s cubic-bezier(.22, 1, .36, 1) both;
 }
 
 .cs-card:hover {

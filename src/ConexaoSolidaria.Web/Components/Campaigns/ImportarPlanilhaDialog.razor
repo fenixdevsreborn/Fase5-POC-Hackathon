@@ -1,0 +1,146 @@
+@* Modal "Importar planilha": le um Excel/CSV, mostra o resumo e os erros de linha e,
+   ao confirmar, devolve as campanhas validas para o pai adicionar ao lote. *@
+@using ConexaoSolidaria.Web.Services.Import
+@inject CampaignImportService Importacao
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <div class="ia-dlg__title ia-dlg__title--teal">
+            <span class="ia-dlg__title-ico"><MudIcon Icon="@Icons.Material.Rounded.TableChart" /></span>
+            <div>
+                <h2>Importar planilha</h2>
+                <p>Traga várias campanhas de um Excel ou CSV.</p>
+            </div>
+        </div>
+    </TitleContent>
+    <DialogContent>
+        <div class="import-dlg__acoes">
+            <MudFileUpload T="IBrowserFile"
+                           Accept=".xlsx,.csv"
+                           FilesChanged="ImportarAsync"
+                           MaximumFileCount="1"
+                           Context="planilha">
+                <CustomContent>
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.UploadFile"
+                               OnClick="@planilha.OpenFilePickerAsync"
+                               Disabled="_importando">
+                        @if (_importando)
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                            <span>Lendo...</span>
+                        }
+                        else
+                        {
+                            <span>Escolher arquivo</span>
+                        }
+                    </MudButton>
+                </CustomContent>
+            </MudFileUpload>
+
+            <MudButton Variant="Variant.Text"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Download"
+                       Href="/modelo-campanhas.xlsx">
+                Baixar modelo
+            </MudButton>
+        </div>
+
+        @if (_lido)
+        {
+            @if (_campanhas.Count > 0)
+            {
+                <MudAlert Severity="Severity.Success" Dense="true" Class="mt-3">
+                    @_campanhas.Count campanha(s) válida(s) prontas para adicionar à lista.
+                </MudAlert>
+            }
+
+            @if (_erros.Count > 0)
+            {
+                <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-3">
+                    <strong>Linhas não importadas:</strong>
+                    <ul class="import-dlg__erros">
+                        @foreach (var erro in _erros.Take(6))
+                        {
+                            <li>@(erro.Linha > 0 ? $"Linha {erro.Linha}: " : "")@erro.Motivo</li>
+                        }
+                    </ul>
+                    @if (_erros.Count > 6)
+                    {
+                        <span>...e mais @(_erros.Count - 6).</span>
+                    }
+                </MudAlert>
+            }
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancelar" Disabled="_importando">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.PlaylistAdd"
+                   OnClick="Adicionar"
+                   Disabled="@(_importando || _campanhas.Count == 0)">
+            Adicionar @_campanhas.Count à lista
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private IReadOnlyList<SalvarCampanha> _campanhas = Array.Empty<SalvarCampanha>();
+    private IReadOnlyList<ImportacaoErro> _erros = Array.Empty<ImportacaoErro>();
+    private bool _importando;
+    private bool _lido;
+
+    private async Task ImportarAsync(IBrowserFile? arquivo)
+    {
+        if (arquivo is null)
+        {
+            return;
+        }
+
+        _importando = true;
+        _erros = Array.Empty<ImportacaoErro>();
+        _campanhas = Array.Empty<SalvarCampanha>();
+        _lido = false;
+
+        try
+        {
+            // 10 MB cobre com folga uma planilha de 200 linhas.
+            await using var conteudo = arquivo.OpenReadStream(10 * 1024 * 1024);
+            var resultado = await Importacao.LerAsync(conteudo, arquivo.Name);
+
+            _campanhas = resultado.Campanhas;
+            _erros = resultado.Erros;
+            _lido = true;
+
+            if (_campanhas.Count == 0)
+            {
+                Snackbar.Add("Nenhuma campanha válida foi encontrada no arquivo.", Severity.Warning);
+            }
+        }
+        catch (IOException)
+        {
+            Snackbar.Add("Arquivo muito grande. O limite é 10 MB.", Severity.Warning);
+        }
+        finally
+        {
+            _importando = false;
+        }
+    }
+
+    private void Adicionar()
+    {
+        if (_campanhas.Count == 0)
+        {
+            return;
+        }
+
+        MudDialog.Close(DialogResult.Ok(_campanhas));
+    }
+
+    private void Cancelar() => MudDialog.Cancel();
+}
